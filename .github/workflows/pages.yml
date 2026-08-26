@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -23,19 +23,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Skip stale push runs
+        id: freshness
+        shell: bash
+        run: |
+          current="$(git rev-parse HEAD)"
+          latest="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          echo "event commit: ${current}"
+          echo "latest main:  ${latest}"
+          if [[ "${current}" == "${latest}" ]]; then
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "deploy=false" >> "${GITHUB_OUTPUT}"
+            echo "This run is stale; validation and deployment are skipped."
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.freshness.outputs.deploy == 'true'
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
-      - run: npm test
+
+      - name: Install dependencies
+        if: steps.freshness.outputs.deploy == 'true'
+        run: npm install --no-audit --no-fund
+
+      - name: Validate and prepare site
+        if: steps.freshness.outputs.deploy == 'true'
+        run: npm test
+
       - uses: actions/configure-pages@v5
+        if: steps.freshness.outputs.deploy == 'true'
+
       - uses: actions/upload-pages-artifact@v4
+        if: steps.freshness.outputs.deploy == 'true'
         with:
           path: docs
+
       - name: Deploy
+        if: steps.freshness.outputs.deploy == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
+
       - name: Smoke test published pages
+        if: steps.freshness.outputs.deploy == 'true'
         shell: bash
         run: |
           base="${{ steps.deployment.outputs.page_url }}"
