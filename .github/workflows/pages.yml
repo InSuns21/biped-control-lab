@@ -1,0 +1,47 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Smoke test published pages
+        shell: bash
+        run: |
+          base="${{ steps.deployment.outputs.page_url }}"
+          base="${base%/}/"
+          for path in "" "labs/01-open-loop/" "labs/02-pid-balance/" "labs/03-support-polygon/" "labs/04-lipm-walking/"; do
+            url="${base}${path}"
+            echo "Checking ${url}"
+            curl --fail --location --retry 6 --retry-delay 5 --retry-all-errors "${url}" >/dev/null
+          done

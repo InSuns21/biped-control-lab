@@ -1,0 +1,17 @@
+const canvas=document.querySelector("#sim"),ctx=canvas.getContext("2d"),mode=document.querySelector("#mode");
+const feet={left:[[-150,-75],[-50,-75],[-50,85],[-150,85]],right:[[50,-75],[150,-75],[150,85],[50,85]]};
+let com={x:0,y:0},drag=false;
+function cross(o,a,b){return(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);}
+function hull(points){const p=[...points].sort((a,b)=>a[0]-b[0]||a[1]-b[1]);if(p.length<=1)return p;const lo=[],up=[];for(const q of p){while(lo.length>=2&&cross(lo.at(-2),lo.at(-1),q)<=0)lo.pop();lo.push(q);}for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>=2&&cross(up.at(-2),up.at(-1),q)<=0)up.pop();up.push(q);}lo.pop();up.pop();return lo.concat(up);}
+function polygon(){if(mode.value==="left")return feet.left;if(mode.value==="right")return feet.right;return hull(feet.left.concat(feet.right));}
+function inside(pt,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if(((a[1]>pt.y)!=(b[1]>pt.y))&&(pt.x<(b[0]-a[0])*(pt.y-a[1])/(b[1]-a[1])+a[0]))c=!c;}return c;}
+const toCanvas=([x,y])=>[canvas.width/2+x,canvas.height/2+y];
+const toWorld=(x,y)=>({x:x-canvas.width/2,y:y-canvas.height/2});
+function drawPoly(poly,fill,stroke){ctx.beginPath();poly.forEach((p,i)=>{const [x,y]=toCanvas(p);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+function draw(){const css=getComputedStyle(document.documentElement),accent=css.getPropertyValue("--accent").trim(),danger=css.getPropertyValue("--danger").trim(),ok=css.getPropertyValue("--ok").trim(),muted=css.getPropertyValue("--muted").trim(),text=css.getPropertyValue("--text").trim();ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.strokeStyle=muted;ctx.lineWidth=1;for(let x=80;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}for(let y=20;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+const support=polygon();drawPoly(support,"rgba(80,150,255,.15)",accent);drawPoly(feet.left,"rgba(100,100,100,.15)",muted);drawPoly(feet.right,"rgba(100,100,100,.15)",muted);
+const stable=inside(com,support),[cx,cy]=toCanvas([com.x,com.y]);ctx.strokeStyle=text;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-14,cy);ctx.lineTo(cx+14,cy);ctx.moveTo(cx,cy-14);ctx.lineTo(cx,cy+14);ctx.stroke();ctx.fillStyle=stable?ok:danger;ctx.beginPath();ctx.arc(cx,cy,9,0,Math.PI*2);ctx.fill();ctx.fillStyle=text;ctx.font="16px system-ui";ctx.fillText("COM投影",cx+16,cy-12);
+document.querySelector("#xMetric").textContent=`${(com.x/500).toFixed(2)} m`;document.querySelector("#yMetric").textContent=`${(com.y/500).toFixed(2)} m`;document.querySelector("#modeMetric").textContent=mode.options[mode.selectedIndex].text;const s=document.querySelector("#statusMetric");s.textContent=stable?"支持多角形内":"支持多角形外";s.className=stable?"status-ok":"status-danger";}
+function pointer(e){const r=canvas.getBoundingClientRect();return toWorld((e.clientX-r.left)*canvas.width/r.width,(e.clientY-r.top)*canvas.height/r.height);}
+canvas.addEventListener("pointerdown",e=>{drag=true;canvas.setPointerCapture(e.pointerId);com=pointer(e);draw();});canvas.addEventListener("pointermove",e=>{if(drag){com=pointer(e);draw();}});canvas.addEventListener("pointerup",()=>drag=false);mode.addEventListener("change",draw);document.querySelector("#center").addEventListener("click",()=>{com={x:0,y:0};draw();});draw();

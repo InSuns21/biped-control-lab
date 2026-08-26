@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Lab 2 PD制御 | Biped Control Lab</title><link rel="stylesheet" href="../../css/site.css"></head>
+<body><main class="lab-shell">
+<a class="back-link" href="../../#03">← 理論: PID / PDへ</a><h1>Lab 2 — PD制御で立たせる</h1>
+<p class="lead">角度と角速度をフィードバックし、不安定な倒立振子を安定化します。トルク上限も入っています。</p>
+<div class="lab-layout"><section><canvas id="sim" width="760" height="500"></canvas></section><aside class="controls">
+<div class="control"><label for="kp">Kp <output id="kpOut"></output></label><input id="kp" type="range" min="0" max="260" value="160" step="2"></div>
+<div class="control"><label for="kd">Kd <output id="kdOut"></output></label><input id="kd" type="range" min="0" max="80" value="35" step="1"></div>
+<div class="control"><label for="limit">トルク上限 <output id="limitOut"></output></label><input id="limit" type="range" min="10" max="160" value="80" step="2"></div>
+<div class="button-row"><button id="reset">リセット</button><button id="push">押す +</button><button id="pushBack">押す −</button></div>
+<div class="metrics"><div class="metric"><span>θ</span><strong id="thetaMetric">-</strong></div><div class="metric"><span>θ̇</span><strong id="omegaMetric">-</strong></div><div class="metric"><span>u</span><strong id="torqueMetric">-</strong></div><div class="metric"><span>状態</span><strong id="statusMetric">-</strong></div></div>
+<p><code>u = -Kp θ - Kd θ̇</code></p>
+</aside></div>
+<section class="panel"><h2>試すこと</h2><p>まず Kp=Kd=0。次に Kp だけを上げ、その後 Kd を追加してください。Kp があっても D が弱いと振動しやすいこと、さらにトルク上限が小さいと大外乱から戻れないことが見えます。</p></section>
+<script type="module" src="./sim.js"></script></main></body></html>

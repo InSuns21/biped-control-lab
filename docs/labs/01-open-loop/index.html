@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 1 無制御倒立振子 | Biped Control Lab</title>
+  <link rel="stylesheet" href="../../css/site.css">
+</head>
+<body><main class="lab-shell">
+<a class="back-link" href="../../#02">← 理論: 倒立振子へ</a>
+<h1>Lab 1 — 無制御倒立振子</h1>
+<p class="lead">制御入力を一切入れず、直立点の誤差が自然に増幅される様子を観察します。</p>
+<div class="lab-layout">
+  <section><canvas id="sim" width="760" height="500" aria-label="無制御倒立振子シミュレーション"></canvas></section>
+  <aside class="controls">
+    <div class="control"><label for="angle">初期角度 <output id="angleOut"></output></label><input id="angle" type="range" min="0.2" max="12" value="3" step="0.2"></div>
+    <div class="control"><label for="length">振子長 l <output id="lengthOut"></output></label><input id="length" type="range" min="0.4" max="1.4" value="0.9" step="0.05"></div>
+    <div class="button-row"><button id="reset">リセット</button><button id="pause">一時停止</button></div>
+    <div class="metrics">
+      <div class="metric"><span>角度 θ</span><strong id="thetaMetric">-</strong></div>
+      <div class="metric"><span>角速度</span><strong id="omegaMetric">-</strong></div>
+      <div class="metric"><span>経過時間</span><strong id="timeMetric">-</strong></div>
+      <div class="metric"><span>状態</span><strong id="statusMetric">-</strong></div>
+    </div>
+    <p>モデル: <code>θ¨ = (g/l) sin θ</code></p>
+  </aside>
+</div>
+<section class="panel"><h2>観察ポイント</h2><p>振子長を短くすると <code>g/l</code> が大きくなり、同じ初期角度でも速く倒れます。小角度では誤差はおおむね指数的に増幅します。</p></section>
+<script type="module" src="./sim.js"></script>
+</main></body></html>
