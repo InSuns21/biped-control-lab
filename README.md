@@ -50,7 +50,7 @@ CI では以下を検査します。
 
 ## GitHub Pages
 
-`.github/workflows/pages.yml` は `docs/` をそのまま GitHub Pages にデプロイします。新規リポジトリ作成後、Repository Settings → Pages → Source を **GitHub Actions** に設定してください。
+`.github/workflows/pages.yml` が `docs/` を GitHub Pages にデプロイします。公開サイトは上記URLから確認できます。
 
 ## モデル化上の注意
 
