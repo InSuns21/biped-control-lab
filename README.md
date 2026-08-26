@@ -4,7 +4,7 @@
 
 第1版では、いきなり多関節ヒューマノイドへ行かず、制御の本質が見える 2D 簡略モデルに絞ります。
 
-公開サイト: https://insuns21.github.io/biped-control-lab/
+公開サイト: [https://insuns21.github.io/biped-control-lab/](https://insuns21.github.io/biped-control-lab/)
 
 ## 第1版の学習経路
 
