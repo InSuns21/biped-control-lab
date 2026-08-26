@@ -1,12 +1,4 @@
-const chapters = [
-  ["01", "なぜ二足立位は難しいのか", "01_why_biped_is_hard.md"],
-  ["02", "倒立振子", "02_inverted_pendulum.md"],
-  ["03", "PID / PDフィードバック", "03_pid_feedback.md"],
-  ["04", "状態空間と状態フィードバック", "04_state_space.md"],
-  ["05", "LQR", "05_lqr.md"],
-  ["06", "支持多角形とZMP", "06_zmp_support_polygon.md"],
-  ["07", "LIPMとステップ制御", "07_lipm_step_control.md"]
-];
+import { chapters, resolveContentReference } from "./routes.js";
 
 const nav = document.querySelector("#theory-nav");
 const content = document.querySelector("#content");
@@ -89,8 +81,8 @@ function render(md, baseUrl = null) {
     for (const node of content.querySelectorAll("a[href], img[src]")) {
       const attr = node.hasAttribute("href") ? "href" : "src";
       const value = node.getAttribute(attr);
-      if (value && !value.startsWith("#") && !/^[a-z]+:/i.test(value)) {
-        node.setAttribute(attr, new URL(value, baseUrl).href);
+      if (value) {
+        node.setAttribute(attr, resolveContentReference(value, baseUrl));
       }
     }
   }
