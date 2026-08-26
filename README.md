@@ -25,9 +25,11 @@
 
 ## ローカル起動
 
-静的サイトなので、`docs/` を HTTP サーバーで配信すれば動きます。
+依存関係を取得してテストすると、公開用の Marked / KaTeX が `docs/vendor/` に生成されます。
 
 ```bash
+npm install
+npm test
 python -m http.server 8000 -d docs
 ```
 
@@ -35,22 +37,18 @@ python -m http.server 8000 -d docs
 
 ## 品質チェック
 
-```bash
-npm install
-npm test
-```
+`npm test` では以下を検査します。
 
-CI では以下を検査します。
-
+- 公開用 Marked / KaTeX アセットの生成
 - JavaScript 構文
-- Markdown lint
+- 制御モデル回帰テスト
 - KaTeX 数式構文
-- ローカル静的サイトのリンク切れ
-- GitHub Pages 用 artifact の生成
+- Markdown lint
+- ローカルリンクと公開アセットの存在
 
 ## GitHub Pages
 
-`.github/workflows/pages.yml` が `docs/` を GitHub Pages にデプロイします。公開サイトは上記URLから確認できます。
+`.github/workflows/pages.yml` は `npm test` で公開アセットを生成・検証した後、`docs/` を GitHub Pages にデプロイします。Repository Settings → Pages → Source は **GitHub Actions** を使用します。
 
 ## モデル化上の注意
 

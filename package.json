@@ -4,15 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prepare:web": "node scripts/prepare-web.mjs",
     "check:js": "node scripts/check-js.mjs",
     "check:math": "node scripts/validate-math.mjs",
     "check:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
     "check:links": "node scripts/check-links.mjs",
-    "test": "npm run check:js && npm run check:models && npm run check:math && npm run check:md && npm run check:links",
-    "check:models": "node scripts/check-models.mjs"
+    "check:models": "node scripts/check-models.mjs",
+    "test": "npm run prepare:web && npm run check:js && npm run check:models && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
+    "marked": "16.4.2",
     "markdownlint-cli2": "0.23.2"
   }
 }

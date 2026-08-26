@@ -42,28 +42,49 @@ function homeMarkdown() {
 `;
 }
 
-async function loadChapter() {
-  const key = location.hash.replace(/^#/, "");
-  if (!key) {
-    render(homeMarkdown());
-    return;
+function assertRuntimeDependencies() {
+  if (!globalThis.marked || typeof globalThis.marked.parse !== "function") {
+    throw new Error("Markdown renderer (Marked) failed to load");
   }
-  const chapter = chapters.find(([id]) => id === key);
-  if (!chapter) {
-    render("# 404\n\n指定された章はありません。[トップへ](./)");
-    return;
-  }
-  try {
-    const response = await fetch(`./theory/${chapter[2]}`);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    render(await response.text(), new URL(`./theory/${chapter[2]}`, location.href));
-  } catch (error) {
-    content.innerHTML = `<h1>読み込みエラー</h1><p>${String(error)}</p>`;
+  if (typeof globalThis.renderMathInElement !== "function") {
+    throw new Error("Math renderer (KaTeX auto-render) failed to load");
   }
 }
 
+async function loadChapter() {
+  try {
+    assertRuntimeDependencies();
+    const key = location.hash.replace(/^#/, "");
+    if (!key) {
+      render(homeMarkdown());
+      return;
+    }
+    const chapter = chapters.find(([id]) => id === key);
+    if (!chapter) {
+      render("# 404\n\n指定された章はありません。[トップへ](./)");
+      return;
+    }
+    const response = await fetch(`./theory/${chapter[2]}`);
+    if (!response.ok) throw new Error(`Chapter fetch failed: HTTP ${response.status}`);
+    render(await response.text(), new URL(`./theory/${chapter[2]}`, location.href));
+  } catch (error) {
+    console.error(error);
+    content.innerHTML = `<h1>読み込みエラー</h1><p>${escapeHtml(String(error))}</p><p>ページを再読み込みしても直らない場合は、公開アセットの生成・配信を確認してください。</p>`;
+  }
+}
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
 function render(md, baseUrl = null) {
-  content.innerHTML = marked.parse(md, { gfm: true });
+  content.innerHTML = globalThis.marked.parse(md, { gfm: true });
   if (baseUrl) {
     for (const node of content.querySelectorAll("a[href], img[src]")) {
       const attr = node.hasAttribute("href") ? "href" : "src";
@@ -73,7 +94,7 @@ function render(md, baseUrl = null) {
       }
     }
   }
-  renderMathInElement(content, {
+  globalThis.renderMathInElement(content, {
     delimiters: [
       { left: "$$", right: "$$", display: true },
       { left: "$", right: "$", display: false }
