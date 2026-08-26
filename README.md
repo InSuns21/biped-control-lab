@@ -40,6 +40,7 @@ python -m http.server 8000 -d docs
 `npm test` では以下を検査します。
 
 - 公開用 Marked / KaTeX アセットの生成
+- vendored Marked の `marked.parse()` 実行時スモークテスト
 - JavaScript 構文
 - 制御モデル回帰テスト
 - KaTeX 数式構文
@@ -49,6 +50,8 @@ python -m http.server 8000 -d docs
 ## GitHub Pages
 
 `.github/workflows/pages.yml` は `npm test` で公開アセットを生成・検証した後、`docs/` を GitHub Pages にデプロイします。Repository Settings → Pages → Source は **GitHub Actions** を使用します。
+
+公開ページは Marked / KaTeX を外部CDNから直接読むのではなく、CIで `docs/vendor/` に生成した固定アセットを配信します。
 
 ## モデル化上の注意
 
