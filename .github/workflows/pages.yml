@@ -71,7 +71,20 @@ jobs:
         run: |
           base="${{ steps.deployment.outputs.page_url }}"
           base="${base%/}/"
-          for path in "" "labs/01-open-loop/" "labs/02-pid-balance/" "labs/03-support-polygon/" "labs/04-lipm-walking/"; do
+
+          paths=(
+            ""
+            "labs/01-open-loop/"
+            "labs/02-pid-balance/"
+            "labs/03-support-polygon/"
+            "labs/04-lipm-walking/"
+          )
+
+          while IFS= read -r file; do
+            paths+=("${file#docs/}")
+          done < <(find docs/theory docs/assets/diagrams -type f \( -name '*.md' -o -name '*.svg' \) -print | sort)
+
+          for path in "${paths[@]}"; do
             url="${base}${path}"
             echo "Checking ${url}"
             curl --fail --location --retry 6 --retry-delay 5 --retry-all-errors "${url}" >/dev/null
