@@ -1,23 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="350" viewBox="0 0 960 350" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="370" viewBox="0 0 960 370" role="img" aria-labelledby="title desc">
 <title id="title">LQRのQとRのトレードオフ</title>
-<desc id="desc">左に状態誤差への罰則Q、右に制御入力への罰則Rを置き、そのバランスから最適ゲインKを求めるLQRの考え方を示す。</desc>
+<desc id="desc">状態誤差への罰則Qと制御入力への罰則Rのバランスから、最適な状態フィードバックゲインを求める考え方。</desc>
 <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#155eef"/></marker></defs>
-<rect width="960" height="350" rx="18" fill="#ffffff"/>
-<text x="480" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="25" font-weight="700" fill="#1b2430">LQR：姿勢誤差とモータ頑張り度の折り合いを最適化</text>
-<rect x="70" y="90" width="280" height="120" rx="16" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
-<text x="210" y="126" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">状態誤差の罰則 Q</text>
-<text x="210" y="164" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#155eef">xᵀQx</text>
-<text x="210" y="194" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#5e6b78">大きいほど「すぐ戻せ」</text>
-<rect x="610" y="90" width="280" height="120" rx="16" fill="#fff8e8" stroke="#d89b16" stroke-width="3"/>
-<text x="750" y="126" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">入力の罰則 R</text>
-<text x="750" y="164" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#a66b00">uᵀRu</text>
-<text x="750" y="194" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#5e6b78">大きいほど「乱暴に動かすな」</text>
-<circle cx="480" cy="150" r="68" fill="#ffffff" stroke="#155eef" stroke-width="4"/>
-<text x="480" y="143" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="#1b2430">最小化</text>
-<text x="480" y="176" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" fill="#155eef">J = ∫(…)dt</text>
-<line x1="350" y1="150" x2="401" y2="150" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<line x1="610" y1="150" x2="559" y2="150" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<line x1="480" y1="218" x2="480" y2="268" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<rect x="338" y="272" width="284" height="54" rx="12" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
-<text x="480" y="306" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" fill="#1b2430">最適ゲイン K → u = −Kx</text>
+<rect width="960" height="370" rx="18" fill="#ffffff"/>
+<text x="480" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">LQR：姿勢誤差と制御入力の折り合いを最適化</text>
+<rect x="65" y="94" width="285" height="135" rx="16" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
+<text x="208" y="130" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">状態誤差の罰則 Q</text>
+<text x="208" y="166" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" fill="#155eef">状態コスト：x^T Q x</text>
+<text x="208" y="197" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">Q を大きくするほど</text>
+<text x="208" y="219" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">「姿勢を早く戻せ」</text>
+<rect x="610" y="94" width="285" height="135" rx="16" fill="#fff8e8" stroke="#d89b16" stroke-width="3"/>
+<text x="753" y="130" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">入力の罰則 R</text>
+<text x="753" y="166" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" fill="#a66b00">入力コスト：u^T R u</text>
+<text x="753" y="197" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">R を大きくするほど</text>
+<text x="753" y="219" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">「モータを乱暴に使うな」</text>
+<circle cx="480" cy="162" r="72" fill="#ffffff" stroke="#155eef" stroke-width="4"/>
+<text x="480" y="153" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">評価 J を</text>
+<text x="480" y="181" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">最小化</text>
+<line x1="350" y1="162" x2="397" y2="162" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="610" y1="162" x2="563" y2="162" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="480" y1="234" x2="480" y2="283" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<rect x="335" y="288" width="290" height="56" rx="12" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="480" y="323" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" fill="#1b2430">最適ゲイン K → u = −Kx</text>
 </svg>

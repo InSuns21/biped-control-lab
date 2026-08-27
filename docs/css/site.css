@@ -43,6 +43,7 @@ a { color: var(--accent); }
 .content blockquote { margin-left: 0; padding: .2rem 1rem; border-left: 4px solid var(--accent); color: var(--muted); }
 .content img { display: block; width: min(100%, 960px); height: auto; margin: 1.4rem auto .55rem; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
 .content img + p { margin-top: .35rem; color: var(--muted); font-size: .94rem; }
+.content .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .2rem 0; }
 .content code { background: var(--code); padding: .1em .32em; border-radius: 4px; }
 .content pre { overflow: auto; background: var(--code); padding: 1rem; border-radius: 10px; }
 .content pre code { padding: 0; }

@@ -75,8 +75,33 @@ function escapeHtml(value) {
   })[char]);
 }
 
+function protectMath(md) {
+  const formulas = [];
+  const stash = (value) => {
+    const token = `BIPEDMATHTOKEN${formulas.length}END`;
+    formulas.push(value);
+    return token;
+  };
+
+  let protectedMd = md.replace(/\$\$[\s\S]*?\$\$/g, (value) => stash(value));
+  protectedMd = protectedMd.replace(
+    /(^|[^\\])\$(?!\$)([^\n$]+?)\$/gm,
+    (_match, prefix, formula) => `${prefix}${stash(`$${formula}$`)}`
+  );
+  return { protectedMd, formulas };
+}
+
+function restoreMath(html, formulas) {
+  return html.replace(
+    /BIPEDMATHTOKEN(\d+)END/g,
+    (_match, index) => escapeHtml(formulas[Number(index)] ?? "")
+  );
+}
+
 function render(md, baseUrl = null) {
-  content.innerHTML = globalThis.marked.parse(md, { gfm: true });
+  const { protectedMd, formulas } = protectMath(md);
+  const renderedMarkdown = globalThis.marked.parse(protectedMd, { gfm: true });
+  content.innerHTML = restoreMath(renderedMarkdown, formulas);
   if (baseUrl) {
     for (const node of content.querySelectorAll("a[href], img[src]")) {
       const attr = node.hasAttribute("href") ? "href" : "src";

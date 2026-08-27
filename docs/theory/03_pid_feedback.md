@@ -12,7 +12,7 @@
 
 ![目標角度、PD制御器、倒立振子、センサが閉ループを作るフィードバック制御ブロック図](../assets/diagrams/03_pd_feedback_loop.svg)
 
-*図1：目標は $\theta^*=0$。実際の $\theta,\dot{\theta}$ を測り、PD制御器が毎時刻トルク $u$ を更新します。*
+*図1：図中では角速度を $\omega=\dot{\theta}$ と表します。実際の $\theta,\omega$ を測り、PD制御器が毎時刻トルク $u$ を更新します。*
 
 ## 1. P制御
 
