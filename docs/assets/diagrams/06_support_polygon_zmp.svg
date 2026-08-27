@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+<title id="title">支持多角形・重心投影・ZMP</title>
+<desc id="desc">上から見た左右の足裏を囲む支持多角形の中に重心投影とZMPがある安全な例と、ZMPが外へ出て足裏だけでは必要なモーメントを作れない例を示す。</desc>
+<rect width="960" height="420" rx="18" fill="#ffffff"/>
+<text x="480" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="25" font-weight="700" fill="#1b2430">支持多角形の「中に作れる床反力」には限界がある</text>
+<text x="240" y="76" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#18794e">ZMP が内側</text>
+<text x="720" y="76" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#c92a2a">必要ZMPが外側</text>
+<rect x="100" y="130" width="105" height="210" rx="26" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<rect x="275" y="130" width="105" height="210" rx="26" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<polygon points="85,115 395,115 395,355 85,355" fill="#69db9c" fill-opacity=".16" stroke="#18794e" stroke-width="4" stroke-dasharray="9 7"/>
+<circle cx="240" cy="220" r="13" fill="#155eef"/>
+<circle cx="270" cy="265" r="13" fill="#18794e"/>
+<line x1="240" y1="220" x2="240" y2="112" stroke="#155eef" stroke-width="3" stroke-dasharray="6 6"/>
+<text x="255" y="210" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">COM投影</text>
+<text x="286" y="270" font-family="system-ui,sans-serif" font-size="18" fill="#18794e">ZMP</text>
+<rect x="580" y="130" width="105" height="210" rx="26" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<rect x="755" y="130" width="105" height="210" rx="26" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<polygon points="565,115 875,115 875,355 565,355" fill="#69db9c" fill-opacity=".10" stroke="#18794e" stroke-width="4" stroke-dasharray="9 7"/>
+<circle cx="720" cy="220" r="13" fill="#155eef"/>
+<circle cx="905" cy="265" r="13" fill="#c92a2a"/>
+<line x1="720" y1="220" x2="720" y2="112" stroke="#155eef" stroke-width="3" stroke-dasharray="6 6"/>
+<text x="735" y="210" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">COM投影</text>
+<text x="830" y="295" font-family="system-ui,sans-serif" font-size="18" fill="#c92a2a">必要ZMP</text>
+<text x="240" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#5e6b78">足裏接触だけで必要モーメントを作れる</text>
+<text x="720" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#5e6b78">足首だけでは足りない → 接触変更・一歩</text>
+<line x1="480" y1="80" x2="480" y2="390" stroke="#d9dee7" stroke-width="2"/>
+</svg>

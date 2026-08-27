@@ -41,6 +41,8 @@ a { color: var(--accent); }
 .content h2 { margin-top: 2.4rem; border-bottom: 1px solid var(--line); padding-bottom: .35rem; }
 .content h3 { margin-top: 1.8rem; }
 .content blockquote { margin-left: 0; padding: .2rem 1rem; border-left: 4px solid var(--accent); color: var(--muted); }
+.content img { display: block; width: min(100%, 960px); height: auto; margin: 1.4rem auto .55rem; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.content img + p { margin-top: .35rem; color: var(--muted); font-size: .94rem; }
 .content code { background: var(--code); padding: .1em .32em; border-radius: 4px; }
 .content pre { overflow: auto; background: var(--code); padding: 1rem; border-radius: 10px; }
 .content pre code { padding: 0; }
