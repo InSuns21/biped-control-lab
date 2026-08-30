@@ -24,7 +24,7 @@ function homeMarkdown() {
 <div class="lab-grid">
 <div class="lab-card"><strong>Lab 1 — 無制御倒立振子</strong><p>直立が不安定平衡点であることを体験。</p><a href="./labs/01-open-loop/">実験を開く →</a></div>
 <div class="lab-card"><strong>Lab 2 — PD制御</strong><p>フィードバックで不安定系を安定化。</p><a href="./labs/02-pid-balance/">実験を開く →</a></div>
-<div class="lab-card"><strong>Lab 3 — 支持多角形</strong><p>両足・片足で静的安定領域を比較。</p><a href="./labs/03-support-polygon/">実験を開く →</a></div>
+<div class="lab-card"><strong>Lab 3 — 支持多角形</strong><p>両足・片足で安定領域がどう変わるか見る。</p><a href="./labs/03-support-polygon/">実験を開く →</a></div>
 <div class="lab-card"><strong>Lab 4 — LIPM歩行</strong><p>ZMPとcapture pointで外乱回復。</p><a href="./labs/04-lipm-walking/">実験を開く →</a></div>
 </div>
 
@@ -38,6 +38,17 @@ function homeMarkdown() {
 - [S04 状態推定とKalman filter](#S04) — センサから測れない状態を推定する
 - [S05 Lagrange法と多リンクロボット力学](#S05) — 倒立振子から全身運動方程式へ
 - [S06 接触・摩擦・CoP制約](#S06) — ZMP条件だけでは足りない理由
+- [S07 Preview ControlとMPC](#S07) — 未来の支持切替を見ながら制約付き最適化
+- [S08 Centroidal Dynamics](#S08) — 全身を重心と運動量へ圧縮して多接触を扱う
+- [S09 Whole-Body QP](#S09) — 全身力学と摩擦・トルク制約の中で関節トルクを決める
+
+## 現代ヒューマノイド制御への接続
+
+本編07までの LIPM / Capture Point から先は、
+
+**Preview / MPC → Centroidal Dynamics → Whole-Body QP**
+
+と進むと、「未来の歩行計画」「全身外力・運動量」「関節トルク実現」を順番に理解できます。
 
 ## どこまで単純化しているか
 
