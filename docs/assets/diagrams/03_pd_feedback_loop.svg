@@ -1,28 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="390" viewBox="0 0 960 390" role="img" aria-labelledby="title desc">
 <title id="title">PDフィードバック制御の閉ループ</title>
 <desc id="desc">目標角度と実際の角度の差をPD制御器へ送り、倒立振子へ制御トルクを加え、センサで角度と角速度を測って戻す閉ループ。</desc>
-<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#155eef"/></marker></defs>
+<defs>
+  <marker id="a" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/>
+  </marker>
+</defs>
 <rect width="960" height="390" rx="18" fill="#ffffff"/>
 <text x="480" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">PD制御：測る → 戻す → また測る</text>
 <text x="44" y="135" font-family="system-ui,sans-serif" font-size="18" fill="#1b2430">目標角度 0</text>
-<line x1="105" y1="156" x2="151" y2="156" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="105" y1="156" x2="151" y2="156" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
 <circle cx="184" cy="156" r="28" fill="#ffffff" stroke="#155eef" stroke-width="3"/>
 <text x="184" y="164" text-anchor="middle" font-family="system-ui,sans-serif" font-size="28" fill="#155eef">Σ</text>
 <text x="164" y="118" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#18794e">＋</text>
 <text x="164" y="202" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#c92a2a">−</text>
-<line x1="213" y1="156" x2="270" y2="156" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="213" y1="156" x2="270" y2="156" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
 <rect x="282" y="103" width="235" height="106" rx="14" fill="#f7f8fb" stroke="#155eef" stroke-width="3"/>
 <text x="400" y="137" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">PD 制御器</text>
 <text x="400" y="168" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">u = −Kp·θ − Kd·ω</text>
 <text x="400" y="194" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">ω：角速度</text>
-<line x1="517" y1="156" x2="580" y2="156" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<text x="548" y="140" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">トルク u</text>
+<line x1="517" y1="156" x2="580" y2="156" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
+<text x="548" y="127" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#155eef">トルク u</text>
 <rect x="592" y="103" width="250" height="106" rx="14" fill="#f7f8fb" stroke="#5e6b78" stroke-width="3"/>
 <text x="717" y="137" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" font-weight="700" fill="#1b2430">倒立振子</text>
 <text x="717" y="169" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#5e6b78">重力・慣性・制御トルクで運動</text>
-<line x1="842" y1="156" x2="910" y2="156" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<text x="875" y="139" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#1b2430">θ, ω</text>
-<path d="M887 172 V318 H184 V186" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="842" y1="156" x2="910" y2="156" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
+<text x="875" y="127" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#1b2430">θ, ω</text>
+<path d="M887 172 V318 H184 V186" fill="none" stroke="#155eef" stroke-width="4" stroke-linejoin="round" marker-end="url(#a)"/>
 <rect x="515" y="263" width="265" height="70" rx="12" fill="#eef4ff" stroke="#79a8ff" stroke-width="2"/>
 <text x="648" y="291" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#1b2430">センサ</text>
 <text x="648" y="316" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">角度 θ と角速度 ω を測る</text>
