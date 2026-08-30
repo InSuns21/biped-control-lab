@@ -123,7 +123,7 @@ Taylor 展開すると
 $$
 \sin\theta
 =
-\theta-rac{\theta^3}{6}+\cdots
+\theta-\frac{\theta^3}{6}+\cdots
 $$
 
 なので、1次の項だけ残せば
