@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="460" viewBox="0 0 960 460" role="img" aria-labelledby="title desc">
+<title id="title">Centroidal Dynamicsの概念図</title>
+<desc id="desc">ロボット重心cへ重力が作用し、左右の接触点から床反力fLとfRを受ける。接触点から重心までの腕によるモーメントが重心まわり角運動量Lの変化を生む。</desc>
+<defs>
+  <marker id="blueArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/>
+  </marker>
+  <marker id="redArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#c92a2a"/>
+  </marker>
+  <marker id="greenArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#18794e"/>
+  </marker>
+</defs>
+<rect width="960" height="460" rx="18" fill="#ffffff"/>
+<text x="480" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">Centroidal Dynamics：全身を重心と運動量へ圧縮する</text>
+
+<line x1="90" y1="385" x2="870" y2="385" stroke="#5e6b78" stroke-width="4"/>
+<rect x="220" y="352" width="170" height="33" rx="11" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<rect x="570" y="352" width="170" height="33" rx="11" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<text x="305" y="414" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">左足接触 rL</text>
+<text x="655" y="414" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">右足接触 rR</text>
+
+<circle cx="480" cy="186" r="48" fill="#eef4ff" stroke="#155eef" stroke-width="4"/>
+<text x="480" y="180" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">COM</text>
+<text x="480" y="207" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" fill="#155eef">c</text>
+
+<path d="M390 352 L448 231" stroke="#aeb8c4" stroke-width="8" stroke-linecap="round"/>
+<path d="M570 352 L512 231" stroke="#aeb8c4" stroke-width="8" stroke-linecap="round"/>
+<path d="M448 231 L420 110" stroke="#aeb8c4" stroke-width="8" stroke-linecap="round"/>
+<path d="M512 231 L540 110" stroke="#aeb8c4" stroke-width="8" stroke-linecap="round"/>
+<path d="M420 110 L356 168" stroke="#aeb8c4" stroke-width="7" stroke-linecap="round"/>
+<path d="M540 110 L604 168" stroke="#aeb8c4" stroke-width="7" stroke-linecap="round"/>
+<circle cx="448" cy="231" r="9" fill="#5e6b78"/>
+<circle cx="512" cy="231" r="9" fill="#5e6b78"/>
+
+<line x1="305" y1="346" x2="352" y2="255" stroke="#18794e" stroke-width="5" marker-end="url(#greenArrow)"/>
+<text x="277" y="272" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fL</text>
+<line x1="655" y1="346" x2="608" y2="255" stroke="#18794e" stroke-width="5" marker-end="url(#greenArrow)"/>
+<text x="685" y="272" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fR</text>
+
+<line x1="480" y1="125" x2="480" y2="72" stroke="#c92a2a" stroke-width="5" marker-end="url(#redArrow)"/>
+<text x="512" y="88" font-family="system-ui,sans-serif" font-size="18" fill="#c92a2a">mg</text>
+
+<path d="M545 183 C588 130 638 146 651 195" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<text x="654" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">L̇c</text>
+<text x="654" y="159" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">接触モーメントで変化</text>
+
+<rect x="85" y="70" width="260" height="118" rx="15" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="215" y="103" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">並進</text>
+<text x="215" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">m c¨ = mg + Σ fᵢ</text>
+<text x="215" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">外力の合計がCOM加速度を決める</text>
+
+<rect x="615" y="244" width="270" height="92" rx="15" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="750" y="276" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#1b2430">角運動量</text>
+<text x="750" y="307" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#155eef">L̇c = Σ (rᵢ−c)×fᵢ + τᵢ</text>
+</svg>
