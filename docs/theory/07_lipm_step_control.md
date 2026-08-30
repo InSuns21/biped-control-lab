@@ -42,7 +42,7 @@ LIPM では
 $$
 p
 =
-x-rac{h}{g}\ddot{x}
+x-\frac{h}{g}\ddot{x}
 $$
 
 を導きました。
@@ -301,13 +301,13 @@ $$
 ここで
 
 $$
-q+rac{\dot{q}}{\omega}
+q+\frac{\dot{q}}{\omega}
 $$
 
 を計算すると
 
 $$
-q+rac{\dot{q}}{\omega}
+q+\frac{\dot{q}}{\omega}
 =
 2C_+e^{\omega t}
 $$
@@ -319,7 +319,7 @@ $$
 $q=x-p$ なので
 
 $$
-x-p+rac{\dot{x}}{\omega}
+x-p+\frac{\dot{x}}{\omega}
 $$
 
 です。
@@ -330,7 +330,7 @@ $$
 \boxed{
 \xi
 =
-x+rac{\dot{x}}{\omega}
+x+\frac{\dot{x}}{\omega}
 }
 $$
 
@@ -376,7 +376,7 @@ $$
 \omega(\xi-p)
 =
 \omega\left(
-x+rac{\dot{x}}{\omega}-p
+x+\frac{\dot{x}}{\omega}-p
 \right)
 $$
 
@@ -605,7 +605,7 @@ $$
 \boxed{
 p_{des}
 =
-x-rac{\ddot{x}_{des}}{\omega^2}
+x-\frac{\ddot{x}_{des}}{\omega^2}
 }
 $$
 
@@ -652,7 +652,7 @@ Capture Point に対して
 $$
 \eta
 =
-x-rac{\dot{x}}{\omega}
+x-\frac{\dot{x}}{\omega}
 $$
 
 も定義できます。
