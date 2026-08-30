@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img" aria-labelledby="title desc">
+<title id="title">Preview ControlとMPCの予測制御ループ</title>
+<desc id="desc">現在状態と未来のZMP参照列を予測モデルと最適化器へ入力し、最適入力列の先頭だけをロボットへ適用して次周期に再計算する流れ。</desc>
+<defs>
+  <marker id="blueArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/>
+  </marker>
+</defs>
+<rect width="960" height="430" rx="18" fill="#ffffff"/>
+<text x="480" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">Preview / MPC：未来を予測し、先頭入力だけ適用する</text>
+
+<rect x="55" y="88" width="205" height="102" rx="15" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
+<text x="158" y="122" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">現在状態 zₖ</text>
+<text x="158" y="153" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">位置・速度・加速度</text>
+<text x="158" y="177" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">センサから毎周期更新</text>
+
+<rect x="55" y="242" width="205" height="112" rx="15" fill="#fff8e8" stroke="#d89b16" stroke-width="3"/>
+<text x="158" y="276" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">未来参照</text>
+<text x="158" y="307" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#a66b00">pᵣₑ𝒻[k+1 ... k+N]</text>
+<text x="158" y="333" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">支持切替を先読み</text>
+
+<rect x="354" y="88" width="250" height="112" rx="15" fill="#f7f8fb" stroke="#155eef" stroke-width="3"/>
+<text x="479" y="122" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">予測モデル</text>
+<text x="479" y="153" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">zₖ₊₁ = Azₖ + Buₖ</text>
+<text x="479" y="178" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">未来Nステップを展開</text>
+
+<rect x="354" y="242" width="250" height="112" rx="15" fill="#f7f8fb" stroke="#155eef" stroke-width="3"/>
+<text x="479" y="276" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">QP / 最適化</text>
+<text x="479" y="307" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">ZMP誤差 + 入力コスト</text>
+<text x="479" y="332" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">支持領域・入力制約も考慮</text>
+
+<rect x="700" y="118" width="205" height="102" rx="15" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
+<text x="803" y="152" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#1b2430">最適入力列 U*</text>
+<text x="803" y="182" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#155eef">uₖ, uₖ₊₁, ...</text>
+<text x="803" y="205" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">未来分まで計算</text>
+
+<rect x="700" y="274" width="205" height="76" rx="15" fill="#fff5f5" stroke="#c92a2a" stroke-width="3"/>
+<text x="803" y="306" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">実機へ適用</text>
+<text x="803" y="333" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#c92a2a">先頭 uₖ* だけ</text>
+
+<line x1="260" y1="139" x2="342" y2="139" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<path d="M260 298 H318 Q336 298 336 280 V220 Q336 202 354 202" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<line x1="479" y1="200" x2="479" y2="230" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<path d="M604 298 H652 Q670 298 670 280 V188 Q670 170 688 170" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<line x1="803" y1="220" x2="803" y2="262" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<path d="M700 324 H655 Q630 324 630 382 H158 Q120 382 120 354" fill="none" stroke="#155eef" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#blueArrow)"/>
+<text x="415" y="404" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">次の周期で状態を測り直し、receding horizon を繰り返す</text>
+</svg>

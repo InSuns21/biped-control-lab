@@ -8,11 +8,12 @@
     "check:web": "node scripts/check-web-assets.mjs",
     "check:routing": "node scripts/check-routing.mjs",
     "check:js": "node scripts/check-js.mjs",
+    "check:svg": "node scripts/check-svg.mjs",
     "check:math": "node scripts/validate-math.mjs",
     "check:md": "markdownlint-cli2 \"README.md\" \"AGENTS.md\" \"CLAUDE.md\" \".github/copilot-instructions.md\" \"docs/theory/**/*.md\"",
     "check:links": "node scripts/check-links.mjs",
     "check:models": "node scripts/check-models.mjs",
-    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:models && npm run check:math && npm run check:md && npm run check:links"
+    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
