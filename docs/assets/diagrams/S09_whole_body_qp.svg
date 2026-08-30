@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="470" viewBox="0 0 960 470" role="img" aria-labelledby="title desc">
+<title id="title">Whole-Body QP制御の処理構造</title>
+<desc id="desc">状態推定と上位MPCから目標が入り、全身力学・接触制約・タスク追従をQPへまとめ、関節加速度・床反力・関節トルクを出力する。</desc>
+<defs>
+  <marker id="blueArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto">
+    <path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/>
+  </marker>
+</defs>
+<rect width="960" height="470" rx="18" fill="#ffffff"/>
+<text x="480" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">Whole-Body QP：全身力学と制約の中でタスクを実現する</text>
+
+<rect x="55" y="86" width="225" height="102" rx="15" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
+<text x="168" y="119" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">状態推定</text>
+<text x="168" y="149" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#155eef">q, q̇, 接触状態</text>
+<text x="168" y="174" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">IMU・encoder・接触センサ</text>
+
+<rect x="55" y="248" width="225" height="114" rx="15" fill="#fff8e8" stroke="#d89b16" stroke-width="3"/>
+<text x="168" y="282" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">上位 Planner / MPC</text>
+<text x="168" y="313" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#a66b00">COM・運動量・遊脚目標</text>
+<text x="168" y="338" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">何を実現したいか</text>
+
+<rect x="380" y="82" width="250" height="292" rx="18" fill="#f7f8fb" stroke="#155eef" stroke-width="4"/>
+<text x="505" y="118" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="#1b2430">Whole-Body QP</text>
+<line x1="405" y1="134" x2="605" y2="134" stroke="#d9dee7" stroke-width="2"/>
+<text x="505" y="167" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#155eef">決定変数</text>
+<text x="505" y="193" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#1b2430">q¨, τ, λ</text>
+<text x="505" y="230" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#155eef">等式制約</text>
+<text x="505" y="255" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#1b2430">全身力学・固定接触</text>
+<text x="505" y="292" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#155eef">不等式制約</text>
+<text x="505" y="317" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#1b2430">摩擦・CoP・トルク・関節限界</text>
+<text x="505" y="350" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">タスク誤差を最小化</text>
+
+<rect x="725" y="114" width="185" height="102" rx="15" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
+<text x="818" y="148" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">最適解</text>
+<text x="818" y="178" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">q¨*, λ*, τ*</text>
+<text x="818" y="202" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">力学と制約に整合</text>
+
+<rect x="725" y="280" width="185" height="82" rx="15" fill="#fff5f5" stroke="#c92a2a" stroke-width="3"/>
+<text x="818" y="313" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">モータへ</text>
+<text x="818" y="342" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#c92a2a">関節トルク τ*</text>
+
+<line x1="280" y1="137" x2="368" y2="137" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<line x1="280" y1="305" x2="368" y2="305" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<line x1="630" y1="165" x2="713" y2="165" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<line x1="818" y1="216" x2="818" y2="268" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
+<path d="M725 322 H680 Q652 322 652 414 H168 Q130 414 130 362" fill="none" stroke="#155eef" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#blueArrow)"/>
+<text x="440" y="443" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">実機が動く → センサ更新 → 次周期のQPを再計算</text>
+</svg>
