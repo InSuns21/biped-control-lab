@@ -5,7 +5,13 @@ export const chapters = [
   ["04", "状態空間と状態フィードバック", "04_state_space.md"],
   ["05", "LQR", "05_lqr.md"],
   ["06", "支持多角形とZMP", "06_zmp_support_polygon.md"],
-  ["07", "LIPMとステップ制御", "07_lipm_step_control.md"]
+  ["07", "LIPMとステップ制御", "07_lipm_step_control.md"],
+  ["S01", "補講 S01 — 常微分方程式と指数モード", "S01_ode_exponential_modes.md"],
+  ["S02", "補講 S02 — 固有値とモード", "S02_eigenvalues_modes.md"],
+  ["S03", "補講 S03 — Lyapunov安定性", "S03_lyapunov_stability.md"],
+  ["S04", "補講 S04 — 状態推定とKalman filter", "S04_state_estimation_kalman.md"],
+  ["S05", "補講 S05 — Lagrange法とロボット力学", "S05_lagrange_robot_dynamics.md"],
+  ["S06", "補講 S06 — 接触・摩擦・CoP制約", "S06_contact_friction_constraints.md"]
 ];
 
 const chapterIdByFilename = new Map(
