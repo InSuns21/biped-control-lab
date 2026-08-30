@@ -2,8 +2,8 @@
 <title id="title">倒立振子の角度・重力・トルク</title>
 <desc id="desc">支点から長さlの棒の先に質量mがあり、鉛直上向きから角度thetaだけ右へ傾いている。重力mgが下向きに作用し、支点まわりに傾きを増やす向きのトルクmgl sin thetaを生む。</desc>
 <defs>
-  <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#155eef"/></marker>
-  <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#c92a2a"/></marker>
+  <marker id="arrowBlue" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/></marker>
+  <marker id="arrowRed" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#c92a2a"/></marker>
 </defs>
 <rect width="900" height="430" rx="18" fill="#ffffff"/>
 <text x="450" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="25" font-weight="700" fill="#1b2430">倒立振子：θ = 0 は真上</text>
@@ -15,11 +15,11 @@
 <text x="433" y="248" font-family="system-ui,sans-serif" font-size="22" fill="#155eef">l</text>
 <path d="M355 176 A184 184 0 0 1 449 202" fill="none" stroke="#155eef" stroke-width="4"/>
 <text x="412" y="168" font-family="system-ui,sans-serif" font-size="24" fill="#155eef">θ</text>
-<line x1="505" y1="148" x2="505" y2="282" stroke="#c92a2a" stroke-width="5" marker-end="url(#arrowRed)"/>
+<line x1="505" y1="148" x2="505" y2="282" stroke="#c92a2a" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowRed)"/>
 <text x="520" y="230" font-family="system-ui,sans-serif" font-size="22" fill="#c92a2a">mg</text>
-<path d="M392 329 A78 78 0 0 1 425 286" fill="none" stroke="#c92a2a" stroke-width="5" marker-end="url(#arrowRed)"/>
+<path d="M392 329 A78 78 0 0 1 425 286" fill="none" stroke="#c92a2a" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowRed)"/>
 <text x="432" y="320" font-family="system-ui,sans-serif" font-size="21" fill="#c92a2a">τg = mgl sin θ</text>
-<path d="M620 130 C720 150 760 215 735 290" fill="none" stroke="#c92a2a" stroke-width="5" marker-end="url(#arrowRed)"/>
+<path d="M620 130 C720 150 760 215 735 290" fill="none" stroke="#c92a2a" stroke-width="5" stroke-linecap="round" marker-end="url(#arrowRed)"/>
 <text x="648" y="112" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#c92a2a">θ &gt; 0 なら倒れる向きも正</text>
 <text x="648" y="340" font-family="system-ui,sans-serif" font-size="19" fill="#5e6b78">重力は直立へ戻さず、</text>
 <text x="648" y="368" font-family="system-ui,sans-serif" font-size="19" fill="#5e6b78">傾きをさらに増幅する</text>
