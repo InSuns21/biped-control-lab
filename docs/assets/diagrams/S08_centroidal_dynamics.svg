@@ -34,24 +34,24 @@
 <circle cx="448" cy="231" r="9" fill="#5e6b78"/>
 <circle cx="512" cy="231" r="9" fill="#5e6b78"/>
 
-<line x1="305" y1="346" x2="352" y2="255" stroke="#18794e" stroke-width="5" marker-end="url(#greenArrow)"/>
-<text x="277" y="272" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fL</text>
-<line x1="655" y1="346" x2="608" y2="255" stroke="#18794e" stroke-width="5" marker-end="url(#greenArrow)"/>
-<text x="685" y="272" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fR</text>
-
-<line x1="480" y1="125" x2="480" y2="72" stroke="#c92a2a" stroke-width="5" marker-end="url(#redArrow)"/>
-<text x="512" y="88" font-family="system-ui,sans-serif" font-size="18" fill="#c92a2a">mg</text>
-
-<path d="M545 183 C588 130 638 146 651 195" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#blueArrow)"/>
-<text x="654" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">L̇c</text>
-<text x="654" y="159" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">接触モーメントで変化</text>
-
 <rect x="85" y="70" width="260" height="118" rx="15" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
 <text x="215" y="103" text-anchor="middle" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">並進</text>
 <text x="215" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="17" fill="#155eef">m c¨ = mg + Σ fᵢ</text>
 <text x="215" y="165" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">外力の合計がCOM加速度を決める</text>
 
-<rect x="615" y="244" width="270" height="92" rx="15" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
-<text x="750" y="276" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#1b2430">角運動量</text>
-<text x="750" y="307" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#155eef">L̇c = Σ (rᵢ−c)×fᵢ + τᵢ</text>
+<rect x="690" y="245" width="230" height="92" rx="15" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="805" y="277" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#1b2430">角運動量</text>
+<text x="805" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#155eef">L̇c = Σ (rᵢ−c)×fᵢ + τᵢ</text>
+
+<line x1="305" y1="346" x2="352" y2="255" stroke="#18794e" stroke-width="5" stroke-linecap="round" marker-end="url(#greenArrow)"/>
+<text x="277" y="272" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fL</text>
+<line x1="655" y1="346" x2="600" y2="250" stroke="#18794e" stroke-width="5" stroke-linecap="round" marker-end="url(#greenArrow)"/>
+<text x="650" y="284" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="#18794e">fR</text>
+
+<line x1="480" y1="70" x2="480" y2="126" stroke="#c92a2a" stroke-width="5" stroke-linecap="round" marker-end="url(#redArrow)"/>
+<text x="512" y="93" font-family="system-ui,sans-serif" font-size="18" fill="#c92a2a">mg</text>
+
+<path d="M545 183 C588 130 638 146 651 195" fill="none" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#blueArrow)"/>
+<text x="654" y="135" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#155eef">L̇c</text>
+<text x="654" y="159" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#5e6b78">接触モーメントで変化</text>
 </svg>
