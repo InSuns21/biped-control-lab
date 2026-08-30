@@ -11,7 +11,10 @@ export const chapters = [
   ["S03", "補講 S03 — Lyapunov安定性", "S03_lyapunov_stability.md"],
   ["S04", "補講 S04 — 状態推定とKalman filter", "S04_state_estimation_kalman.md"],
   ["S05", "補講 S05 — Lagrange法とロボット力学", "S05_lagrange_robot_dynamics.md"],
-  ["S06", "補講 S06 — 接触・摩擦・CoP制約", "S06_contact_friction_constraints.md"]
+  ["S06", "補講 S06 — 接触・摩擦・CoP制約", "S06_contact_friction_constraints.md"],
+  ["S07", "補講 S07 — Preview ControlとMPC", "S07_preview_mpc.md"],
+  ["S08", "補講 S08 — Centroidal Dynamics", "S08_centroidal_dynamics.md"],
+  ["S09", "補講 S09 — Whole-Body QP", "S09_whole_body_qp.md"]
 ];
 
 const chapterIdByFilename = new Map(
