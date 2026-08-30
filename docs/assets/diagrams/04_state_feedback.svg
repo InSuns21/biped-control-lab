@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="370" viewBox="0 0 960 370" role="img" aria-labelledby="title desc">
 <title id="title">状態空間と状態フィードバック</title>
 <desc id="desc">角度と角速度を状態としてまとめ、状態フィードバックで制御入力を作り、線形モデルへ与える構造。</desc>
-<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#155eef"/></marker></defs>
+<defs>
+  <marker id="a" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" viewBox="0 0 12 12" refX="10" refY="6" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#155eef"/></marker>
+</defs>
 <rect width="960" height="370" rx="18" fill="#ffffff"/>
 <text x="480" y="40" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">PD制御を「状態」から見直す</text>
 <rect x="55" y="92" width="245" height="135" rx="16" fill="#eef4ff" stroke="#79a8ff" stroke-width="3"/>
@@ -19,8 +21,8 @@
 <text x="780" y="164" text-anchor="middle" font-family="system-ui,sans-serif" font-size="21" fill="#1b2430">dx/dt = Ax + Bu</text>
 <text x="780" y="195" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">閉ループでは</text>
 <text x="780" y="218" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">dx/dt = (A − BK)x</text>
-<line x1="300" y1="160" x2="354" y2="160" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<line x1="590" y1="160" x2="644" y2="160" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
-<path d="M780 228 V298 H178 V238" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<line x1="300" y1="160" x2="354" y2="160" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
+<line x1="590" y1="160" x2="644" y2="160" stroke="#155eef" stroke-width="4" stroke-linecap="round" marker-end="url(#a)"/>
+<path d="M780 228 V298 H178 V238" fill="none" stroke="#155eef" stroke-width="4" stroke-linejoin="round" marker-end="url(#a)"/>
 <text x="480" y="332" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" fill="#5e6b78">A − BK の固有値が、減衰の速さと振動のしかたを決める</text>
 </svg>
