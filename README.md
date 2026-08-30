@@ -50,8 +50,17 @@
 - S04: 状態推定とKalman filter — オブザーバ、可観測性、予測と観測更新
 - S05: Lagrange法と多リンクロボット力学 — $M(q)\ddot{q}+C(q,\dot{q})\dot{q}+g(q)$ から全身制御へ
 - S06: 接触・摩擦・CoP制約 — 摩擦円錐、contact wrench、ZMP条件の限界
+- S07: Preview Control / MPC — 離散LIPM、未来参照、receding horizon、制約付きQP
+- S08: Centroidal Dynamics — 重心、全身運動量、多接触力、LIPMとの関係
+- S09: Whole-Body QP — 全身力学、接触拘束、摩擦・CoP・トルク制限、HQP
 
-補講は本編の必須順序ではありません。たとえば第04章の固有値が抽象的なら S01/S02、第06章の接触条件を深掘りしたければ S06、実機への橋渡しを見たければ S04〜S06 を読む構成です。
+補講は本編の必須順序ではありません。たとえば第04章の固有値が抽象的なら S01/S02、第06章の接触条件を深掘りしたければ S06、実機への橋渡しを見たければ S04〜S09 を読む構成です。
+
+特に本編07から現代的なヒューマノイド制御へ進む場合は
+
+> **LIPM / Capture Point → Preview / MPC → Centroidal Dynamics → Whole-Body QP**
+
+という順序を推奨します。
 
 ## 実験
 
@@ -117,7 +126,10 @@ python -m http.server 8000 -d docs
 
 - Miomir Vukobratović and Branislav Borovac, “Zero-Moment Point — Thirty Five Years of Its Life”, *International Journal of Humanoid Robotics*, 2004.
 - Shuuji Kajita et al., *Introduction to Humanoid Robotics*, Springer, 2014.
+- Shuuji Kajita et al., “Biped Walking Pattern Generation by using Preview Control of Zero-Moment Point”, ICRA 2003.
 - Jerry Pratt et al., “Capture Point: A Step toward Humanoid Push Recovery”, Humanoids 2006.
+- David E. Orin et al., “Centroidal dynamics of a humanoid robot”, *Autonomous Robots*, 2013.
+- Alexander Herzog et al., “Momentum Control with Hierarchical Inverse Dynamics on a Torque-Controlled Humanoid”, *Autonomous Robots*, 2016.
 - Katsuhiko Ogata, *Modern Control Engineering*.
 
 ## License
