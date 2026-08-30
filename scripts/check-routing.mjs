@@ -4,6 +4,7 @@ import { chapters, resolveContentReference } from "../docs/js/routes.js";
 
 const siteBase = "https://insuns21.github.io/biped-control-lab/";
 let markdownChapterLinks = 0;
+const routePattern = /^#(?:\d{2}|S\d{2})$/;
 
 for (const [id, , filename] of chapters) {
   const baseUrl = new URL(`theory/${filename}`, siteBase);
@@ -21,7 +22,7 @@ for (const [id, , filename] of chapters) {
     markdownChapterLinks++;
     assert.match(
       resolveContentReference(ref, baseUrl),
-      /^#\d{2}$/,
+      routePattern,
       `${filename}: ${ref} should stay inside the theory SPA`
     );
   }
