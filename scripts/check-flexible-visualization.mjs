@@ -77,11 +77,11 @@ assert.ok(
   "H1-4 low-flow preset should visibly decay",
 );
 
-const flutter = runPreset(18);
+const flutter = runPreset(18, 32);
 console.log("H1-4 flutter preset RMS ratio", flutter.lateRms / flutter.earlyRms);
 assert.ok(
   flutter.lateRms > 1.4 * flutter.earlyRms,
-  "H1-4 18 L/min flutter preset should visibly grow",
+  "H1-4 18 L/min flutter preset should grow over the accelerated inspection horizon",
 );
 
 const html = await readFile("docs/labs/x1-shower-tvc/index.html", "utf8");
