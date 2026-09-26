@@ -77,3 +77,19 @@ button:hover { border-color: var(--accent); }
   .lab-layout { grid-template-columns: 1fr; }
   .tagline { display: none; }
 }
+
+.shower-layout { grid-template-columns: minmax(0, 1fr) 360px; }
+.three-viewport { min-width: 0; }
+.shower-metrics { grid-template-columns: 1fr; }
+.vector-legend { display: flex; flex-wrap: wrap; gap: .45rem .9rem; margin: .7rem .15rem 0; color: var(--muted); font-size: .86rem; }
+.vector-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.swatch { width: .8rem; height: .8rem; border-radius: 999px; display: inline-block; border: 1px solid rgba(127,127,127,.35); }
+.swatch-water { background: #4db7e5; }
+.swatch-thrust { background: #f1c84b; }
+.swatch-gravity { background: #e25b5b; }
+.swatch-torque { background: #a66de0; }
+.swatch-target { background: #88919c; }
+.shower-lab .control select { width: 100%; padding: .45rem .55rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
+@media (max-width: 900px) {
+  .shower-layout { grid-template-columns: 1fr; }
+}
