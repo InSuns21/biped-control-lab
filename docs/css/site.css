@@ -95,3 +95,25 @@ button:hover { border-color: var(--accent); }
 }
 
 .swatch-hold { background: #49a078; }
+
+.phase-switch { display: flex; gap: .55rem; flex-wrap: wrap; margin: 1rem 0; }
+.phase-tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); font-weight: 750; }
+.phase-panel[hidden] { display: none; }
+.phase-note { margin: .85rem 0 1rem; padding: .75rem .9rem; border-left: 4px solid var(--accent); background: var(--panel); border-radius: 8px; }
+.flexible-viewport { min-width: 0; }
+.flexible-viewport canvas { min-height: 420px; }
+.history-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.history-grid canvas { min-height: 190px; }
+.control-title { display: block; font-weight: 650; margin-bottom: .45rem; }
+.control small { display: block; color: var(--muted); margin-top: .25rem; }
+.check-row { display: flex; align-items: center; gap: .55rem; margin: .9rem 0; min-height: 44px; }
+.check-row input { width: 1.1rem; height: 1.1rem; }
+.swatch-hose { background: var(--text); }
+.swatch-reaction { background: #d68a00; }
+.swatch-equilibrium { background: var(--line); }
+.swatch-node { background: #7b5dc7; }
+@media (max-width: 760px) {
+  .history-grid { grid-template-columns: 1fr; }
+  .flexible-viewport canvas { min-height: 500px; }
+  .phase-tab { flex: 1 1 100%; }
+}
