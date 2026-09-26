@@ -70,7 +70,7 @@ function runPreset(flowLpm, durationS = 12) {
 
 assert.equal(classifyReferenceFlow(8).id, "stable");
 assert.equal(classifyReferenceFlow(14).id, "critical");
-assert.equal(classifyReferenceFlow(16).id, "flutter");
+assert.equal(classifyReferenceFlow(18).id, "flutter");
 
 const low = runPreset(8);
 assert.ok(
@@ -78,10 +78,10 @@ assert.ok(
   "H1-4 low-flow preset should visibly decay",
 );
 
-const flutter = runPreset(16);
+const flutter = runPreset(18);
 assert.ok(
   flutter.lateRms > 1.4 * flutter.earlyRms,
-  "H1-4 flutter preset should visibly grow",
+  "H1-4 18 L/min flutter preset should visibly grow",
 );
 
 const html = await readFile("docs/labs/x1-shower-tvc/index.html", "utf8");
@@ -93,7 +93,7 @@ for (const required of [
   'id="p1RmsChart"',
   'data-flow-lpm="8.0"',
   'data-flow-lpm="14.0"',
-  'data-flow-lpm="16.0"',
+  'data-flow-lpm="18.0"',
 ]) {
   assert.ok(html.includes(required), `missing H1-4 UI marker: ${required}`);
 }
@@ -110,7 +110,7 @@ console.log(
   [
     "H1-4 visualization checks OK:",
     `8 L/min RMS ratio=${(low.lateRms / low.earlyRms).toFixed(3)}`,
-    `16 L/min RMS ratio=${(flutter.lateRms / flutter.earlyRms).toFixed(3)}`,
+    `18 L/min RMS ratio=${(flutter.lateRms / flutter.earlyRms).toFixed(3)}`,
     `Qcr=${H1_3_REFERENCE.criticalFlowLpm.toFixed(2)} L/min`,
   ].join(" "),
 );
