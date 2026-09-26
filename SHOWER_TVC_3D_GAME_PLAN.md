@@ -621,6 +621,133 @@ Qcr ~= 14.23 L/min
 reaction、低流量→臨界→flutter の見え方、履歴グラフ、Phase切替、PC /
 タブレット表示を確認する。
 
+### H1-4A — fast-onset calibration
+
+Human Visual Audit で、H1-4 の linear small-deflection model は flutter 自体を
+再現できる一方、実演動画に比べて「暴れ始めるまで」が遅い可能性が指摘された。
+H1-5 のゲーム化へ進む前に、**時間スケールの差が単なるパラメータ・初期条件・
+手元境界の違いで説明できるか**を切り分ける。
+
+目的は実動画への数値フィットではない。記事から流量・EI・ホース質量・
+正確な発振開始時刻は取得できないため、現在は
+
+> 水を流してから約 1〜3 秒で、肉眼で明瞭な大振幅運動へ移るケースを
+> linear Phase 1 model の範囲内で作れるか
+
+を qualitative target とする。
+
+#### H1-4A-0 — onset metric
+
+最低限、次を同時に記録する。
+
+- `sigma = max Re(lambda)`
+- e-fold time `1 / sigma`
+- 初期動的 RMS から 3 倍 / 5 倍へ到達する予測時間
+- time-domain で RMS が初期値の 3 倍へ到達する時刻
+- `|y|max`, `|theta|max` が small-deflection guard へ達する時刻
+- 数値発散ではなく固有値成長と整合しているか
+
+「fast onset」は、time-domain で明瞭な成長が 1〜3 s に現れ、かつその前に
+small-deflection guard を即時突破しないことを第一判定とする。
+
+#### H1-4A-1 — parameter-only sensitivity
+
+他を既定値に固定した one-at-a-time sweep と、小規模な組合せ sweep を行う。
+
+探索対象:
+
+- `EI`
+- Rayleigh damping `alpha_M / beta_K`
+- `Q`
+- hose length `L`
+- shower-head tip mass / inertia
+
+初期の探索 envelope は教育用・感度確認用であり、実物同定値とは呼ばない。
+
+目安:
+
+```text
+EI:        0.15 ... 1.2 N m^2
+Q:         8 ... 24 L/min
+L:         0.8 ... 1.8 m
+tip mass:  0.10 ... 0.35 kg
+alpha_M:   0 ... 0.15 1/s
+beta_K:    0 ... 5e-4 s
+```
+
+ここで 1〜3 s onset が得られるなら、どのパラメータが支配的かを記録し、
+単に「暴れさせたいから減衰を下げる」調整は禁止する。
+
+#### H1-4A-2 — initial curvature / mode content
+
+parameter-only で不足する場合、初期状態を直線近傍だけに限定しない。
+
+- smooth initial curvature
+- tip offset
+- broadband modal seed
+
+を分離して試す。
+
+初期条件を大きくするだけで「見た目が最初から暴れている」状態を作るのではなく、
+
+- 不安定モードへの射影が強くなって onset が早く見えるのか
+- 固有値成長率そのものが不足しているのか
+
+を区別する。
+
+#### H1-4A-3 — movable hand boundary
+
+次に手元を固定端から prescribed boundary へ拡張する。
+
+```text
+q_b(t) = [y_base(t), theta_base(t)]
+```
+
+全体行列を free / boundary DOF に partition し、
+
+```text
+M_ff qdd_f + C_ff qd_f + K_ff q_f
+  = f_f
+  - M_fb qdd_b
+  - C_fb qd_b
+  - K_fb q_b
+```
+
+として、手元運動を物理的な境界入力として入れる。
+
+最初の比較入力は、連続ランダム加振ではなく
+
+- 単発横変位 pulse
+- 単発角度 pulse
+- 実演を模した短い手首切り返し
+
+に限定する。
+
+#### H1-4A-4 — decision gate
+
+結果を次の3分類で固定する。
+
+**A. parameter-only で fast onset**
+
+- linear conveying-fluid model のまま H1-5 へ進む
+- H1-4 の既定 scenario を、感度結果に基づく監査用 scenario へ更新する
+
+**B. initial curvature / movable boundary を入れれば fast onset**
+
+- linear model は「実演の速い立ち上がり」を boundary-excited response として
+  再現可能
+- H1-5 は movable boundary を本体とし、self-excited growth と human excitation
+  を UI 上で区別する
+
+**C. どれでも fast onset を再現できない、または 1〜3 s より前に
+small-deflection 仮定が破綻**
+
+- H1-5 を延期
+- **H1-4B: geometrically nonlinear beam / 2D Cosserat rod** を新設
+- 大回転・有限曲率を入れてから再判定する
+
+H1-4A では CFD / SPH / 3D self-contact へは進まない。
+
 ### H1-5 — manual game
 
 - hand position / angle control
@@ -658,6 +785,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] 臨界流量を数値的に推定できる
 - [x] 臨界超過で自励振動が再現される
 - [x] mesh / dt 変更に対し主要結果が収束する
+- [ ] H1-4A で fast-onset の時間スケール差を切り分ける
 - [ ] 手元境界入力で振動を変えられる
 - [x] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
