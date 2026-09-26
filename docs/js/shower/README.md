@@ -279,8 +279,10 @@ Phase 1 adds another important lesson:
 - Phase 1 H1-0 model contract / derivation: implemented
 - Phase 1 H1-1 dry flexible beam core: implemented
 - Phase 1 H1-2 conveying-fluid coupling / flutter validation: implemented
-- current reference result: `U_cr ~= 9.4808 m/s`, `Q_cr ~= 16.08 L/min`
-  for the documented educational defaults
-- next implementation step: **H1-3 shower-head boundary model**
-- no Phase 1 renderer should be treated as final before H1-3 boundary
-  consistency is fixed
+- Phase 1 H1-3 shower-head boundary model: implemented
+- straight H1-2 reference: `U_cr ~= 9.4808 m/s`, `Q_cr ~= 16.08 L/min`
+- bent-head H1-3 reference: `U_cr ~= 8.3871 m/s`, `Q_cr ~= 14.23 L/min`
+- straight/equal-area H1-3 limit is regression-locked to reproduce H1-2
+  exactly, preventing duplicate outlet momentum loading
+- next implementation step: **H1-4 2D interactive visualization**
+- Phase 1 Human Visual Audit has not yet been performed

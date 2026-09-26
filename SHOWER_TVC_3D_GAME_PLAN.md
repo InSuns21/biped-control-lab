@@ -466,6 +466,7 @@ docs/js/shower/
     beam-element.js
     assemble.js
     conveying-flow.js
+    shower-head.js
     boundary.js
     integrator.js
     eigen.js
@@ -562,13 +563,33 @@ Im(lambda_cr) ~= 14.797 rad/s
 ここで Phase 1 の「内部流れで安定性が変わり、flutter に入る」という
 最小物理は成立した。次は H1-3 で shower-head / outlet 境界を現象側へ寄せる。
 
-### H1-3 — shower-head boundary model
+### H1-3 — shower-head boundary model ✅
 
-- head mass / inertia
+- eccentric rigid-head 2x2 tip mass / inertia
 - bent head geometry
 - outlet direction
-- momentum boundary consistency
-- optional explicit bend/reaction load
+- control-volume momentum correction `m_dot(v_in-v_out)`
+- nozzle lever-arm moment
+- small-angle boundary linearization
+- straight/equal-area limit reproduces H1-2 exactly
+- zero-flow / bend-sign / positive-definite mass regressions
+- eigenvalue sweep and 6 / 8 element convergence
+
+現在の教育用35°曲がりヘッドでは、8要素で
+
+```text
+U_cr ~= 8.3871 m/s
+Q_cr ~= 14.23 L/min
+Im(lambda_cr) ~= 14.045 rad/s
+```
+
+となった。H1-2 の直管基準 `U_cr ~= 9.4808 m/s` より臨界が低下するが、
+これは実物製品の測定値ではなく、現在の教育用 geometry / stiffness /
+damping に対するモデル結果である。
+
+`U=6 m/s` では曲がり由来の追加境界荷重が約
+`F_y=-0.5821 N`, `M=-0.0821 N m`。直線・等断面へ戻すと追加荷重は0となり、
+H1-2 の行列へ厳密に戻る回帰を必須とする。
 
 ### H1-4 — 2D interactive visualization
 
@@ -623,7 +644,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [ ] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
 - [ ] 物理量とUI表示が一致する
-- [ ] `npm test` が通る
+- [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 
 ---

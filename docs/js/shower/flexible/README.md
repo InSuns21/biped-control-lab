@@ -348,7 +348,66 @@ CI also verifies:
 - halving the physics time step changes the selected RMS result by less than
   the regression tolerance
 
-## 12. H1-0 / H1-1 / H1-2 scope boundary
+## 12. H1-3 shower-head boundary model
+
+H1-3 is implemented in `shower-head.js`.
+
+The straight H1-2 conveying-pipe model remains the reference plant. The
+shower-head correction is defined only from the momentum change caused by the
+terminal head/nozzle:
+
+```text
+F_head = m_dot (v_in - v_out)
+```
+
+with `m_dot = rho Q`, `v_in = U t_tip`, and `v_out = U_out n_out`.
+The resulting transverse force and its moment about the hose end are applied as
+the H1-3 boundary load.
+
+This is intentionally a **difference from straight-through discharge**, not a
+second copy of the H1-2 outlet/follower effect. The required consistency
+regression sets outlet angle to zero, outlet area equal to hose area, and the
+head COM axial offset to zero. Under that limit H1-3 must reproduce H1-2 mass,
+damping and stiffness matrices exactly and add zero momentum-force correction.
+
+The rigid shower head carries the small-angle tip mass matrix
+
+```text
+M_head = [[m_h, m_h e], [m_h e, J_h + m_h e^2]]
+```
+
+where `e` is the axial COM offset from the hose end. This captures
+translation/rotation inertia coupling without adding a separate rigid-body state.
+
+The current educational geometry is: head mass 0.20 kg, inertia about COM
+0.002 kg m^2, COM axial offset 0.055 m, nozzle axial/transverse offsets
+0.13 / 0.035 m, outlet angle 35 deg, and outlet-area ratio 1.0.
+
+The exact terminal momentum load is evaluated as a function of tip angle and
+linearized about the straight reference configuration. The constant part shifts
+the static equilibrium; the configuration-dependent derivative enters the
+linearized stability matrix.
+
+For the current 8-element educational defaults, CI finds:
+
+```text
+H1-2 straight reference: U_cr ~= 9.4808 m/s, Q_cr ~= 16.08 L/min
+H1-3 bent shower head:   U_cr ~= 8.3871 m/s, Q_cr ~= 14.23 L/min
+Im(lambda_cr) ~= 14.045 rad/s
+```
+
+At `U = 6 m/s`, the added reference head load is approximately
+`F_y = -0.5821 N` and `M_tip = -0.0821 N m`.
+
+These are model-dependent teaching values, not measurements of a particular
+commercial shower head.
+
+The H1-3 tests also lock zero-flow consistency, bend-sign reversal, positive
+definiteness of the eccentric head mass matrix, a nonzero bent-nozzle boundary
+term, oscillatory loss of stability, and 6 -> 8 element critical-speed
+convergence.
+
+## 13. H1-0 / H1-1 / H1-2 / H1-3 scope boundary
 
 H1-0 fixes the conventions above.
 
@@ -364,8 +423,10 @@ H1-1 implements only:
 
 H1-1 by itself does **not** claim garden-hose flutter.
 
-H1-2 has now demonstrated a flow-dependent oscillatory stability crossing and
-a matching growing time-domain response for the current linear reference
-model. The next step, H1-3, is to make the shower-head end condition and outlet
-momentum bookkeeping more representative before exposing the model as the
-interactive Phase 1 game.
+H1-2 demonstrated a flow-dependent oscillatory stability crossing and a
+matching growing time-domain response for the straight reference model.
+
+H1-3 now adds eccentric shower-head inertia and the bent-outlet momentum
+boundary consistently. The next step is H1-4: expose the validated linear
+Phase 1 model in a 2D interactive visualization, with Human Visual Audit before
+it is treated as an approved game surface.
