@@ -1,15 +1,15 @@
-name: CI
+name: Pull Request CI
 
 on:
   pull_request:
-  push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: pr-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-    
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
