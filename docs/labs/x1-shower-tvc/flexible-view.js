@@ -34,6 +34,66 @@ function hermiteTransverse(q1, theta1, q2, theta2, xi, lengthM) {
   return n1 * q1 + n2 * theta1 + n3 * q2 + n4 * theta2;
 }
 
+export function computeTransverseFit({
+  width,
+  axialPxPerM,
+  requestedScale,
+  minTransverseM,
+  maxTransverseM,
+  leftPx = 28,
+  rightPx = 62,
+  paddingPx = 18,
+}) {
+  const desiredPxPerM = axialPxPerM * requestedScale;
+  const minM = Math.min(0, minTransverseM);
+  const maxM = Math.max(0, maxTransverseM);
+  const spanM = Math.max(1e-9, maxM - minM);
+  const usableWidth = Math.max(1, width - leftPx - rightPx - 2 * paddingPx);
+  const fitPxPerM = usableWidth / spanM;
+  const transversePxPerM = Math.min(desiredPxPerM, fitPxPerM);
+  const contentWidth = spanM * transversePxPerM;
+  const freeWidth = Math.max(0, usableWidth - contentWidth);
+  const axisX = leftPx + paddingPx + freeWidth / 2
+    - minM * transversePxPerM;
+  const fitRatio = desiredPxPerM > 0
+    ? transversePxPerM / desiredPxPerM
+    : 1;
+
+  return {
+    axisX,
+    transversePxPerM,
+    requestedScale,
+    effectiveScale: transversePxPerM / axialPxPerM,
+    fitRatio,
+    leftBoundPx: axisX + minM * transversePxPerM,
+    rightBoundPx: axisX + maxM * transversePxPerM,
+  };
+}
+
+function sampleCenterlineTransverse(
+  system,
+  readNode,
+  samplesPerElement = 12,
+) {
+  const values = [];
+  for (let e = 0; e < system.params.elementCount; e += 1) {
+    const a = readNode(e);
+    const b = readNode(e + 1);
+    for (let sample = 0; sample <= samplesPerElement; sample += 1) {
+      const xi = sample / samplesPerElement;
+      values.push(hermiteTransverse(
+        a.y,
+        a.theta,
+        b.y,
+        b.theta,
+        xi,
+        system.elementLengthM,
+      ));
+    }
+  }
+  return values;
+}
+
 function drawArrow(ctx, x0, y0, x1, y1, color) {
   const dx = x1 - x0;
   const dy = y1 - y0;
@@ -175,11 +235,16 @@ export function createFlexibleView({
     ctx.fillRect(0, 0, width, height);
 
     const top = 36;
-    const bottom = 48;
+    const bottom = 28;
     const L = system.params.lengthM;
-    const axialPxPerM = (height - top - bottom) / L;
-    const centerX = width * 0.48;
-    const transversePxPerM = axialPxPerM * deformationScale;
+    const head = system.head;
+    const waterStreamLengthM = 0.18;
+    const headReachM = Math.hypot(
+      head.nozzleAxialOffsetM,
+      head.nozzleTransverseOffsetM,
+    );
+    const sceneAxialExtentM = L + headReachM + waterStreamLengthM + 0.05;
+    const axialPxPerM = (height - top - bottom) / sceneAxialExtentM;
 
     const qAtNode = (node) => {
       if (node === 0) return { y: 0, theta: 0 };
@@ -192,6 +257,38 @@ export function createFlexibleView({
       const j = 2 * (node - 1);
       return { y: equilibrium[j], theta: equilibrium[j + 1] };
     };
+
+    const tip = qAtNode(system.nodeCount - 1);
+    const eqTip = eqAtNode(system.nodeCount - 1);
+    const nozzleTransverseFromTip = (tipState) => (
+      Math.sin(tipState.theta) * head.nozzleAxialOffsetM
+      + Math.cos(tipState.theta) * head.nozzleTransverseOffsetM
+    );
+    const currentNozzleTransverse = tip.y + nozzleTransverseFromTip(tip);
+    const equilibriumNozzleTransverse =
+      eqTip.y + nozzleTransverseFromTip(eqTip);
+    const outletAngle = tip.theta + head.outletAngleRad;
+    const waterEndTransverse = currentNozzleTransverse
+      + Math.sin(outletAngle) * waterStreamLengthM;
+
+    const transverseValues = [
+      ...sampleCenterlineTransverse(system, qAtNode),
+      ...sampleCenterlineTransverse(system, eqAtNode),
+      currentNozzleTransverse,
+      equilibriumNozzleTransverse,
+      waterEndTransverse,
+    ];
+    const minTransverseM = Math.min(...transverseValues);
+    const maxTransverseM = Math.max(...transverseValues);
+    const fit = computeTransverseFit({
+      width,
+      axialPxPerM,
+      requestedScale: deformationScale,
+      minTransverseM,
+      maxTransverseM,
+    });
+    const centerX = fit.axisX;
+    const transversePxPerM = fit.transversePxPerM;
 
     const mapPoint = (s, transverse) => ({
       x: centerX + transverse * transversePxPerM,
@@ -279,10 +376,8 @@ export function createFlexibleView({
       }
     }
 
-    const tip = qAtNode(system.nodeCount - 1);
     const tipPoint = mapPoint(L, tip.y);
     const theta = tip.theta;
-    const head = system.head;
 
     const ca = Math.cos(theta);
     const sa = Math.sin(theta);
@@ -309,8 +404,7 @@ export function createFlexibleView({
     ctx.fill();
 
     if (flowLpm > 1e-6) {
-      const outletAngle = theta + head.outletAngleRad;
-      const streamLength = Math.min(0.30 * axialPxPerM, 110);
+      const streamLength = waterStreamLengthM * axialPxPerM;
       const streamEnd = {
         x: nozzle.x + Math.sin(outletAngle) * streamLength,
         y: nozzle.y + Math.cos(outletAngle) * streamLength,
@@ -339,7 +433,7 @@ export function createFlexibleView({
 
     const barX = width - 24;
     const barTop = top;
-    const barBottom = top + L * axialPxPerM;
+    const barBottom = height - bottom;
     const criticalRatio = Math.min(1, criticalFlowLpm / 18);
     const flowRatio = Math.min(1, flowLpm / 18);
     ctx.strokeStyle = colors.line;
@@ -374,6 +468,13 @@ export function createFlexibleView({
       ctx.fillText("Reset で再開してください", width / 2, height / 2 + 26);
       ctx.textAlign = "start";
     }
+
+    return {
+      autoFitActive: fit.fitRatio < 0.999,
+      requestedScale: deformationScale,
+      effectiveScale: fit.effectiveScale,
+      fitRatio: fit.fitRatio,
+    };
   }
 
   function renderCharts(history) {
