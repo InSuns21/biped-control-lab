@@ -36,13 +36,30 @@ export function nonlinearShowerHeadReaction(
   const flowSpeedMps = flowRateM3s / areaM2;
   const tipAngleRad = anglesRad.at(-1);
 
-  return showerHeadMomentumReaction2D({
+  const source = showerHeadMomentumReaction2D({
     flowSpeedMps,
     fluidDensityKgM3: waterDensityKgM3,
     hoseAreaM2: areaM2,
     tipAngleRad,
     head,
   });
+
+  // H1-3 uses [axial, transverse]. The geometrically exact rod uses
+  // [horizontal, downward] = [transverse, axial]. This axis swap reverses
+  // planar orientation, so the scalar moment changes sign as well.
+  return {
+    ...source,
+    sourceForceAxialTransverseN: [...source.forceXYN],
+    sourceMomentNm: source.momentNm,
+    forceXYN: [source.forceXYN[1], source.forceXYN[0]],
+    momentNm: -source.momentNm,
+    inletDirection: [source.inletDirection[1], source.inletDirection[0]],
+    outletDirection: [source.outletDirection[1], source.outletDirection[0]],
+    nozzleOffsetWorldM: [
+      source.nozzleOffsetWorldM[1],
+      source.nozzleOffsetWorldM[0],
+    ],
+  };
 }
 
 export function nonlinearShowerHeadGeneralizedForce(
