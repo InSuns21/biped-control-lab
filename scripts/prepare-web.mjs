@@ -14,5 +14,9 @@ await cp(
   resolve(vendor, "katex"),
   { recursive: true }
 );
+await copyFile(
+  resolve("node_modules/three/build/three.module.js"),
+  resolve(vendor, "three.module.js")
+);
 
-console.log("Web vendor assets prepared: Marked + KaTeX");
+console.log("Web vendor assets prepared: Marked + KaTeX + Three.js");
