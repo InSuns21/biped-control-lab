@@ -73,12 +73,14 @@ assert.equal(classifyReferenceFlow(14).id, "critical");
 assert.equal(classifyReferenceFlow(18).id, "flutter");
 
 const low = runPreset(8);
+console.log("H1-4 low preset RMS ratio", low.lateRms / low.earlyRms);
 assert.ok(
   low.lateRms < 0.35 * low.earlyRms,
   "H1-4 low-flow preset should visibly decay",
 );
 
 const flutter = runPreset(18);
+console.log("H1-4 flutter preset RMS ratio", flutter.lateRms / flutter.earlyRms);
 assert.ok(
   flutter.lateRms > 1.4 * flutter.earlyRms,
   "H1-4 18 L/min flutter preset should visibly grow",
