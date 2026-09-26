@@ -402,12 +402,24 @@ export function generalizedTipLoad(
   return force;
 }
 
+function resolveTipLoad(system, state, tipLoad) {
+  if (typeof tipLoad === "function") {
+    return tipLoad({
+      system,
+      state,
+      kinematics: rodKinematics(system, state.anglesRad),
+    });
+  }
+  return tipLoad;
+}
+
 export function generalizedRodForce(
   system,
   stateInput,
   tipLoad = null,
 ) {
   const state = normalizeRodState(system, stateInput);
+  const resolvedTipLoad = resolveTipLoad(system, state, tipLoad);
   const force = generalizedBendingForce(system, state.anglesRad);
   addScaledInPlace(
     force,
@@ -420,10 +432,14 @@ export function generalizedRodForce(
       state.angularRatesRadS,
     ),
   );
-  if (tipLoad) {
+  if (resolvedTipLoad) {
     addScaledInPlace(
       force,
-      generalizedTipLoad(system, state.anglesRad, tipLoad),
+      generalizedTipLoad(
+        system,
+        state.anglesRad,
+        resolvedTipLoad,
+      ),
     );
   }
   force[0] = 0;
