@@ -1,68 +1,62 @@
-# Shower TVC X1 design contract
+# Hanging Shower Control — X1 design contract
 
-This file fixes the physical conventions used by X1-0, X1-1 and X1-2.
-Rendering and game code must preserve these signs and units unless this contract
-is deliberately revised together with its regression tests.
+This file is the physical design contract for Side Lab X1.
 
-## Coordinate system
+The canonical setup is:
+
+> the player holds the hose above, the shower head hangs below it, and water
+> exits downward. The task is to keep the hanging head from swinging or
+> twisting while keeping the water direction close to world down.
+
+The original prototype incorrectly treated the shower as an inverted body with
+a movable TVC nozzle. Human Visual Audit rejected that setup. The rules below
+replace it.
+
+## Frames and nominal pose
 
 Use a right-handed world frame.
 
-- +X: screen/right direction in the first one-axis visualization
-- +Y: upward against gravity
-- +Z: out of the XY plane
+- +X: right
+- +Y: up
+- +Z: out of the initial front plane
 - gravity: `[0, -g, 0]`
-- the upright shower body points along body +Y
-- one-axis attitude `theta` is rotation about +Z
+- quaternion `qBodyToWorld = [w, x, y, z]`
+- identity attitude is the desired hanging pose
 
-Because the reference body axis is +Y, positive `theta` rotates that axis toward
--X. This is a consequence of the right-hand rule and is intentional.
+In the body frame:
 
-The first one-axis model and the X1-2 model both use a fixed virtual pivot below
-the center of mass. They are attitude-control models, not yet free-flight
-translation models.
+- body +Y points from the head toward the held hose / hand
+- body -Y points from the hand toward the hanging head
+- the nominal water jet points along body -Y
 
-## Geometry and inertia
+Therefore identity attitude means the water jet points world down.
 
-The pivot is the origin. In the upright body frame:
+## Hand, center of mass and nozzle geometry
 
-- center of mass: `r_com = [0, l_com, 0]`
-- nozzle force application point: `r_nozzle = [0, l_nozzle, 0]`
-- default `l_com = 0.12 m`
-- default `l_nozzle = 0.38 m`
-- default mass `m = 0.35 kg`
-- one-axis `I_z = 0.018 kg m^2`
-- 3D diagonal inertia `I = diag(0.018, 0.009, 0.018) kg m^2`
+The hose joint / held end is the rotational pivot.
 
-These are effective educational parameters. They are not claimed to be an
-identified inertia model of a commercial shower head.
+Default educational geometry:
 
-## Gravity torque
+- COM: `r_com = [0, -0.17, 0] m`
+- resultant nozzle point: `r_nozzle = [0.045, -0.33, 0.02] m`
+- mass: `m = 0.35 kg`
+- diagonal body inertia:
+  `I = diag(0.018, 0.009, 0.018) kg m^2`
 
-For positive one-axis `theta`, gravity increases the tilt:
+The COM is below the hand. Gravity is therefore restoring, not destabilizing.
 
-```text
-tau_g = m g l_com sin(theta)
-```
+The nozzle resultant line is deliberately offset from the hose axis. That
+represents a bent / asymmetric shower head where the summed outlet momentum
+does not act through the held hose line.
 
-Therefore the upright equilibrium is open-loop unstable, matching the sign
-convention used in the inverted-pendulum chapters.
+These are educational effective parameters, not an identified commercial
+shower-head model.
 
-In X1-2, gravity is defined in world coordinates and transformed to the body
-frame before computing
+## Water momentum model
 
-```text
-tau_g_body = r_com_body x F_g_body
-```
+Flow rate is stored internally in SI `m^3/s`. UI code may display L/min.
 
-so the same sign convention survives arbitrary 3D attitude.
-
-## Jet and TVC model
-
-Internally, flow rate `Q` is SI `m^3/s`. UI code may display L/min but must
-convert at the boundary.
-
-The model uses:
+The effective reaction-force magnitude is
 
 ```text
 T = C_T rho Q^2 / A_eff
@@ -74,145 +68,147 @@ with defaults:
 - `C_T = 0.85`
 - `A_eff = 2.0e-5 m^2`
 - nominal `Q = 8 L/min`
-- maximum `Q_max = 10 L/min`
+- maximum `Q = 10 L/min`
 
-`T` is the reaction force on the body, opposite to the outgoing water
-momentum. At zero gimbal angle it points along body +Y.
-
-The 2-axis convention is:
-
-1. start with the reaction force along body +Y
-2. rotate by `delta_x` about body +X
-3. rotate by `delta_z` about body +Z
-
-Thus, when the other gimbal angle is zero:
-
-- positive `delta_x` creates positive body-X torque
-- positive `delta_z` creates positive body-Z torque
-
-The X1-1 scalar model is exactly the `delta_x = 0`, +Z rotational slice of
-X1-2.
-
-## One-axis dynamics
-
-X1-1 integrates:
+Water exits along body `-Y`, so the rigid body receives the opposite
+reaction
 
 ```text
-I_z theta_ddot
-  = m g l_com sin(theta)
-  + l_nozzle T sin(delta)
-  + tau_disturbance
+F_reaction_body = [0, +T, 0]
 ```
 
-The state is only:
+and the rotational effect about the held point is
 
 ```text
-theta
-omega = theta_dot
+tau_water = r_nozzle x F_reaction
 ```
 
-The integrator is fixed-step semi-implicit Euler:
+The first model does not solve the internal flow field. The offset resultant is
+an effective representation of inlet turning, outlet momentum flux and the
+shower-head geometry.
+
+## Gravity torque
+
+Gravity is defined in world coordinates and transformed to body coordinates.
 
 ```text
-omega[k+1] = omega[k] + alpha[k] dt
-theta[k+1] = theta[k] + omega[k+1] dt
+F_g_world = [0, -m g, 0]
+tau_g_body = r_com_body x F_g_body
 ```
 
-Rendering code must not contain a second copy of these dynamics.
+Because `r_com` lies below the hand, a small tilt receives a restoring
+gravity torque.
 
-## X1-2 quaternion and rigid-body convention
-
-Quaternion storage is
+For the one-axis +Z slice:
 
 ```text
-q = [w, x, y, z]
+tau_g = -m g l_com sin(theta)
 ```
 
-and `qBodyToWorld` maps a vector expressed in body coordinates into world
-coordinates. Body angular velocity is stored as
+The minus sign is a required regression check.
+
+## Hand / hose holding model
+
+The player does not gimbal the nozzle.
+
+Instead, the controls specify the direction of the hose being held above the
+head. Zero input means the held hose points world +Y.
+
+Let
+
+- `a`: current body +Y hose axis in world coordinates
+- `h`: player-commanded held-hose direction in world coordinates
+
+The flexible hose / wrist support is modeled as a rotational spring-damper:
 
 ```text
-omegaBodyRadS = [omega_x, omega_y, omega_z]
+tau_hold_world = K_h (a x h)
+tau_hold_body  = R(q)^T tau_hold_world - C_h omega
 ```
 
-and is always expressed in the body frame.
+The default model damps X/Z tilt strongly and yaw weakly.
 
-For diagonal body-frame inertia, X1-2 evaluates Euler's rigid-body equation:
+This is not intended to be a detailed hose finite-element model. It gives the
+player a physically interpretable way to create a counter-torque by changing
+how the hose is held.
+
+## 3D rigid-body dynamics
+
+Angular velocity and inertia are expressed in the body frame.
 
 ```text
-I omega_dot + omega x (I omega) = tau_body
+I omega_dot + omega x (I omega)
+  = tau_gravity + tau_water + tau_hold + tau_disturbance
 ```
 
-Quaternion kinematics use the same body-frame angular velocity:
+Quaternion kinematics use
 
 ```text
 q_dot = 1/2 q tensor_product [0, omega_body]
 ```
 
-The numerical step updates angular velocity first, then quaternion, and
-normalizes the quaternion every step.
+The numerical step is fixed-step semi-implicit Euler for angular velocity,
+followed by quaternion integration and normalization.
 
-## Controller convention
+## One-axis slice
 
-Manual one-axis mode commands `delta` directly.
-
-P mode:
+For the +Z planar slice:
 
 ```text
-delta_cmd = -Kp theta
+I theta_ddot
+  = -m g l_com sin(theta)
+  + x_nozzle T
+  + K_h sin(phi_hold - theta)
+  - C_h theta_dot
+  + tau_disturbance
 ```
 
-PD mode:
+where `phi_hold` is the direction in which the player holds the hose.
 
-```text
-delta_cmd = -Kp theta - Kd omega
-```
-
-Defaults for the educational one-axis model are:
-
-- `Kp = 2.5`
-- `Kd = 0.7 s`
-
-Because `delta`, `theta` are radians and `omega` is radians/second,
-`Kp` is dimensionless and `Kd` has units of seconds in this direct-angle
-controller.
-
-X1-2 deliberately stops at the 3D plant/actuator model. Quaternion attitude
-feedback is added after the 3D plant is visually inspectable rather than being
-hidden inside the physics core.
+At nominal flow, a small counter-tilt of the held hose can balance the offset
+water-reaction torque while the head remains nearly vertical.
 
 ## Input constraints
 
-X1-1 enforces:
+The first version enforces:
 
 ```text
 0 <= Q <= 10 L/min
-|delta| <= 25 deg
+|hold_tilt_x| <= 25 deg
+|hold_tilt_z| <= 25 deg
 ```
 
-X1-2 extends this independently to both axes:
+Commanded and applied values remain separate so saturation is visible in the
+HUD and later game scoring.
 
-```text
-|delta_x| <= 25 deg
-|delta_z| <= 25 deg
-0 <= Q <= 10 L/min
-```
+## Relationship to TVC
 
-The core preserves command and applied values separately. UI and graphs must not
-silently replace requested values with saturated values.
+A normal fixed-nozzle shower head is **not** thrust-vector control.
 
-Gimbal slew-rate limiting is deliberately deferred. When added, it must be a
-separate actuator-state constraint and not be folded into the rigid-body
-equation.
+TVC remains useful later as a comparison:
 
-## Rendering contract for X1-3
+- shower: the player changes the support / force balance of a hanging body
+- rocket TVC: the actuator changes the thrust direction itself
+- biped: the controller changes the realizable ground-reaction force / CoP
 
-The renderer must consume the physics state rather than recomputing it.
+The common lesson is that attitude control depends on what external forces and
+moments are physically realizable. The main X1 game must not present the shower
+nozzle itself as a gimbaled rocket nozzle.
 
-- world frame remains right-handed and Y-up
-- body +Y remains the nominal reaction-force axis
-- `delta_x = delta_z = 0` means the force line is collinear with body +Y
-- positive axis rotations obey the right-hand rule
-- force and torque diagnostics keep SI units
-- command/applied actuator values remain distinct under saturation
-- quaternion remains authoritative; Euler angles are display-only
+## Rendering contract
+
+The renderer consumes the physics state and diagnostics; it does not rederive
+the dynamics.
+
+The 3D view must make these facts visually obvious:
+
+- the hand / held hose is above
+- the head and COM are below
+- water exits downward
+- reaction force points opposite the water
+- gravity points world down
+- water-reaction torque and hose-holding torque are distinguishable
+- the target is a downward water direction
+- quaternion state is authoritative; Euler angles are display-only
+
+Human Visual Audit remains required after deployment.

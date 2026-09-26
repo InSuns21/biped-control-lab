@@ -1,12 +1,12 @@
-# SHOWER TVC 3D GAME PLAN
+# HANGING SHOWER CONTROL 3D GAME PLAN
 
 ## 0. 位置づけ
 
-この計画は、Biped Control Lab に「流水の反力で姿勢を制御するシャワーヘッド」を題材にした 3D 体感型 Lab を追加するための実装計画である。
+この計画は、Biped Control Lab に「手でホースを上から持ち、下にぶら下がるシャワーヘッドから水を下向きに流しつつ、流水反力で暴れるヘッドを安定させる」3D 体感型 Lab を追加するための実装計画である。Human Visual Audit で旧版の『重心下支点＋可動ノズルTVC』が実際のゲーム意図と異なることが判明したため、本計画は hanging-hose model を正とする。
 
 狙いは、二足歩行そのものを 3D 化することではない。既存の 2D 本編を維持したまま、
 
-> シャワーの流水反力 → 推力偏向（TVC）→ PD 制御 → 入力飽和 → 支持領域制約 → 二足歩行
+> 下向き流水の反力 → ホース保持による姿勢制御 → PD / 制約 → TVCとの比較 → 支持領域制約 → 二足歩行
 
 という直感的な橋を追加する。
 
@@ -14,7 +14,7 @@
 
 仮称:
 
-- 表示名: **Side Lab X1 — Shower TVC**
+- 表示名: **Side Lab X1 — Hanging Shower Control**
 - 実装パス候補: `docs/labs/x1-shower-tvc/`
 - 通称候補: Shower Control Lab / Shower 9
 
@@ -24,11 +24,12 @@
 
 1. 流体の運動量流束が剛体へ反力を与えること
 2. 重心を通らない力が `r × F` のトルクを生むこと
-3. 推力の大きさだけでなく、作用線の方向を変えると姿勢を制御できること
-4. P 制御だけでは振動しやすく、D 項が減衰を与えること
-5. 正しい制御則でもアクチュエータ飽和を超える外乱からは復帰できないこと
-6. TVC のジンバル角制約と、二足歩行の CoP / ZMP 制約が「利用できる外力の制約」という同じ構造を持つこと
-7. 3D 剛体では Euler 角だけでなく quaternion と角速度で姿勢を扱う利点があること
+3. 手が上・重心が下なら重力は復元トルクになること
+4. 下向き噴流の合力線が保持軸からずれると `r × F` の外乱トルクが生じること
+5. ホース保持方向を変えると、柔らかい支持を介して対抗トルクを作れること
+6. P / PD、入力飽和、復帰可能領域を体験できること
+7. 固定ノズルのシャワーはTVCそのものではなく、TVC・CoP/ZMPとは『実現可能な外力・モーメントで姿勢を制御する』という構造で比較できること
+8. 3D 剛体では Euler 角だけでなく quaternion と角速度で姿勢を扱う利点があること
 
 ## 2. 教材上の配置
 
@@ -41,7 +42,7 @@
   ↓
 03 PID / PD フィードバック
   ↓
-Side Lab X1 — Shower TVC
+Side Lab X1 — Hanging Shower Control
   ↓
 04 状態空間 / 05 LQR
   ↓
@@ -125,42 +126,48 @@ tau_jet = r_nozzle × F_jet
 
 姿勢は quaternion `q` で保持し、毎ステップ正規化する。
 
-### 3.4 TVC
+### 3.4 ホース保持入力
 
-ノズル方向は本体に固定せず、2 軸ジンバルとして
+メインゲームではノズルをジンバルしない。固定ノズルから水は body -Y へ出る。
+
+プレイヤーは、ヘッドより上で手に持っているホース方向
 
 ```text
-delta_x, delta_z
+hold_tilt_x, hold_tilt_z
 ```
 
-で操作できるようにする。
+を操作する。現在の body +Y 軸を `a`、手元ホースの目標方向を `h` とし、柔らかいホース / 手首支持を
+
+```text
+tau_hold_world = K_h (a x h)
+tau_hold_body = R(q)^T tau_hold_world - C_h omega
+```
+
+という回転ばね・ダンパとして近似する。
 
 制約:
 
 ```text
-|delta_x| <= delta_max
-|delta_z| <= delta_max
+|hold_tilt_x| <= hold_tilt_max
+|hold_tilt_z| <= hold_tilt_max
 0 <= Q <= Q_max
 ```
 
-第一版ではジンバル角速度制限も追加可能にする。
+指令値と適用値は分離し、飽和を HUD と後段のゲーム判定で見えるようにする。
 
-```text
-|d delta / dt| <= delta_rate_max
-```
-
-これにより「指令値は出ているが、アクチュエータが追いつかない」という現象も後段で扱える。
+TVC は後段の比較教材として扱い、通常の固定ノズルシャワーを「TVCそのもの」と説明しない。
 
 ## 4. 制御モード
 
 ### Stage 1: 完全手動
 
-プレイヤーがジンバル角と水量を直接操作する。
+プレイヤーが手元ホースの2軸保持方向と水量を直接操作する。
 
 目的:
 
-- 力の方向とトルクの関係を体感する
-- 遅れて逆方向へ倒れる「過修正」を経験する
+- 手が上、ヘッドが下という幾何を体感する
+- 水流合力線のずれでヘッドが振られることを確認する
+- 保持方向を逆へ切り返しすぎると振動が増えることを経験する
 
 ### Stage 2: 姿勢計を追加
 
@@ -170,35 +177,27 @@ delta_x, delta_z
 
 ### Stage 3: P 制御
 
+1軸では、流水反力の定常トルクを打ち消す feedforward に姿勢誤差P項を加える。
+
 ```text
-delta_cmd = -Kp theta
+phi_hold_cmd = phi_ff - Kp theta
 ```
 
-を導入する。
-
-条件によっては原点付近で振動が残ることを観察する。
+条件によっては振動や定常ずれが残ることを観察する。
 
 ### Stage 4: PD 制御
 
 ```text
-delta_cmd = -Kp theta - Kd theta_dot
+phi_hold_cmd = phi_ff - Kp theta - Kd theta_dot
 ```
 
 へ進む。
 
-3D では最終的に姿勢誤差 quaternion から誤差回転ベクトルを作り、
-
-```text
-tau_cmd = -K_R e_R - K_omega omega
-```
-
-という形へ一般化する。
-
-最初の UI では 1 軸モードを用意し、2D の PD と完全に対応する状態から 3D へ広げる。
+3D では quaternion から下向き水流の姿勢誤差を作り、手元ホース方向の指令へ写像する。制御器は保持入力を出し、物理コアはホース回転ばね・ダンパを通して実トルクを生成する。
 
 ### Stage 5: 飽和
 
-`delta_max` と `Q_max` を厳しくして、復帰可能領域を見せる。
+`hold_tilt_max` と `Q_max` を厳しくして、復帰可能領域を見せる。
 
 重要な学習点:
 
@@ -402,7 +401,7 @@ p_min <= p_CoP <= p_max
 
 ## 10. 実装フェーズ
 
-### X1-0: 設計固定 ✅
+### X1-0: 設計固定 ✅（Human Visual Audit 後に hanging-hose model へ改訂）
 
 - 座標系・正方向
 - 単位
@@ -416,9 +415,9 @@ p_min <= p_CoP <= p_max
 
 を文書化する。
 
-固定した設計契約は `docs/js/shower/README.md` に置く。X1-0 では、右手系 Y-up、+Z 回転、重心下の仮想支点、SI 単位、`T=C_T rho Q^2/A_eff`、`|delta|<=25 deg`、`0<=Q<=10 L/min` を採用した。1 軸モデルはこの 3D 設計の +Z 断面として扱う。
+固定した設計契約は `docs/js/shower/README.md` に置く。正規モデルは右手系 Y-up、手元支点が上、COMとヘッドが下、固定ノズル水流は body -Y、流水反力は body +Y。ノズル合力線のオフセットで `r × F` が生じ、プレイヤーは `hold_tilt_x/z` を通じたホース保持トルクで姿勢を制御する。`T=C_T rho Q^2/A_eff`、`|hold_tilt|<=25 deg`、`0<=Q<=10 L/min` とする。
 
-### X1-1: 1 軸 physics core ✅
+### X1-1: 1 軸 physics core ✅（hanging-hose model へ改訂）
 
 描画なしで、
 
@@ -432,9 +431,9 @@ p_min <= p_CoP <= p_max
 
 をテスト可能な純粋 JS として実装する。
 
-実装は `docs/js/shower/one-axis.js`。semi-implicit Euler で `theta, omega` を更新し、P / PD / manual、流量飽和、ジンバル飽和、外乱トルクを描画層から独立して扱う。回帰は `scripts/check-shower-model.mjs` とし、`npm test` に統合する。
+実装は `docs/js/shower/one-axis.js`。semi-implicit Euler で `theta, omega` を更新し、復元重力、オフセット流水反力、ホース保持ばね・ダンパ、manual / P / PD、流量・保持角飽和、外乱トルクを描画層から独立して扱う。回帰は `scripts/check-shower-model.mjs` とし、`npm test` に統合する。
 
-### X1-2: 3D 剛体化 ✅
+### X1-2: 3D 剛体化 ✅（hanging-hose model へ改訂）
 
 - quaternion
 - 3 軸角速度
@@ -443,13 +442,13 @@ p_min <= p_CoP <= p_max
 
 へ拡張する。
 
-実装は `docs/js/shower/quaternion.js` と `docs/js/shower/rigid-body.js`。姿勢は body→world の `[w,x,y,z]` quaternion、角速度と対角慣性テンソルは body frame に統一する。Euler の剛体方程式 `I omega_dot + omega x (I omega) = tau` を直接評価し、2 軸 TVC は `delta_x`、`delta_z` を個別に飽和する。X1-1 の +Z 断面と角加速度・角速度更新が一致すること、quaternion ノルム、ジャイロ項、2 軸 TVC の符号を CI 回帰で固定する。
+実装は `docs/js/shower/quaternion.js` と `docs/js/shower/rigid-body.js`。姿勢は body→world の `[w,x,y,z]` quaternion、角速度と対角慣性テンソルは body frame に統一する。Euler の剛体方程式 `I omega_dot + omega x (I omega) = tau` を直接評価し、重力、流水反力、ホース保持、外乱を合成する。quaternion ノルム、ジャイロ項、重力の復元符号、オフセット流水反力、保持トルク方向を CI 回帰で固定する。
 
-### X1-3: Three.js 可視化 ✅（Human Visual Audit は公開後）
+### X1-3: Three.js 可視化 ✅（Human Visual Audit 継続中・hanging-hose版へ更新）
 
 physics core とレンダリングを接続する。
 
-実装は `docs/labs/x1-shower-tvc/`。Three.js は npm 依存から `docs/vendor/three.module.js` へコピーし、実行時 CDN へ依存しない。表示は X1-2 の quaternion / body-frame diagnostics を唯一の状態源とし、シャワーヘッド、水流、流水反力、重力、ジェットトルク、目標姿勢を3D表示する。HUD では roll / pitch / yaw、角速度、流量、2軸ジンバル適用値、推力、トルク、飽和状態を表示する。指令範囲を物理上限より広く取り、`|delta|<=25 deg`、`Q<=10 L/min` の飽和を画面上で確認できる。斜め・正面・側面・上面のカメラ切替を用意する。
+実装は `docs/labs/x1-shower-tvc/`。Three.js は npm 依存から vendor し、実行時 CDN へ依存しない。表示は X1-2 の quaternion / diagnostics を唯一の状態源とし、上側の手元ホース、下側のシャワーヘッド、下向き水流、上向き流水反力、重力、流水反力トルク、ホース保持トルク、目標下向き水流を3D表示する。HUD では姿勢、角速度、下向き誤差、流量、保持角、反力、両トルク、飽和を表示する。
 
 この段階で見た目を優先して物理式を書き換えない。CI では Three.js vendor asset、Lab ファイル、JS 構文、リンク、物理回帰を検証する。Human Visual Audit は GitHub Pages 公開後に、水流と反力の向き、矢印・重心・HUD、タブレット表示を実画面で確認する。
 
@@ -482,10 +481,11 @@ Stage 1〜6 を実装する。
 
 ### 11.1 物理回帰
 
-- `Q = 0` ならジェット推力 0
-- `Q` を 2 倍にしたとき、理想モデルでは推力が 4 倍
-- 作用線が重心を通ると `tau_jet ≈ 0`
-- レバーアームを反転するとトルク符号が反転
+- `Q = 0` なら流水反力 0
+- `Q` を 2 倍にしたとき、理想モデルでは反力が 4 倍
+- 手が上・COMが下なら重力トルクは復元符号になる
+- ノズル合力線のオフセット符号を反転すると流水反力トルク符号が反転する
+- 手元ホースを逆側へ傾けると保持トルク符号が反転する
 - quaternion ノルムが長時間積分で 1 付近に維持される
 - 対称な慣性テンソルで軸ごとの期待挙動が得られる
 
@@ -493,7 +493,7 @@ Stage 1〜6 を実装する。
 
 - 適切な PD ゲインで小外乱から収束
 - `Kd = 0` では減衰が失われるケースを再現
-- `delta_max` に達したら指令値と実入力を区別して記録
+- `hold_tilt_max` に達したら指令値と実入力を区別して記録
 - 最大トルクを超える外乱では復帰不能になる
 
 ### 11.3 Web
@@ -541,8 +541,8 @@ CI とは別に必須。
 
 - [ ] 1 軸手動 TVC を遊べる
 - [ ] P / PD の違いを操作で確認できる
-- [ ] 3D 2 軸 TVC が動く
-- [ ] 流量とジンバル角に飽和がある
+- [ ] 手元ホース2軸保持で3Dヘッド姿勢を操作できる
+- [ ] 流量と保持角に飽和がある
 - [ ] 重心・推力・トルクを画面上で確認できる
 - [ ] 姿勢・角速度・入力の時系列が見える
 - [ ] PC とタブレットで操作できる

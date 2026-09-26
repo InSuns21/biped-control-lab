@@ -3,24 +3,27 @@ import {
   DEFAULT_ONE_AXIS_PARAMS,
   DEFAULT_PD_GAINS,
   degToRad,
+  feedforwardHoldTilt1D,
   gravityTorque1D,
+  hoseHoldingTorque1D,
   jetThrustFromFlow,
-  jetTorque1D,
   lpmToM3s,
   stepOneAxis,
+  waterReactionTorque1D,
 } from "../docs/js/shower/one-axis.js";
 import {
   quatFromAxisAngle,
   quatNorm,
-  quatRotateVector,
 } from "../docs/js/shower/quaternion.js";
 import {
   DEFAULT_RIGID_BODY_PARAMS,
   angularAccelerationBody3D,
   createRigidBodyState,
-  jetForceBody3D,
-  jetTorqueBody3D,
+  gravityTorqueBody3D,
+  hoseHoldingTorqueBody3D,
+  jetDownErrorRad,
   stepRigidBody3D,
+  waterReactionTorqueBody3D,
 } from "../docs/js/shower/rigid-body.js";
 
 const params = DEFAULT_ONE_AXIS_PARAMS;
@@ -32,153 +35,129 @@ const vectorNearly = (a, b, tol = 1e-12) => (
 assert.equal(
   jetThrustFromFlow(0, params),
   0,
-  "Q = 0 should produce zero jet thrust",
+  "Q = 0 should produce zero water reaction",
 );
 
 const thrust4Lpm = jetThrustFromFlow(lpmToM3s(4), params);
 const thrust8Lpm = jetThrustFromFlow(lpmToM3s(8), params);
 assert.ok(
   nearly(thrust8Lpm / thrust4Lpm, 4),
-  "doubling flow should quadruple idealized jet thrust",
+  "doubling flow should quadruple the idealized momentum-flux force",
 );
 
 assert.ok(
-  nearly(jetTorque1D(0, thrust8Lpm, params), 0),
-  "zero gimbal angle should produce zero jet torque",
-);
-
-const positiveJetTorque = jetTorque1D(degToRad(10), thrust8Lpm, params);
-const negativeJetTorque = jetTorque1D(degToRad(-10), thrust8Lpm, params);
-assert.ok(
-  nearly(positiveJetTorque, -negativeJetTorque),
-  "reversing gimbal angle should reverse jet torque",
+  gravityTorque1D(degToRad(5), params) < 0,
+  "with the hand above the COM, gravity must restore a positive tilt",
 );
 
 assert.ok(
-  gravityTorque1D(degToRad(5), params) > 0,
-  "positive tilt should receive destabilizing gravity torque",
+  waterReactionTorque1D(thrust8Lpm, params) > 0,
+  "the offset downward jet should create the documented +Z reaction torque",
 );
 
-const saturated = stepOneAxis(
-  { thetaRad: degToRad(30), omegaRadS: 0 },
-  { mode: "pd", kp: 4, kd: 1, flowRateM3s: lpmToM3s(20) },
+assert.ok(
+  hoseHoldingTorque1D(0, 0, degToRad(-5), params) < 0,
+  "counter-tilting the held hose should create a counteracting -Z torque",
+);
+
+const feedforwardTilt = feedforwardHoldTilt1D(
+  params.flowNominalM3s,
+  params,
+);
+const balanced = stepOneAxis(
+  { thetaRad: 0, omegaRadS: 0 },
+  {
+    mode: "manual",
+    holdTiltCommandRad: feedforwardTilt,
+    flowRateM3s: params.flowNominalM3s,
+  },
   0.001,
   params,
 );
-
-assert.equal(
-  saturated.diagnostics.gimbalSaturated,
-  true,
-  "large PD command should hit gimbal saturation",
-);
-assert.equal(
-  saturated.diagnostics.flowSaturated,
-  true,
-  "flow command above Q_max should be clamped",
-);
 assert.ok(
-  nearly(
-    Math.abs(saturated.diagnostics.deltaAppliedRad),
-    params.gimbalMaxRad,
-  ),
-  "applied gimbal angle should equal the limit",
-);
-assert.ok(
-  saturated.diagnostics.deltaCommandRad
-    !== saturated.diagnostics.deltaAppliedRad,
-  "command and applied gimbal angle should remain distinguishable",
+  Math.abs(balanced.diagnostics.totalTorqueNm) < 1e-12,
+  "feedforward hand tilt should balance the nominal off-axis water torque at vertical",
 );
 
-let pdState = { thetaRad: degToRad(8), omegaRadS: 0 };
-let pdDiagnostics;
-for (let t = 0; t < 6; t += 0.001) {
-  const out = stepOneAxis(
+let pdState = { thetaRad: degToRad(10), omegaRadS: 0 };
+for (let t = 0; t < 5; t += 0.001) {
+  pdState = stepOneAxis(
     pdState,
     { mode: "pd", ...DEFAULT_PD_GAINS },
     0.001,
     params,
-  );
-  pdState = out.state;
-  pdDiagnostics = out.diagnostics;
-}
-
-assert.ok(
-  Math.abs(pdState.thetaRad) < degToRad(0.05),
-  "default PD should recover a small tilt close to upright",
-);
-assert.ok(
-  Math.abs(pdState.omegaRadS) < 0.002,
-  "default PD should damp angular velocity close to zero",
-);
-assert.equal(
-  pdDiagnostics.gimbalSaturated,
-  false,
-  "settled default PD state should be unsaturated",
-);
-
-let pState = { thetaRad: degToRad(8), omegaRadS: 0 };
-for (let t = 0; t < 6; t += 0.001) {
-  pState = stepOneAxis(
-    pState,
-    { mode: "p", kp: DEFAULT_PD_GAINS.kp },
-    0.001,
-    params,
   ).state;
 }
-
 assert.ok(
-  Math.abs(pState.omegaRadS) > 0.05,
-  "P-only case should retain appreciable oscillatory motion in this ideal model",
+  Math.abs(pdState.thetaRad) < degToRad(0.1),
+  "PD plus nominal-flow feedforward should return the hanging head close to vertical",
+);
+assert.ok(
+  Math.abs(pdState.omegaRadS) < 0.01,
+  "PD should damp the hanging-head angular velocity",
 );
 
-// X1-2 quaternion convention: +90 deg about +Z maps body +Y toward world -X.
-const qPlusZ90 = quatFromAxisAngle([0, 0, 1], Math.PI / 2);
+const saturated = stepOneAxis(
+  { thetaRad: 0, omegaRadS: 0 },
+  {
+    mode: "manual",
+    holdTiltCommandRad: degToRad(60),
+    flowRateM3s: lpmToM3s(20),
+  },
+  0.001,
+  params,
+);
+assert.equal(saturated.diagnostics.holdTiltSaturated, true);
+assert.equal(saturated.diagnostics.flowSaturated, true);
 assert.ok(
-  vectorNearly(
-    quatRotateVector(qPlusZ90, [0, 1, 0]),
-    [-1, 0, 0],
-    1e-12,
+  nearly(
+    saturated.diagnostics.holdTiltAppliedRad,
+    params.holdTiltMaxRad,
   ),
-  "body->world quaternion convention should follow the right-hand rule",
+  "held-hose direction should clamp to the physical limit",
 );
 
-// Positive gimbal angles create positive torques about the corresponding axis.
+// 3D identity is the intended hanging pose: body -Y / water jet points world down.
+const identity = createRigidBodyState();
+assert.ok(
+  nearly(jetDownErrorRad(identity.qBodyToWorld), 0),
+  "identity attitude should point the shower jet straight down",
+);
+
+// Gravity is restoring in both tilt axes because the COM lies below the hand.
+const qTiltZ = quatFromAxisAngle([0, 0, 1], degToRad(7));
+const gravityZ = gravityTorqueBody3D(qTiltZ, DEFAULT_RIGID_BODY_PARAMS);
+assert.ok(
+  gravityZ[2] < 0,
+  "positive +Z tilt should receive negative restoring gravity torque",
+);
+
 const thrust3D = jetThrustFromFlow(
   DEFAULT_RIGID_BODY_PARAMS.flowNominalM3s,
   DEFAULT_RIGID_BODY_PARAMS,
 );
-const torquePlusX = jetTorqueBody3D(
-  degToRad(10),
-  0,
-  thrust3D,
-  DEFAULT_RIGID_BODY_PARAMS,
-);
-const torquePlusZ = jetTorqueBody3D(
-  0,
-  degToRad(10),
+const waterTorque3D = waterReactionTorqueBody3D(
   thrust3D,
   DEFAULT_RIGID_BODY_PARAMS,
 );
 assert.ok(
-  torquePlusX[0] > 0 && nearly(torquePlusX[1], 0) && nearly(torquePlusX[2], 0),
-  "positive delta_x should create positive body-X torque",
-);
-assert.ok(
-  nearly(torquePlusZ[0], 0) && nearly(torquePlusZ[1], 0) && torquePlusZ[2] > 0,
-  "positive delta_z should create positive body-Z torque",
+  waterTorque3D[0] < 0 && waterTorque3D[2] > 0,
+  "the offset nozzle line should create the expected 3D water-reaction torque",
 );
 
-const combinedForce = jetForceBody3D(
-  degToRad(13),
-  degToRad(-9),
-  thrust3D,
+const holdCounter = hoseHoldingTorqueBody3D(
+  identity.qBodyToWorld,
+  [0, 0, 0],
+  degToRad(5),
+  degToRad(-10),
+  DEFAULT_RIGID_BODY_PARAMS,
 );
 assert.ok(
-  nearly(Math.hypot(...combinedForce), thrust3D, 1e-12),
-  "2-axis TVC should rotate thrust without changing its magnitude",
+  holdCounter[0] > 0 && holdCounter[2] < 0,
+  "hand-controlled hose direction should oppose the nominal water torque in both tilt axes",
 );
 
-// Euler rigid-body equation must include omega x (I omega), not only tau / I.
+// Euler rigid-body equation must include omega x (I omega).
 assert.ok(
   vectorNearly(
     angularAccelerationBody3D([1, 2, 3], [0, 0, 0], [2, 3, 4]),
@@ -188,96 +167,39 @@ assert.ok(
   "asymmetric inertia should produce the expected gyroscopic coupling",
 );
 
-// The +Z slice of X1-2 must exactly preserve X1-1 torque/acceleration signs.
-const sliceTheta = degToRad(7);
-const sliceOmega = 0.12;
-const sliceDeltaZ = degToRad(-5);
-const sliceDt = 0.0005;
-const oneAxisSlice = stepOneAxis(
-  { thetaRad: sliceTheta, omegaRadS: sliceOmega },
-  {
-    mode: "manual",
-    deltaCommandRad: sliceDeltaZ,
-    flowRateM3s: lpmToM3s(8),
-  },
-  sliceDt,
-  DEFAULT_ONE_AXIS_PARAMS,
-);
-const rigidSlice = stepRigidBody3D(
-  createRigidBodyState({
-    qBodyToWorld: quatFromAxisAngle([0, 0, 1], sliceTheta),
-    omegaBodyRadS: [0, 0, sliceOmega],
-  }),
-  {
-    deltaZCommandRad: sliceDeltaZ,
-    flowRateM3s: lpmToM3s(8),
-  },
-  sliceDt,
-  DEFAULT_RIGID_BODY_PARAMS,
-);
-assert.ok(
-  nearly(
-    oneAxisSlice.diagnostics.alphaRadS2,
-    rigidSlice.diagnostics.alphaBodyRadS2[2],
-    1e-12,
-  ),
-  "X1-2 +Z slice should reproduce X1-1 angular acceleration",
-);
-assert.ok(
-  nearly(
-    oneAxisSlice.state.omegaRadS,
-    rigidSlice.state.omegaBodyRadS[2],
-    1e-12,
-  ),
-  "X1-2 +Z slice should reproduce X1-1 angular velocity update",
-);
-
-// X and Z gimbal commands are saturated independently and retain raw commands.
 const saturated3D = stepRigidBody3D(
   createRigidBodyState(),
   {
-    deltaXCommandRad: degToRad(60),
-    deltaZCommandRad: degToRad(-70),
+    holdTiltXCommandRad: degToRad(60),
+    holdTiltZCommandRad: degToRad(-70),
     flowRateM3s: lpmToM3s(20),
   },
   0.001,
   DEFAULT_RIGID_BODY_PARAMS,
 );
-assert.equal(
-  saturated3D.diagnostics.gimbalXSaturated,
-  true,
-  "delta_x should report saturation",
-);
-assert.equal(
-  saturated3D.diagnostics.gimbalZSaturated,
-  true,
-  "delta_z should report saturation",
-);
-assert.equal(
-  saturated3D.diagnostics.flowSaturated,
-  true,
-  "3D flow should report saturation",
+assert.equal(saturated3D.diagnostics.holdTiltXSaturated, true);
+assert.equal(saturated3D.diagnostics.holdTiltZSaturated, true);
+assert.equal(saturated3D.diagnostics.flowSaturated, true);
+assert.ok(
+  nearly(
+    saturated3D.diagnostics.holdTiltXAppliedRad,
+    DEFAULT_RIGID_BODY_PARAMS.holdTiltMaxRad,
+  ),
 );
 assert.ok(
   nearly(
-    saturated3D.diagnostics.deltaXAppliedRad,
-    DEFAULT_RIGID_BODY_PARAMS.gimbalMaxRad,
+    saturated3D.diagnostics.holdTiltZAppliedRad,
+    -DEFAULT_RIGID_BODY_PARAMS.holdTiltMaxRad,
   ),
-  "positive delta_x should clamp to +delta_max",
-);
-assert.ok(
-  nearly(
-    saturated3D.diagnostics.deltaZAppliedRad,
-    -DEFAULT_RIGID_BODY_PARAMS.gimbalMaxRad,
-  ),
-  "negative delta_z should clamp to -delta_max",
 );
 
-// With spherical inertia and no external torque, body angular rate stays constant.
-// Repeated quaternion normalization must keep the attitude on S^3.
+// With no forces, no spring/damping, and spherical inertia, angular rate is constant.
 const torqueFreeParams = {
   ...DEFAULT_RIGID_BODY_PARAMS,
   massKg: 0,
+  hoseSpringNm: 0,
+  hoseDampingNms: 0,
+  yawDampingNms: 0,
   inertiaDiagKgM2: [0.02, 0.02, 0.02],
   flowNominalM3s: 0,
   flowMaxM3s: 0,
@@ -304,5 +226,5 @@ assert.ok(
 );
 
 console.log(
-  "Shower TVC checks OK: X1-1 scalar model and X1-2 quaternion/3D rigid body",
+  "Shower checks OK: hanging hose geometry, restoring gravity, water reaction, holding torque, quaternion 3D",
 );

@@ -10,30 +10,33 @@ import {
   degToRad,
   lpmToM3s,
 } from "../../js/shower/one-axis.js";
+
 const canvas = document.querySelector("#scene");
-const deltaX = document.querySelector("#deltaX");
-const deltaZ = document.querySelector("#deltaZ");
+const holdX = document.querySelector("#holdX");
+const holdZ = document.querySelector("#holdZ");
 const flow = document.querySelector("#flow");
 const cameraView = document.querySelector("#cameraView");
 const pauseButton = document.querySelector("#pause");
 const neutralButton = document.querySelector("#neutral");
 const resetButton = document.querySelector("#reset");
 
-const deltaXOut = document.querySelector("#deltaXOut");
-const deltaZOut = document.querySelector("#deltaZOut");
+const holdXOut = document.querySelector("#holdXOut");
+const holdZOut = document.querySelector("#holdZOut");
 const flowOut = document.querySelector("#flowOut");
 const rpyMetric = document.querySelector("#rpyMetric");
+const downErrorMetric = document.querySelector("#downErrorMetric");
 const omegaMetric = document.querySelector("#omegaMetric");
 const flowMetric = document.querySelector("#flowMetric");
-const gimbalMetric = document.querySelector("#gimbalMetric");
+const holdMetric = document.querySelector("#holdMetric");
 const thrustMetric = document.querySelector("#thrustMetric");
-const torqueMetric = document.querySelector("#torqueMetric");
+const waterTorqueMetric = document.querySelector("#waterTorqueMetric");
+const holdTorqueMetric = document.querySelector("#holdTorqueMetric");
 const saturationMetric = document.querySelector("#saturationMetric");
 
 let view = null;
 const params = DEFAULT_RIGID_BODY_PARAMS;
 const fixedDt = 1 / 240;
-const initialTilt = quatFromAxisAngle([1, 0, 1], degToRad(10));
+const initialTilt = quatFromAxisAngle([1, 0, 1], degToRad(12));
 
 let state = createRigidBodyState({ qBodyToWorld: initialTilt });
 let diagnostics = null;
@@ -64,15 +67,15 @@ function quaternionToRpyDeg(q) {
 
 function readControl() {
   return {
-    deltaXCommandRad: degToRad(Number(deltaX.value)),
-    deltaZCommandRad: degToRad(Number(deltaZ.value)),
+    holdTiltXCommandRad: degToRad(Number(holdX.value)),
+    holdTiltZCommandRad: degToRad(Number(holdZ.value)),
     flowRateM3s: lpmToM3s(Number(flow.value)),
   };
 }
 
 function updateControlLabels() {
-  deltaXOut.value = `${Number(deltaX.value).toFixed(0)}°`;
-  deltaZOut.value = `${Number(deltaZ.value).toFixed(0)}°`;
+  holdXOut.value = `${Number(holdX.value).toFixed(0)}°`;
+  holdZOut.value = `${Number(holdZ.value).toFixed(0)}°`;
   flowOut.value = `${Number(flow.value).toFixed(1)} L/min`;
 }
 
@@ -85,26 +88,32 @@ function updateMetrics() {
     .join(" / ");
 
   if (!diagnostics) {
+    downErrorMetric.textContent = "-";
     flowMetric.textContent = "-";
-    gimbalMetric.textContent = "-";
+    holdMetric.textContent = "-";
     thrustMetric.textContent = "-";
-    torqueMetric.textContent = "-";
+    waterTorqueMetric.textContent = "-";
+    holdTorqueMetric.textContent = "-";
     saturationMetric.textContent = "-";
     return;
   }
 
+  downErrorMetric.textContent =
+    `${radToDeg(diagnostics.jetDownErrorRad).toFixed(1)}°`;
   flowMetric.textContent =
     `${(diagnostics.flowRateM3s * 60000).toFixed(1)} L/min`;
-  gimbalMetric.textContent =
-    `${radToDeg(diagnostics.deltaXAppliedRad).toFixed(1)}° / `
-    + `${radToDeg(diagnostics.deltaZAppliedRad).toFixed(1)}°`;
+  holdMetric.textContent =
+    `${radToDeg(diagnostics.holdTiltXAppliedRad).toFixed(1)}° / `
+    + `${radToDeg(diagnostics.holdTiltZAppliedRad).toFixed(1)}°`;
   thrustMetric.textContent = `${diagnostics.thrustN.toFixed(3)} N`;
-  torqueMetric.textContent =
-    `${magnitude3(diagnostics.jetTorqueBodyNm).toFixed(4)} N·m`;
+  waterTorqueMetric.textContent =
+    `${magnitude3(diagnostics.waterReactionTorqueBodyNm).toFixed(4)} N·m`;
+  holdTorqueMetric.textContent =
+    `${magnitude3(diagnostics.hoseHoldingTorqueBodyNm).toFixed(4)} N·m`;
 
   const saturated = diagnostics.flowSaturated
-    || diagnostics.gimbalXSaturated
-    || diagnostics.gimbalZSaturated;
+    || diagnostics.holdTiltXSaturated
+    || diagnostics.holdTiltZSaturated;
   saturationMetric.textContent = saturated ? "SATURATED" : "OK";
   saturationMetric.className = saturated ? "status-danger" : "status-ok";
 }
@@ -122,7 +131,7 @@ function setPaused(next) {
   lastTime = performance.now();
 }
 
-[deltaX, deltaZ, flow].forEach((element) => {
+[holdX, holdZ, flow].forEach((element) => {
   element.addEventListener("input", updateControlLabels);
 });
 
@@ -135,8 +144,8 @@ pauseButton.addEventListener("click", () => {
 });
 
 neutralButton.addEventListener("click", () => {
-  deltaX.value = "0";
-  deltaZ.value = "0";
+  holdX.value = "0";
+  holdZ.value = "0";
   updateControlLabels();
 });
 
@@ -177,7 +186,7 @@ function showRenderError(error) {
     + "<br><code></code>";
   message.querySelector("code").textContent = detail;
   canvas.parentElement.append(message);
-  console.error("Shower TVC renderer initialization failed", error);
+  console.error("Hanging shower renderer initialization failed", error);
 }
 
 async function bootstrap() {
