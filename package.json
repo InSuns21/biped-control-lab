@@ -19,6 +19,7 @@
   "devDependencies": {
     "katex": "0.16.38",
     "marked": "16.4.2",
-    "markdownlint-cli2": "0.23.2"
+    "markdownlint-cli2": "0.23.2",
+    "three": "0.186.1"
   }
 }
