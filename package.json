@@ -15,12 +15,14 @@
     "check:models": "node scripts/check-models.mjs",
     "check:shower": "node scripts/check-shower-model.mjs",
     "check:flexible": "node scripts/check-flexible-hose-model.mjs",
-    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:math && npm run check:md && npm run check:links"
+    "check:conveying": "node scripts/check-conveying-flow-model.mjs",
+    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
     "marked": "16.4.2",
     "markdownlint-cli2": "0.23.2",
+    "ml-matrix": "6.15.0",
     "three": "0.186.1"
   }
 }
