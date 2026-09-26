@@ -20,7 +20,8 @@
     "check:flexible-view": "node scripts/check-flexible-visualization.mjs",
     "check:fast-onset": "node scripts/check-fast-onset-calibration.mjs",
     "check:nonlinear-rod": "node scripts/check-nonlinear-rod.mjs",
-    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:flexible-view && npm run check:fast-onset && npm run check:nonlinear-rod && npm run check:math && npm run check:md && npm run check:links"
+    "check:nonlinear-head": "node scripts/check-nonlinear-shower-head.mjs",
+    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:flexible-view && npm run check:fast-onset && npm run check:nonlinear-rod && npm run check:nonlinear-head && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
