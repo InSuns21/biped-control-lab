@@ -16,6 +16,10 @@ import {
   classifyReferenceFlow,
   referenceInitialPerturbationReduced,
 } from "../../js/shower/flexible/scenarios.js";
+import {
+  FAST_ONSET_TARGET,
+  equilibriumValidity,
+} from "../../js/shower/flexible/calibration.js";
 import { createFlexibleView } from "./flexible-view.js";
 
 const FIXED_DT = 0.002;
@@ -123,6 +127,7 @@ export function mountFlexiblePhase(root) {
   let system = null;
   let integrator = null;
   let equilibrium = null;
+  let equilibriumCheck = null;
   let state = null;
   let headReaction = null;
   let history = [];
@@ -181,6 +186,11 @@ export function mountFlexiblePhase(root) {
     system = nextSystem;
     integrator = nextIntegrator;
     equilibrium = nextEquilibrium;
+    equilibriumCheck = equilibriumValidity(
+      nextSystem,
+      nextEquilibrium,
+      FAST_ONSET_TARGET,
+    );
     state = integrator.initialize({
       q,
       v,
@@ -220,7 +230,8 @@ export function mountFlexiblePhase(root) {
       maxDisplacement = Math.max(maxDisplacement, Math.abs(dynamicQ[j]));
       maxRotation = Math.max(maxRotation, Math.abs(dynamicQ[j + 1]));
     }
-    return maxDisplacement <= 0.22 && maxRotation <= 0.45;
+    return maxDisplacement <= FAST_ONSET_TARGET.maxDynamicDisplacementM
+      && maxRotation <= FAST_ONSET_TARGET.maxDynamicRotationRad;
   }
 
   function recordHistory() {
@@ -272,10 +283,16 @@ export function mountFlexiblePhase(root) {
       : (growthRate > 0.02 ? "status-danger" : "status-ok");
     modeMetric.textContent = `形状モード ≈ ${mode}`;
     timeMetric.textContent = `${simTime.toFixed(1)} s`;
-    validityMetric.textContent = limitExceeded
-      ? "線形範囲超過・停止"
-      : "small-deflection 範囲内";
-    validityMetric.className = limitExceeded ? "status-danger" : "status-ok";
+    if (!equilibriumCheck.valid) {
+      validityMetric.textContent = "静的平衡が線形範囲外・参考表示";
+      validityMetric.className = "status-danger";
+    } else if (limitExceeded) {
+      validityMetric.textContent = "動的線形範囲超過・停止";
+      validityMetric.className = "status-danger";
+    } else {
+      validityMetric.textContent = "small-deflection 範囲内";
+      validityMetric.className = "status-ok";
+    }
 
     if (!dynamicQ.every(Number.isFinite)) {
       validityMetric.textContent = "数値異常・停止";
