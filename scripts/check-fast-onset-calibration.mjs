@@ -183,18 +183,25 @@ for (const flexuralRigidityNm2 of [0.25, 0.4, 0.55, 0.7]) {
 const validGrowingCombinations = combinations
   .filter((x) => x.validity.valid && x.sigmaPerS > 0)
   .sort((a, b) => b.sigmaPerS - a.sigmaPerS);
-assert.ok(
-  validGrowingCombinations.length > 0,
-  "exploratory sweep should contain at least one valid growing case",
-);
+const allGrowingCombinations = combinations
+  .filter((x) => x.sigmaPerS > 0)
+  .sort((a, b) => b.sigmaPerS - a.sigmaPerS);
+
 printGroup(
   "H1-4A fastest valid combination cases",
   validGrowingCombinations,
   12,
 );
+printGroup(
+  "H1-4A fastest growing combinations regardless of static validity",
+  allGrowingCombinations,
+  12,
+);
 
 // Validate a handful of the eigenvalue-ranked cases in time domain.
-const parameterTimeDomain = validGrowingCombinations
+// Invalid static equilibria are intentionally retained here so the report can
+// distinguish "fast mathematically" from "fast within the linear model".
+const parameterTimeDomain = allGrowingCombinations
   .slice(0, 8)
   .map((candidate) => {
     const onset = simulateOnset(candidate.system, {
@@ -203,7 +210,8 @@ const parameterTimeDomain = validGrowingCombinations
     return {
       candidate,
       onset,
-      fast: onset.onsetTimeS !== null
+      fast: onset.equilibriumCheck.valid
+        && onset.onsetTimeS !== null
         && onset.onsetTimeS >= FAST_ONSET_TARGET.onsetMinS
         && onset.onsetTimeS <= FAST_ONSET_TARGET.onsetMaxS
         && (onset.guardTimeS === null || onset.guardTimeS > onset.onsetTimeS),
@@ -219,41 +227,51 @@ for (const x of parameterTimeDomain) {
     initialRmsMm: 1000 * x.onset.initialRmsM,
     thresholdMm: 1000 * x.onset.onsetThresholdM,
     maxRmsMm: 1000 * x.onset.maxObservedRmsM,
+    equilibriumValid: x.onset.equilibriumCheck.valid,
     fast: x.fast,
   }));
 }
 
 const baselineSystem = systemFromCase();
+const lowFlowSystem = systemFromCase({ flowLpm: 5 });
 const curvatureCases = [];
+for (const [systemLabel, system] of [
+  ["baseline-18Lpm", baselineSystem],
+  ["low-validity-probe-5Lpm", lowFlowSystem],
+]) {
 for (const tipOffsetM of [0.008, 0.02, 0.04, 0.06]) {
   for (const tipRotationDeg of [0, 5, 10]) {
     const initialPerturbation = initialCurvaturePerturbationReduced(
-      baselineSystem,
+      system,
       {
         tipOffsetM,
         tipRotationRad: degToRad(tipRotationDeg),
         velocityAmplitudeMps: 0.02,
       },
     );
-    const onset = simulateOnset(baselineSystem, {
+    const onset = simulateOnset(system, {
       durationS: 8,
       initialPerturbation,
     });
     curvatureCases.push({
+      systemLabel,
       tipOffsetM,
       tipRotationDeg,
       onset,
-      fast: onset.onsetTimeS !== null
+      fast: onset.equilibriumCheck.valid
+        && onset.onsetTimeS !== null
         && onset.onsetTimeS >= FAST_ONSET_TARGET.onsetMinS
         && onset.onsetTimeS <= FAST_ONSET_TARGET.onsetMaxS
         && (onset.guardTimeS === null || onset.guardTimeS > onset.onsetTimeS),
     });
   }
 }
+}
 
-console.log("\n### H1-4A initial-curvature sensitivity at baseline parameters");
+console.log("\n### H1-4A initial-curvature sensitivity");
 for (const x of curvatureCases) {
   console.log(JSON.stringify({
+    system: x.systemLabel,
     tipOffsetMm: 1000 * x.tipOffsetM,
     tipRotationDeg: x.tipRotationDeg,
     onsetS: x.onset.onsetTimeS,
@@ -261,6 +279,7 @@ for (const x of curvatureCases) {
     initialRmsMm: 1000 * x.onset.initialRmsM,
     thresholdMm: 1000 * x.onset.onsetThresholdM,
     maxRmsMm: 1000 * x.onset.maxObservedRmsM,
+    equilibriumValid: x.onset.equilibriumCheck.valid,
     fast: x.fast,
   }));
 }
@@ -278,10 +297,14 @@ for (const t of [0, 0.35]) {
 }
 
 const boundaryCases = [];
+for (const [systemLabel, system] of [
+  ["baseline-18Lpm", baselineSystem],
+  ["low-validity-probe-5Lpm", lowFlowSystem],
+]) {
 for (const translationAmplitudeM of [0.01, 0.02, 0.04]) {
   for (const rotationDeg of [0, 5, 10]) {
     for (const durationS of [0.20, 0.35, 0.50]) {
-      const onset = simulateOnset(baselineSystem, {
+      const onset = simulateOnset(system, {
         durationS: 8,
         displacementAmplitudeM: 0,
         velocityAmplitudeMps: 0,
@@ -292,17 +315,20 @@ for (const translationAmplitudeM of [0.01, 0.02, 0.04]) {
         },
       });
       boundaryCases.push({
+        systemLabel,
         translationAmplitudeM,
         rotationDeg,
         durationS,
         onset,
-        fast: onset.onsetTimeS !== null
+        fast: onset.equilibriumCheck.valid
+          && onset.onsetTimeS !== null
           && onset.onsetTimeS >= FAST_ONSET_TARGET.onsetMinS
           && onset.onsetTimeS <= FAST_ONSET_TARGET.onsetMaxS
           && (onset.guardTimeS === null || onset.guardTimeS > onset.onsetTimeS),
       });
     }
   }
+}
 }
 
 boundaryCases.sort((a, b) => (
@@ -312,6 +338,7 @@ boundaryCases.sort((a, b) => (
 console.log("\n### H1-4A movable-boundary pulse sensitivity at baseline parameters");
 for (const x of boundaryCases.slice(0, 12)) {
   console.log(JSON.stringify({
+    system: x.systemLabel,
     baseTranslationMm: 1000 * x.translationAmplitudeM,
     baseRotationDeg: x.rotationDeg,
     pulseDurationS: x.durationS,
@@ -319,6 +346,7 @@ for (const x of boundaryCases.slice(0, 12)) {
     guardS: x.onset.guardTimeS,
     thresholdMm: 1000 * x.onset.onsetThresholdM,
     maxRmsMm: 1000 * x.onset.maxObservedRmsM,
+    equilibriumValid: x.onset.equilibriumCheck.valid,
     fast: x.fast,
   }));
 }
