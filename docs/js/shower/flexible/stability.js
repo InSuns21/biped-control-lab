@@ -1,6 +1,7 @@
 import {
   identity,
-  solveLinear,
+  luFactor,
+  solveWithLuFactor,
   zeros,
 } from "./linear-algebra.js";
 
@@ -8,10 +9,11 @@ function solveMatrixColumns(matrix, rhsMatrix) {
   const rows = rhsMatrix.length;
   const cols = rhsMatrix[0].length;
   const out = zeros(rows, cols);
+  const factor = luFactor(matrix);
 
   for (let col = 0; col < cols; col += 1) {
     const rhs = rhsMatrix.map((row) => row[col]);
-    const solution = solveLinear(matrix, rhs);
+    const solution = solveWithLuFactor(factor, rhs);
     for (let row = 0; row < rows; row += 1) {
       out[row][col] = solution[row];
     }
