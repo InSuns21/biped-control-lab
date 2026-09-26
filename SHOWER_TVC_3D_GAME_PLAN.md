@@ -621,7 +621,7 @@ Qcr ~= 14.23 L/min
 reaction、低流量→臨界→flutter の見え方、履歴グラフ、Phase切替、PC /
 タブレット表示を確認する。
 
-### H1-4A — fast-onset calibration
+### H1-4A — fast-onset calibration ✅
 
 Human Visual Audit で、H1-4 の linear small-deflection model は flutter 自体を
 再現できる一方、実演動画に比べて「暴れ始めるまで」が遅い可能性が指摘された。
@@ -748,6 +748,97 @@ small-deflection 仮定が破綻**
 
 H1-4A では CFD / SPH / 3D self-contact へは進まない。
 
+#### H1-4A result
+
+CI 感度解析の結論:
+
+```text
+parameter-only fast self-excited onset:
+  C — current linear small-deflection model is insufficient
+
+movable-boundary fast visible response:
+  B — reproducible inside a valid low-flow linear regime
+```
+
+主な数値:
+
+```text
+18 L/min reference:
+  static max displacement ~= 1.079 m
+  static max rotation     ~= 98.27 deg
+  sigma                   ~= +0.1000 1/s
+  predicted 3x time       ~= 10.98 s
+  -> static equilibrium itself is outside the linear guard
+
+5 L/min validity probe:
+  static max displacement ~= 133.88 mm
+  static max rotation     ~= 10.17 deg
+  -> inside the current guard
+
+5 L/min + one hand pulse (10 mm, 5 deg):
+  visible onset ~= 1.0 s
+  max RMS ~= 27 ... 41 mm depending on 0.20 ... 0.50 s pulse
+  -> no guard hit
+```
+
+探索した parameter-only の growing case では、1〜3 s より速い固有値成長を
+作ること自体はできたが、すべて静的平衡が small-deflection guard 外だった。
+初期曲率だけでは valid 1〜3 s self-excited onset は得られなかった。
+
+したがって、**手元入力の仕組みは H1-5 へ再利用するが、動画の高流量・
+大振幅運動を物理的に再現したと主張する前に H1-4B を挟む。**
+
+詳細は `docs/js/shower/flexible/H1_4A_CALIBRATION.md`。
+
+### H1-4B — geometrically nonlinear hose
+
+H1-4A の C 判定を受けて追加する。
+
+目的:
+
+- 大きく曲がった静的平衡を small-angle extrapolation なしで求める
+- 大回転・有限曲率の状態から flow-induced instability を評価する
+- 1〜3 s onset と大振幅 whipping を、linear guard で即停止せず追えるようにする
+- H1-4A の movable hand boundary をそのまま入力として使えるようにする
+
+第一候補は **2D geometrically exact beam / planar Cosserat rod**。
+
+最低限の状態:
+
+```text
+r(s,t) = [x(s,t), y(s,t)]
+theta(s,t)
+v(s,t)
+omega(s,t)
+```
+
+とし、伸びを無視する第一版では centerline tangent と断面角の整合を保つ。
+曲率は `theta_s` から評価し、曲げモーメントを `M = EI kappa` とする。
+
+実装順:
+
+1. dry planar rod の静的 hanging / bent equilibrium
+2. dry large-amplitude transient
+3. tip mass / bent shower-head boundary
+4. internal conveying-flow termsの整合
+5. onset sweep
+6. H1-4 linear modelとの small-amplitude 一致
+7. 1〜3 s fast-onset 再判定
+8. 2D nonlinear visualization
+
+H1-4B の必須回帰:
+
+- small-amplitude limit で H1-1/H1-3 の低次挙動へ収束
+- rigid-body rotation を与えても人工的な曲げエネルギーが出ない
+- element / dt refinement
+- gravity / tip load 下で有限回転 equilibrium が収束
+- zero-flow で非物理的な自己励起が出ない
+- flow 増加で onset time が連続的に変わる
+- hand boundary pulse の仕事量を診断できる
+
+**H1-4B 完了までは、H1-4 高流量表示を「定性的な linear extrapolation」と
+明示し、実物再現済みとは扱わない。**
+
 ### H1-5 — manual game
 
 - hand position / angle control
@@ -785,7 +876,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] 臨界流量を数値的に推定できる
 - [x] 臨界超過で自励振動が再現される
 - [x] mesh / dt 変更に対し主要結果が収束する
-- [ ] H1-4A で fast-onset の時間スケール差を切り分ける
+- [x] H1-4A で fast-onset の時間スケール差を切り分ける
 - [ ] 手元境界入力で振動を変えられる
 - [x] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
