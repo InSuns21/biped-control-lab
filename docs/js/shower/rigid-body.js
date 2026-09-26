@@ -216,6 +216,11 @@ export function stepRigidBody3D(
       holdTiltXSaturated: holdTiltXAppliedRad !== holdTiltXCommandRad,
       holdTiltZSaturated: holdTiltZAppliedRad !== holdTiltZCommandRad,
       thrustN,
+      holdDirectionWorld: holdDirectionWorld3D(
+        holdTiltXAppliedRad,
+        holdTiltZAppliedRad,
+      ),
+      waterJetDirectionBody: [0, -1, 0],
       waterReactionForceBodyN,
       waterReactionTorqueBodyNm,
       gravityTorqueBodyNm,
