@@ -591,17 +591,35 @@ damping に対するモデル結果である。
 `F_y=-0.5821 N`, `M=-0.0821 N m`。直線・等断面へ戻すと追加荷重は0となり、
 H1-2 の行列へ厳密に戻る回帰を必須とする。
 
-### H1-4 — 2D interactive visualization
+### H1-4 — 2D interactive visualization ✅（Human Visual Audit 継続中）
 
-- flexible centerline
-- hand boundary
-- head
-- water
-- nodes / modes
-- HUD / graphs
-- Phase 0 / Phase 1 selector
+- Phase 1 を既定表示、Phase 0 rigid baseline を比較タブ化
+- 8要素 FEM の flexible centerline を Hermite 補間で描画
+- 固定 hand boundary / bent shower head / outlet water / head reaction
+- FEM nodes 表示切替
+- 静的平衡形状を破線で重ねて、動的成分と区別
+- `Q=8.0 / 14.0 / 18.0 L/min` の低流量・臨界付近・flutter プリセット
+- `Q` 連続スライダーと `Qcr ~= 14.23 L/min` マーカー
+- tip displacement / hose dynamic RMS の履歴グラフ
+- HUD: `Q`, `U`, tip displacement / angle, RMS, 観測成長率, 形状モード近似, sim time
+- small-deflection 範囲超過時は描画を飽和させず停止表示
+- 物理 `dt=0.002 s` は固定のまま、表示上の sim-time playback を ×1 / ×2 / ×4 で選択
+- 初期条件は 8 mm スケールの滑らかな変位 + 一度だけの小さな broadband 速度摂動。連続人工加振は行わない
 
-公開後 Human Visual Audit。
+H1-4 CI では UI プリセットそのものを時刻歴回帰し、
+
+```text
+8 L/min:  late/early RMS ~= 0.062  -> 明確に減衰
+18 L/min: late/early RMS ~= 2.702  -> 不安定モードが再成長
+Qcr ~= 14.23 L/min
+```
+
+を確認した。18 L/min は最初に安定モード成分が減衰してから不安定モードが
+立ち上がるため、監査画面では既定の ×4 再生で数十秒の物理時刻を短時間に確認する。
+
+公開後 Human Visual Audit では、2D geometry、静的平衡線、head / water /
+reaction、低流量→臨界→flutter の見え方、履歴グラフ、Phase切替、PC /
+タブレット表示を確認する。
 
 ### H1-5 — manual game
 
@@ -641,7 +659,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] 臨界超過で自励振動が再現される
 - [x] mesh / dt 変更に対し主要結果が収束する
 - [ ] 手元境界入力で振動を変えられる
-- [ ] Phase 0 と Phase 1 を画面で比較できる
+- [x] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
 - [ ] 物理量とUI表示が一致する
 - [x] `npm test` が通る
