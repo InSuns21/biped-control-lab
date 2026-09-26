@@ -3,42 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Side Lab X1 Shower TVC | Biped Control Lab</title>
+  <title>Side Lab X1 Hanging Shower Control | Biped Control Lab</title>
   <link rel="stylesheet" href="../../css/site.css">
 </head>
 <body>
 <main class="lab-shell shower-lab">
   <a class="back-link" href="../../#03">← 理論: PID / PDへ</a>
-  <h1>Side Lab X1 — Shower TVC 3D</h1>
-  <p class="lead">流水反力を2軸TVCで偏向し、quaternionで積分した3D剛体姿勢と、推力・重力・トルクを同時に観察します。</p>
+  <h1>Side Lab X1 — Hanging Shower Control 3D</h1>
+  <p class="lead">手でホースを上から持ち、下にぶら下がるシャワーヘッドから水を下向きに流しながら、流水反力で暴れるヘッドを安定させます。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中</strong><br>
-    この公開版は実画面確認のための監査対象です。水流・反力・重力・トルク矢印の向き、重心表示、HUD、カメラ切替、PC / タブレット表示は未承認で、監査完了後に必要な修正を反映します。
+    <strong>Human Visual Audit 監査中 — セットアップ修正版</strong><br>
+    「手が上・ヘッドが下」の実機イメージへ修正した公開監査版です。ホース保持方向、水流・反力・重力・保持トルクの向き、重心、HUD、PC / タブレット表示は監査完了まで未承認です。
   </div>
 
   <div class="lab-layout shower-layout">
     <section>
       <div class="three-viewport">
-        <canvas id="scene" width="900" height="620" aria-label="Shower TVC 3D simulation"></canvas>
+        <canvas id="scene" width="900" height="620" aria-label="Hanging shower-head control 3D simulation"></canvas>
       </div>
       <div class="vector-legend" aria-label="3D vector legend">
-        <span><i class="swatch swatch-water"></i>水流（反力と逆向き）</span>
+        <span><i class="swatch swatch-water"></i>下向き水流</span>
         <span><i class="swatch swatch-thrust"></i>流水反力 F</span>
         <span><i class="swatch swatch-gravity"></i>重力 mg</span>
-        <span><i class="swatch swatch-torque"></i>ジェットトルク τ</span>
-        <span><i class="swatch swatch-target"></i>目標姿勢 +Y</span>
+        <span><i class="swatch swatch-torque"></i>流水反力トルク</span>
+        <span><i class="swatch swatch-hold"></i>ホース保持トルク</span>
+        <span><i class="swatch swatch-target"></i>目標水流方向</span>
       </div>
     </section>
 
     <aside class="controls">
       <div class="control">
-        <label for="deltaX">TVC δx <output id="deltaXOut">0°</output></label>
-        <input id="deltaX" type="range" min="-40" max="40" value="0" step="1">
+        <label for="holdX">手元ホース tilt X <output id="holdXOut">0°</output></label>
+        <input id="holdX" type="range" min="-35" max="35" value="0" step="1">
       </div>
       <div class="control">
-        <label for="deltaZ">TVC δz <output id="deltaZOut">0°</output></label>
-        <input id="deltaZ" type="range" min="-40" max="40" value="0" step="1">
+        <label for="holdZ">手元ホース tilt Z <output id="holdZOut">0°</output></label>
+        <input id="holdZ" type="range" min="-35" max="35" value="0" step="1">
       </div>
       <div class="control">
         <label for="flow">流量 Q <output id="flowOut">8.0 L/min</output></label>
@@ -56,26 +57,29 @@
 
       <div class="button-row">
         <button id="pause" type="button">一時停止</button>
-        <button id="neutral" type="button">TVCを0°へ</button>
+        <button id="neutral" type="button">手元を鉛直へ</button>
         <button id="reset" type="button">姿勢リセット</button>
       </div>
 
       <div class="metrics shower-metrics">
         <div class="metric"><span>roll / pitch / yaw</span><strong id="rpyMetric">-</strong></div>
+        <div class="metric"><span>下向き誤差</span><strong id="downErrorMetric">-</strong></div>
         <div class="metric"><span>ω body (rad/s)</span><strong id="omegaMetric">-</strong></div>
         <div class="metric"><span>Q applied</span><strong id="flowMetric">-</strong></div>
-        <div class="metric"><span>δx / δz applied</span><strong id="gimbalMetric">-</strong></div>
-        <div class="metric"><span>|Fjet|</span><strong id="thrustMetric">-</strong></div>
-        <div class="metric"><span>|τjet|</span><strong id="torqueMetric">-</strong></div>
+        <div class="metric"><span>保持 tilt X / Z</span><strong id="holdMetric">-</strong></div>
+        <div class="metric"><span>|F reaction|</span><strong id="thrustMetric">-</strong></div>
+        <div class="metric"><span>|τ water|</span><strong id="waterTorqueMetric">-</strong></div>
+        <div class="metric"><span>|τ hold|</span><strong id="holdTorqueMetric">-</strong></div>
         <div class="metric"><span>入力制約</span><strong id="saturationMetric">-</strong></div>
       </div>
     </aside>
   </div>
 
   <section class="panel">
-    <h2>見方</h2>
-    <p>薄い直立線が目標姿勢です。黄色の矢印はシャワーヘッドが受ける流水反力、水色の線はその反対向きへ出る水流、赤は重力、紫はジェットが作るトルクです。描画はX1-2のphysics stateを読むだけで、運動方程式はこのLab側に複製していません。ベクトル矢印の長さは見やすさのための表示スケールで、実寸ではありません。</p>
-    <p><strong>最初はTVCを0°のまま観察</strong>し、傾きが重力で増えることを確認してください。その後 δx / δz を動かすと、作用線の偏向が姿勢回転へどう変換されるかを3Dで確認できます。指令は物理上限を超えて入力でき、適用値は |δ|≤25°、Q≤10 L/min に飽和します。</p>
+    <h2>このモデルで何をしているか</h2>
+    <p><strong>手元の保持点が上、重心が下</strong>なので、重力そのものは姿勢を鉛直へ戻す復元力です。一方、シャワーヘッドの噴出口合力線はホース軸から少しずれており、下向きに水を出すと、その反力が回転モーメントを作ります。柔らかいホースを手で傾けると保持トルクが生じ、それを使って水流を真下へ保ちます。</p>
+    <p>水色が実際に出ていく水、黄色がヘッドへ返る反力です。紫は流水反力が作るトルク、緑は手で保持したホースが与えるトルクです。矢印長は可視化用スケールで実寸ではありません。</p>
+    <p><strong>TVCはこのゲームの操作そのものではありません。</strong> 固定ノズルのシャワーヘッドを直接ジンバルしているわけではなく、「外力の作用線・方向と姿勢制御」という数理的な対応を後段でロケットTVCへ接続します。</p>
   </section>
 
   <script type="module" src="./main.js"></script>
