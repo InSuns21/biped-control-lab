@@ -130,21 +130,18 @@ assert.ok(
   "nonlinear combination sweep should find at least one finite fast-growth candidate",
 );
 
-// Prefer the lowest-flow candidates, then refine at 12 segments and run the
-// full nonlinear time domain. This prevents selecting a coarse-mesh artifact.
+// Refine representatives from each flow bucket rather than allowing the
+// lowest-flow cases to consume the whole budget. Within each bucket choose the
+// candidates whose predicted 3x time is closest to 1.5 s.
 const unique = [];
-const seen = new Set();
-for (const candidate of candidates) {
-  const key = [
-    candidate.overrides.flowLpm,
-    candidate.overrides.flexuralRigidityNm2,
-    candidate.overrides.lengthM,
-    candidate.overrides.rayleighMassPerS,
-  ].join("/");
-  if (seen.has(key)) continue;
-  seen.add(key);
-  unique.push(candidate);
-  if (unique.length >= 8) break;
+for (const flowLpm of [18, 20, 22, 24]) {
+  const bucket = candidates
+    .filter((candidate) => candidate.overrides.flowLpm === flowLpm)
+    .sort((a, b) => (
+      Math.abs(a.predicted3xS - 1.5)
+      - Math.abs(b.predicted3xS - 1.5)
+    ));
+  unique.push(...bucket.slice(0, 2));
 }
 
 const refined = [];
