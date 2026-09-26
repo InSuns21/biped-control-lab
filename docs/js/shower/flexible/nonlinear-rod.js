@@ -13,7 +13,8 @@ export const DEFAULT_NONLINEAR_ROD_PARAMS = Object.freeze({
   headMassKg: 0.20,
   headRotInertiaKgM2: 0.002,
   headComAxialOffsetM: 0.055,
-  bendingDampingNms: 0.002,
+  rayleighMassPerS: 0.08,
+  rayleighStiffnessS: 0.0002,
   baseAngleRad: 0,
 });
 
@@ -37,8 +38,8 @@ function validateParams(params) {
   if (!(params.headMassKg >= 0) || !(params.headRotInertiaKgM2 >= 0)) {
     throw new RangeError("head mass/inertia must be non-negative");
   }
-  if (!(params.bendingDampingNms >= 0)) {
-    throw new RangeError("bendingDampingNms must be non-negative");
+  if (!(params.rayleighMassPerS >= 0) || !(params.rayleighStiffnessS >= 0)) {
+    throw new RangeError("Rayleigh damping coefficients must be non-negative");
   }
 }
 
@@ -266,21 +267,43 @@ export function generalizedBendingForce(system, anglesInput) {
   return force;
 }
 
-export function generalizedBendingDampingForce(
+export function generalizedRayleighDampingForce(
   system,
+  anglesInput,
   angularRatesInput,
 ) {
   const rates = [...angularRatesInput];
   rates[0] = 0;
   const force = Array(rates.length).fill(0);
-  const coefficient = system.params.bendingDampingNms
-    / system.segmentLengthM;
 
+  // Stiffness-proportional part: beta_K K(q) qdot. The discrete bending
+  // Hessian is constant in angle coordinates because curvature is represented
+  // by adjacent angle differences.
+  const stiffnessCoefficient = system.params.rayleighStiffnessS
+    * system.params.flexuralRigidityNm2
+    / system.segmentLengthM;
   for (let i = 1; i < rates.length; i += 1) {
     const relativeRate = rates[i] - rates[i - 1];
-    const torque = coefficient * relativeRate;
+    const torque = stiffnessCoefficient * relativeRate;
     force[i - 1] += torque;
     force[i] -= torque;
+  }
+
+  // Mass-proportional part uses the current configuration-dependent mass
+  // metric. This reproduces alpha_M M qdot in the small-angle limit.
+  if (system.params.rayleighMassPerS > 0) {
+    const { mass } = massMatrixAndBias(
+      system,
+      anglesInput,
+      Array(rates.length).fill(0),
+    );
+    for (let i = 0; i < rates.length; i += 1) {
+      let value = 0;
+      for (let j = 0; j < rates.length; j += 1) {
+        value += mass[i][j] * rates[j];
+      }
+      force[i] -= system.params.rayleighMassPerS * value;
+    }
   }
 
   return force;
@@ -427,8 +450,9 @@ export function generalizedRodForce(
   );
   addScaledInPlace(
     force,
-    generalizedBendingDampingForce(
+    generalizedRayleighDampingForce(
       system,
+      state.anglesRad,
       state.angularRatesRadS,
     ),
   );
