@@ -1,214 +1,281 @@
-# Hanging Shower Control — X1 design contract
+# Side Lab X1 physical-model contract
 
-This file is the physical design contract for Side Lab X1.
+This file defines the physical-model status of Side Lab X1.
 
-The canonical setup is:
+## Canonical project structure
 
-> the player holds the hose above, the shower head hangs below it, and water
-> exits downward. The task is to keep the hanging head from swinging or
-> twisting while keeping the water direction close to world down.
+Side Lab X1 now has two intentionally different models.
 
-The original prototype incorrectly treated the shower as an inverted body with
-a movable TVC nozzle. Human Visual Audit rejected that setup. The rules below
-replace it.
+### Phase 0 — rigid baseline
 
-## Frames and nominal pose
+The existing hanging-shower rigid-body model is retained as a **comparison model**.
 
-Use a right-handed world frame.
+It includes:
 
-- +X: right
-- +Y: up
-- +Z: out of the initial front plane
-- gravity: `[0, -g, 0]`
-- quaternion `qBodyToWorld = [w, x, y, z]`
-- identity attitude is the desired hanging pose
+- a held point above the shower head
+- COM below the hand
+- fixed downward water jet
+- opposite reaction force
+- rigid shower head
+- rotational spring-damper support
+- quaternion 3D attitude
 
-In the body frame:
+This model is expected to settle because gravity is restoring and the support
+contains damping. That behavior is no longer treated as the target phenomenon.
 
-- body +Y points from the head toward the held hose / hand
-- body -Y points from the hand toward the hanging head
-- the nominal water jet points along body -Y
+Phase 0 exists to answer:
 
-Therefore identity attitude means the water jet points world down.
+> Why does a rigid-end model become calm even though the real flexible hose can
+> keep whipping around?
 
-## Hand, center of mass and nozzle geometry
+Do not add ad-hoc oscillation to Phase 0 just to make it look more dramatic.
 
-The hose joint / held end is the rotational pivot.
+### Phase 1 — flexible hose with internal flow
 
-Default educational geometry:
+This is the new primary model.
 
-- COM: `r_com = [0, -0.17, 0] m`
-- resultant nozzle point: `r_nozzle = [0.045, -0.33, 0.02] m`
-- mass: `m = 0.35 kg`
-- diagonal body inertia:
-  `I = diag(0.018, 0.009, 0.018) kg m^2`
+The target phenomenon is a flexible hose conveying water, with a shower head
+at the free end, where internal flow can alter modal damping/stiffness and can
+produce a flutter-like self-excited response above a critical flow regime.
 
-The COM is below the hand. Gravity is therefore restoring, not destabilizing.
+The player acts at the hand / hose boundary, not by gimbaling the nozzle.
 
-The nozzle resultant line is deliberately offset from the hose axis. That
-represents a bent / asymmetric shower head where the summed outlet momentum
-does not act through the held hose line.
+---
 
-These are educational effective parameters, not an identified commercial
-shower-head model.
+## Phase 0 contract
 
-## Water momentum model
+The current Phase 0 implementation remains valid as a frozen baseline.
 
-Flow rate is stored internally in SI `m^3/s`. UI code may display L/min.
+World frame:
 
-The effective reaction-force magnitude is
+- right-handed
+- +Y up
+- gravity `[0, -g, 0]`
 
-```text
-T = C_T rho Q^2 / A_eff
-```
+Rigid-body convention:
 
-with defaults:
+- `qBodyToWorld = [w, x, y, z]`
+- body +Y points toward the held hose / hand
+- body -Y points toward the hanging shower head
+- water exits approximately body -Y
+- the body receives the opposite momentum reaction
 
-- `rho = 997 kg/m^3`
-- `C_T = 0.85`
-- `A_eff = 2.0e-5 m^2`
-- nominal `Q = 8 L/min`
-- maximum `Q = 10 L/min`
+The COM lies below the held point, so small-angle gravity torque is restoring.
 
-Water exits along body `-Y`, so the rigid body receives the opposite
-reaction
+Phase 0 regression tests must continue to pass after Phase 1 is added.
 
-```text
-F_reaction_body = [0, +T, 0]
-```
+---
 
-and the rotational effect about the held point is
+## Phase 1 continuum contract
+
+Phase 1 starts in 2D.
+
+Use arc/axial coordinate
 
 ```text
-tau_water = r_nozzle x F_reaction
+s in [0, L]
 ```
 
-The first model does not solve the internal flow field. The offset resultant is
-an effective representation of inlet turning, outlet momentum flux and the
-shower-head geometry.
-
-## Gravity torque
-
-Gravity is defined in world coordinates and transformed to body coordinates.
+and transverse hose displacement
 
 ```text
-F_g_world = [0, -m g, 0]
-tau_g_body = r_com_body x F_g_body
+y = y(s, t)
 ```
 
-Because `r_com` lies below the hand, a small tilt receives a restoring
-gravity torque.
+with parameters:
 
-For the one-axis +Z slice:
+- `L`: hose length
+- `EI`: bending stiffness
+- `m_s`: structural mass per unit length
+- `A_hose`: internal flow area
+- `rho`: water density
+- `m_f = rho A_hose`: water mass per unit length
+- `Q`: volume flow
+- `U = Q / A_hose`: mean internal flow speed
+- `c`: effective structural/material damping
+
+The reference small-deflection conveying-fluid beam model has the conceptual
+form
 
 ```text
-tau_g = -m g l_com sin(theta)
+(m_s + m_f) y_tt
++ c y_t
++ EI y_ssss
++ 2 m_f U y_st
++ m_f U^2 y_ss
+= f_ext
 ```
 
-The minus sign is a required regression check.
+The implementation must not assume these signs or element matrices from memory.
+Before H1-1/H1-2 coding, derive the discrete form under one fixed coordinate
+and boundary convention and lock it with regression tests.
 
-## Hand / hose holding model
+The important model distinction is that the flow contributes distributed
+velocity- and flow-speed-dependent terms. Phase 1 must therefore not be reduced
+to a rigid body plus a single outlet force.
 
-The player does not gimbal the nozzle.
+---
 
-Instead, the controls specify the direction of the hose being held above the
-head. Zero input means the held hose points world +Y.
+## Phase 1 discretization contract
 
-Let
+First implementation: 2D Euler–Bernoulli beam FEM.
 
-- `a`: current body +Y hose axis in world coordinates
-- `h`: player-commanded held-hose direction in world coordinates
-
-The flexible hose / wrist support is modeled as a rotational spring-damper:
+Per node:
 
 ```text
-tau_hold_world = K_h (a x h)
-tau_hold_body  = R(q)^T tau_hold_world - C_h omega
+q_i = [y_i, theta_i]
 ```
 
-The default model damps X/Z tilt strongly and yaw weakly.
-
-This is not intended to be a detailed hose finite-element model. It gives the
-player a physically interpretable way to create a counter-torque by changing
-how the hose is held.
-
-## 3D rigid-body dynamics
-
-Angular velocity and inertia are expressed in the body frame.
+Assemble the semi-discrete system as separate physical terms:
 
 ```text
-I omega_dot + omega x (I omega)
-  = tau_gravity + tau_water + tau_hold + tau_disturbance
+M q_ddot + C(U) q_dot + K(U) q = f
 ```
 
-Quaternion kinematics use
+Keep these contributions separately inspectable:
+
+- structural mass
+- internal-fluid mass
+- structural damping
+- bending stiffness
+- velocity-dependent flow coupling
+- `U^2` flow coupling
+- boundary / shower-head loads
+
+Do not hide all terms inside a single opaque update function.
+
+The first mesh should be small enough for the browser and large enough for
+low-mode convergence; roughly 8–16 beam elements is the initial target, not a
+hard contract.
+
+---
+
+## Boundary conditions
+
+### Hand end
+
+The player acts at `s = 0`.
+
+The first Phase 1 version uses prescribed hand-boundary motion:
+
+- lateral hand position
+- hand / hose angle
+
+This is a boundary-control problem.
+
+### Shower-head end
+
+The free end at `s = L` may carry:
+
+- shower-head tip mass
+- tip rotational inertia
+- head geometry
+- outlet orientation
+
+Outlet momentum must be handled consistently with the chosen continuum/FEM
+formulation.
+
+**Do not double count the same outlet/follower-force effect** once through the
+flow matrices/boundary condition and again as an extra hand-written tip force.
+
+If bent internal head plumbing creates an additional reaction not already
+represented by the straight conveying-hose model, add that as a separate,
+documented tip load.
+
+---
+
+## Numerical contract
+
+Phase 1 is potentially stiff and non-conservative.
+
+The Phase 0 semi-implicit Euler choice does not automatically carry over.
+
+Candidate integrators include:
+
+- Newmark-beta
+- generalized-alpha
+- state-space integration with a stable fixed step
+
+The chosen method must be justified by regression tests, not animation quality.
+
+Rendering frame rate and physics time step must be independent.
+
+---
+
+## Stability contract
+
+Phase 1 is considered physically useful only if it can distinguish at least
+three regimes as flow increases:
+
+1. stable / decaying perturbations
+2. near-critical weak decay
+3. above-critical growing oscillation
+
+Critical flow is defined from the discretized system eigenvalues, not from a
+hard-coded animation threshold.
+
+The expected regression concept is:
 
 ```text
-q_dot = 1/2 q tensor_product [0, omega_body]
+max Re(lambda(U)) < 0   below critical
+max Re(lambda(U)) ~= 0  near critical
+max Re(lambda(U)) > 0   above critical
 ```
 
-The numerical step is fixed-step semi-implicit Euler for angular velocity,
-followed by quaternion integration and normalization.
+The exact value of the critical speed is model-parameter and mesh dependent.
+Tests should verify convergence and sign changes rather than inventing a
+universal shower-hose number.
 
-## One-axis slice
+---
 
-For the +Z planar slice:
+## Required Phase 1 regressions
 
-```text
-I theta_ddot
-  = -m g l_com sin(theta)
-  + x_nozzle T
-  + K_h sin(phi_hold - theta)
-  - C_h theta_dot
-  + tau_disturbance
-```
+Before interactive visualization, the physics core must test:
 
-where `phi_hold` is the direction in which the player holds the hose.
+- `U = 0` removes all flow-induced terms
+- reversing `U` flips the velocity-linear coupling sign
+- reversing `U` does not flip the `U^2` coupling
+- dry damped hose decays from an initial displacement
+- tip mass lowers the first natural frequency
+- low-mode natural frequencies converge under mesh refinement
+- a low-flow case remains stable
+- a flow sweep identifies a critical region
+- a selected above-critical case has a growing mode
+- time integration agrees qualitatively with eigenvalue stability
+- no NaN / Inf
+- result is not materially changed by small dt refinement
+- outlet momentum is not counted twice
 
-At nominal flow, a small counter-tilt of the held hose can balance the offset
-water-reaction torque while the head remains nearly vertical.
+---
 
-## Input constraints
+## Relationship to TVC and biped control
 
-The first version enforces:
+A flexible shower hose is not a rocket TVC system.
 
-```text
-0 <= Q <= 10 L/min
-|hold_tilt_x| <= 25 deg
-|hold_tilt_z| <= 25 deg
-```
+Comparison should be explicit:
 
-Commanded and applied values remain separate so saturation is visible in the
-HUD and later game scoring.
+- flexible hose: distributed flexible dynamics + internal-flow coupling +
+  boundary control
+- rocket TVC: thrust-direction actuation on a rigid body
+- biped: contact-force / CoP constraints and hybrid support changes
 
-## Relationship to TVC
+The useful common control idea is:
 
-A normal fixed-nozzle shower head is **not** thrust-vector control.
+> motion is controlled only through physically realizable external forces,
+> moments, contacts, or boundary inputs.
 
-TVC remains useful later as a comparison:
+Phase 1 adds another important lesson:
 
-- shower: the player changes the support / force balance of a hanging body
-- rocket TVC: the actuator changes the thrust direction itself
-- biped: the controller changes the realizable ground-reaction force / CoP
+> the plant itself may contain lightly damped or unstable flexible modes, so a
+> controller that works for a rigid approximation may fail badly on the real
+> distributed system.
 
-The common lesson is that attitude control depends on what external forces and
-moments are physically realizable. The main X1 game must not present the shower
-nozzle itself as a gimbaled rocket nozzle.
+---
 
-## Rendering contract
+## Implementation status
 
-The renderer consumes the physics state and diagnostics; it does not rederive
-the dynamics.
-
-The 3D view must make these facts visually obvious:
-
-- the hand / held hose is above
-- the head and COM are below
-- water exits downward
-- reaction force points opposite the water
-- gravity points world down
-- water-reaction torque and hose-holding torque are distinguishable
-- the target is a downward water direction
-- quaternion state is authoritative; Euler angles are display-only
-
-Human Visual Audit remains required after deployment.
+- Phase 0 rigid baseline: implemented
+- Phase 0 Human Visual Audit: comparison-model re-audit pending
+- Phase 1 flexible hose: planned
+- next implementation step: **H1-0 flexible model contract / derivation**
+- no Phase 1 renderer should be built before H1-0/H1-2 physics validation
