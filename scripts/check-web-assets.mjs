@@ -11,6 +11,7 @@ await requireFile("docs/vendor/marked.umd.js");
 await requireFile("docs/vendor/katex/katex.min.js");
 await requireFile("docs/vendor/katex/contrib/auto-render.min.js");
 await requireFile("docs/vendor/katex/katex.min.css");
+await requireFile("docs/vendor/three.core.js");
 await requireFile("docs/vendor/three.module.js");
 await requireFile("docs/labs/x1-shower-tvc/index.html");
 await requireFile("docs/labs/x1-shower-tvc/main.js");
@@ -31,4 +32,9 @@ if (!String(rendered).includes("<h1>Runtime smoke test</h1>")) {
   throw new Error("Vendored Marked failed to render Markdown");
 }
 
-console.log(`Web runtime assets OK: Marked + KaTeX + Three.js + Shower TVC + ${chapters.length} theory routes`);
+const threeModule = await readFile("docs/vendor/three.module.js", "utf8");
+if (threeModule.includes("./three.core.js")) {
+  await requireFile("docs/vendor/three.core.js");
+}
+
+console.log(`Web runtime assets OK: Marked + KaTeX + Three.js core/module + Shower TVC + ${chapters.length} theory routes`);

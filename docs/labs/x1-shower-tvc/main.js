@@ -10,8 +10,6 @@ import {
   degToRad,
   lpmToM3s,
 } from "../../js/shower/one-axis.js";
-import { createShowerScene } from "./scene.js";
-
 const canvas = document.querySelector("#scene");
 const deltaX = document.querySelector("#deltaX");
 const deltaZ = document.querySelector("#deltaZ");
@@ -32,7 +30,7 @@ const thrustMetric = document.querySelector("#thrustMetric");
 const torqueMetric = document.querySelector("#torqueMetric");
 const saturationMetric = document.querySelector("#saturationMetric");
 
-const view = createShowerScene(canvas);
+let view = null;
 const params = DEFAULT_RIGID_BODY_PARAMS;
 const fixedDt = 1 / 240;
 const initialTilt = quatFromAxisAngle([1, 0, 1], degToRad(10));
@@ -129,7 +127,7 @@ function setPaused(next) {
 });
 
 cameraView.addEventListener("change", () => {
-  view.setCameraView(cameraView.value);
+  view?.setCameraView(cameraView.value);
 });
 
 pauseButton.addEventListener("click", () => {
@@ -168,6 +166,31 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-updateControlLabels();
-updateMetrics();
-requestAnimationFrame(frame);
+function showRenderError(error) {
+  canvas.hidden = true;
+  const message = document.createElement("div");
+  message.className = "callout status-danger";
+  message.setAttribute("role", "alert");
+  const detail = error instanceof Error ? error.message : String(error);
+  message.innerHTML = "<strong>3D描画の初期化に失敗しました。</strong><br>"
+    + "ページを再読み込みしても直らない場合は、Human Visual Audit の不具合として報告してください。"
+    + "<br><code></code>";
+  message.querySelector("code").textContent = detail;
+  canvas.parentElement.append(message);
+  console.error("Shower TVC renderer initialization failed", error);
+}
+
+async function bootstrap() {
+  updateControlLabels();
+  updateMetrics();
+
+  try {
+    const { createShowerScene } = await import("./scene.js");
+    view = createShowerScene(canvas);
+    requestAnimationFrame(frame);
+  } catch (error) {
+    showRenderError(error);
+  }
+}
+
+bootstrap();

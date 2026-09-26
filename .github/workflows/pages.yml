@@ -78,6 +78,9 @@ jobs:
             "labs/02-pid-balance/"
             "labs/03-support-polygon/"
             "labs/04-lipm-walking/"
+            "labs/x1-shower-tvc/"
+            "vendor/three.module.js"
+            "vendor/three.core.js"
           )
 
           while IFS= read -r file; do
