@@ -421,7 +421,7 @@ Phase 1 では以下を必須にする。
 
 ### 9.2 流体構造連成
 
-- `U = 0` で流れ由来行列が消える
+- `U = 0` で `G_flow` / `K_flow` が消える（filled hose の `M_fluid` は残る）
 - `U -> -U` で速度比例項の符号は反転する
 - `U^2` 項は流れ方向反転で不変
 - 低流量では摂動が減衰する
@@ -534,16 +534,33 @@ Phase 0 はここで機能追加停止。
 
 実装は `docs/js/shower/flexible/`、回帰は `scripts/check-flexible-hose-model.mjs` とし、`npm test` に統合する。
 
-### H1-2 — conveying-fluid coupling
+### H1-2 — conveying-fluid coupling ✅
 
+- `M_fluid`
 - `G_flow(U)`
 - `K_flow(U^2)`
-- eigenvalue analysis
-- flow-speed sweep
+- non-symmetric state matrix / complex eigenvalue analysis
+- flow-speed sweep + bisection
 - critical-flow estimate
+- 4 / 6 / 8 element mesh convergence
 - below/above-critical time-domain regression
+- time-step refinement
 
-ここが Phase 1 の物理成立判定。
+現在の教育用既定値では、8要素で
+
+```text
+U_cr ~= 9.4808 m/s
+Q_cr ~= 16.08 L/min   (inner diameter 6 mm)
+Im(lambda_cr) ~= 14.797 rad/s
+```
+
+を得た。低流量 `U=6 m/s` では最大実部が負、高流量
+`U=12 m/s` では正となり、時刻歴でも前者は減衰、後者は振幅成長を
+確認した。値そのものは実物製品の同定値ではなく、モデル・パラメータ依存の
+教育用結果である。
+
+ここで Phase 1 の「内部流れで安定性が変わり、flutter に入る」という
+最小物理は成立した。次は H1-3 で shower-head / outlet 境界を現象側へ寄せる。
 
 ### H1-3 — shower-head boundary model
 
@@ -597,11 +614,11 @@ Phase 0 はここで機能追加停止。
 
 Phase 1 第一版は以下をすべて満たしたら完了。
 
-- [ ] Q = 0 の柔軟ホースが妥当な減衰振動をする
-- [ ] 低流量で安定
-- [ ] 臨界流量を数値的に推定できる
-- [ ] 臨界超過で自励振動が再現される
-- [ ] mesh / dt 変更に対し主要結果が収束する
+- [x] Q = 0 の柔軟ホースが妥当な減衰振動をする
+- [x] 低流量で安定
+- [x] 臨界流量を数値的に推定できる
+- [x] 臨界超過で自励振動が再現される
+- [x] mesh / dt 変更に対し主要結果が収束する
 - [ ] 手元境界入力で振動を変えられる
 - [ ] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
