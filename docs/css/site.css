@@ -93,3 +93,5 @@ button:hover { border-color: var(--accent); }
 @media (max-width: 900px) {
   .shower-layout { grid-template-columns: 1fr; }
 }
+
+.swatch-hold { background: #49a078; }
