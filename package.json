@@ -17,7 +17,8 @@
     "check:flexible": "node scripts/check-flexible-hose-model.mjs",
     "check:conveying": "node scripts/check-conveying-flow-model.mjs",
     "check:shower-head": "node scripts/check-shower-head-model.mjs",
-    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:math && npm run check:md && npm run check:links"
+    "check:flexible-view": "node scripts/check-flexible-visualization.mjs",
+    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:flexible-view && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
