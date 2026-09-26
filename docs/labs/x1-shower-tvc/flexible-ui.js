@@ -96,6 +96,7 @@ export function mountFlexiblePhase(root) {
   const flow = root.querySelector("#p1Flow");
   const flowOut = root.querySelector("#p1FlowOut");
   const deformationScale = root.querySelector("#p1DeformationScale");
+  const playbackRate = root.querySelector("#p1PlaybackRate");
   const showNodes = root.querySelector("#p1ShowNodes");
   const pauseButton = root.querySelector("#p1Pause");
   const resetButton = root.querySelector("#p1Reset");
@@ -331,7 +332,7 @@ export function mountFlexiblePhase(root) {
     lastTime = now;
 
     if (!paused && !limitExceeded) {
-      accumulator += elapsed;
+      accumulator += elapsed * Number(playbackRate.value);
       while (accumulator >= FIXED_DT) {
         stepPhysics();
         accumulator -= FIXED_DT;
@@ -359,6 +360,9 @@ export function mountFlexiblePhase(root) {
   });
 
   deformationScale.addEventListener("change", render);
+  playbackRate.addEventListener("change", () => {
+    lastTime = performance.now();
+  });
   showNodes.addEventListener("change", render);
 
   pauseButton.addEventListener("click", () => {
