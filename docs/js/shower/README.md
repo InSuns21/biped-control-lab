@@ -276,6 +276,7 @@ Phase 1 adds another important lesson:
 
 - Phase 0 rigid baseline: implemented
 - Phase 0 Human Visual Audit: comparison-model re-audit pending
-- Phase 1 flexible hose: planned
-- next implementation step: **H1-0 flexible model contract / derivation**
-- no Phase 1 renderer should be built before H1-0/H1-2 physics validation
+- Phase 1 H1-0 model contract / derivation: implemented
+- Phase 1 H1-1 dry flexible beam core: implemented
+- next implementation step: **H1-2 conveying-fluid coupling**
+- no Phase 1 renderer should be built before H1-2 physics validation
