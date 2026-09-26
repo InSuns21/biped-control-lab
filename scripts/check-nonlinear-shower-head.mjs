@@ -73,7 +73,11 @@ const zeroReaction = nonlinearShowerHeadReaction(
 assert.ok(zeroReaction.forceXYN.every((value) => Math.abs(value) < 1e-14));
 assert.ok(Math.abs(zeroReaction.momentNm) < 1e-14);
 
-function staticAtFlow(segmentCount, outletAngleRad) {
+function staticAtFlow(
+  segmentCount,
+  outletAngleRad,
+  nozzleTransverseOffsetM = DEFAULT_SHOWER_HEAD_PARAMS.nozzleTransverseOffsetM,
+) {
   const system = createNonlinearRod({
     segmentCount,
     fluidMassPerM,
@@ -86,6 +90,7 @@ function staticAtFlow(segmentCount, outletAngleRad) {
   const head = {
     ...DEFAULT_SHOWER_HEAD_PARAMS,
     outletAngleRad,
+    nozzleTransverseOffsetM,
   };
   const tipLoad = ({ state }) => nonlinearShowerHeadTipLoad(
     system,
@@ -131,6 +136,7 @@ assert.ok(
 const mirror = staticAtFlow(
   24,
   -DEFAULT_SHOWER_HEAD_PARAMS.outletAngleRad,
+  -DEFAULT_SHOWER_HEAD_PARAMS.nozzleTransverseOffsetM,
 );
 assert.ok(
   Math.abs(mirror.result.kinematics.tip[0] + tip24[0])
