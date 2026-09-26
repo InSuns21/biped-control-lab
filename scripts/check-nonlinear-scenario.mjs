@@ -34,7 +34,9 @@ function equilibriumEigenSummary(scenario, equilibrium) {
   };
 }
 
-const staticFlowsLpm = [0, 5, 8, 12, 14, 16, 18, 20, 22, 24];
+const staticFlowsLpm = [
+  0, 5, 8, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
+];
 const equilibria = new Map();
 let continuationAngles = null;
 
@@ -100,7 +102,9 @@ assert.ok(
   "18 L/min nonlinear equilibrium should not reproduce the 1.08 m linear extrapolation",
 );
 
-const dynamicFlowsLpm = [5, 12, 16, 18, 20, 22, 24];
+const dynamicFlowsLpm = [
+  5, 12, 16, 18, 20, 22, 24, 26, 28, 30,
+];
 const dynamicResults = [];
 
 console.log("\n### H1-4B nonlinear onset sweep");
