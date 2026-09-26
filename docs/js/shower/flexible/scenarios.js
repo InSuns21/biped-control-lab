@@ -8,7 +8,7 @@ export const H1_3_REFERENCE = Object.freeze({
 export const FLOW_PRESETS = Object.freeze([
   Object.freeze({ id: "low", label: "低流量", flowLpm: 8.0 }),
   Object.freeze({ id: "near", label: "臨界付近", flowLpm: 14.0 }),
-  Object.freeze({ id: "flutter", label: "Flutter", flowLpm: 16.0 }),
+  Object.freeze({ id: "flutter", label: "Flutter", flowLpm: 18.0 }),
 ]);
 
 export function classifyReferenceFlow(flowLpm) {
