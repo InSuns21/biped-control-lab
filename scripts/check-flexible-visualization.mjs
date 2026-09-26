@@ -17,6 +17,9 @@ import {
   classifyReferenceFlow,
   referenceInitialPerturbationReduced,
 } from "../docs/js/shower/flexible/scenarios.js";
+import {
+  computeTransverseFit,
+} from "../docs/labs/x1-shower-tvc/flexible-view.js";
 
 const dt = 0.002;
 const lpmToM3s = (lpm) => lpm / 60000;
@@ -113,4 +116,32 @@ console.log(
     `18 L/min RMS ratio=${(flutter.lateRms / flutter.earlyRms).toFixed(3)}`,
     `Qcr=${H1_3_REFERENCE.criticalFlowLpm.toFixed(2)} L/min`,
   ].join(" "),
+);
+
+
+const narrowFit = computeTransverseFit({
+  width: 360,
+  axialPxPerM: 470,
+  requestedScale: 1,
+  minTransverseM: -0.82,
+  maxTransverseM: 0.08,
+});
+assert.ok(narrowFit.fitRatio < 1, "narrow tablet view should auto-fit");
+assert.ok(narrowFit.leftBoundPx >= 28, "auto-fit must keep the hose off the left edge");
+assert.ok(narrowFit.rightBoundPx <= 360 - 62, "auto-fit must reserve the flow-meter side");
+
+const wideFit = computeTransverseFit({
+  width: 1180,
+  axialPxPerM: 470,
+  requestedScale: 1,
+  minTransverseM: -0.82,
+  maxTransverseM: 0.08,
+});
+assert.ok(
+  Math.abs(wideFit.fitRatio - 1) < 1e-12,
+  "wide view should preserve requested 1:1 transverse scale",
+);
+
+console.log(
+  `H1-4 responsive fit OK: narrow effective x${narrowFit.effectiveScale.toFixed(3)}, wide x${wideFit.effectiveScale.toFixed(3)}`,
 );
