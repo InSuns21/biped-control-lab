@@ -69,6 +69,16 @@
         </div>
 
         <div class="control">
+          <label for="p1PlaybackRate">物理時刻の再生速度</label>
+          <select id="p1PlaybackRate">
+            <option value="1">×1</option>
+            <option value="2">×2</option>
+            <option value="4" selected>×4</option>
+          </select>
+          <small>sim timeを加速表示。運動方程式や物理dtは変更しません。</small>
+        </div>
+
+        <div class="control">
           <label for="p1DeformationScale">横変位表示倍率</label>
           <select id="p1DeformationScale">
             <option value="1" selected>×1 実スケール</option>
@@ -111,7 +121,7 @@
 
     <section class="panel">
       <h2>Phase 1で見ているもの</h2>
-      <p>縦方向はホースの基準軸、横方向が小変形横変位です。太線が実際のFEM状態、破線がその流量での静的平衡形状です。初期に8 mmスケールの滑らかな変位と小さなbroadband速度摂動を一度だけ与えます。連続的な見た目用正弦波や外力は加えていません。</p>
+      <p>縦方向はホースの基準軸、横方向が小変形横変位です。太線が実際のFEM状態、破線がその流量での静的平衡形状です。初期に8 mmスケールの滑らかな変位と小さなbroadband速度摂動を一度だけ与えます。連続的な見た目用正弦波や外力は加えていません。既定の再生速度は×4で、数十秒の物理時刻を短時間で監査できます。</p>
       <p><strong>低流量</strong>では摂動が減衰し、<strong>臨界付近</strong>では減衰が遅くなり、<strong>Flutter</strong>では内部流れとの連成によって振幅が成長します。線形 small-deflection の妥当範囲を超えた場合は、描画を飽和させず停止して明示します。</p>
       <p>このH1-4では手元境界は固定です。次のH1-5で、手元位置・角度をPointer操作して暴れるホースを人間が抑えるゲームへ進めます。</p>
     </section>
