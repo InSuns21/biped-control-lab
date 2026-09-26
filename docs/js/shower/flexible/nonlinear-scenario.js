@@ -1,5 +1,6 @@
 import {
   createNonlinearRod,
+  rodAcceleration,
   rodKinematics,
   solveStaticRodEquilibrium,
   stepNonlinearRodRK4,
@@ -282,18 +283,12 @@ export function linearizeNonlinearShowerScenario(
   const count = system.params.segmentCount;
   const zeroRates = Array(count).fill(0);
 
-  const accelerationAt = (anglesRad, angularRatesRadS) => {
-    const { rodAcceleration } = globalThis.__nonlinearRodExportsForTests ?? {};
-    if (rodAcceleration) {
-      return rodAcceleration(
-        system,
-        { anglesRad, angularRatesRadS },
-        scenario.tipLoad,
-        scenario.flowForce,
-      );
-    }
-    throw new Error("rodAcceleration injection missing");
-  };
+  const accelerationAt = (anglesRad, angularRatesRadS) => rodAcceleration(
+    system,
+    { anglesRad, angularRatesRadS },
+    scenario.tipLoad,
+    scenario.flowForce,
+  );
 
   const aqq = Array.from({ length: n }, () => Array(n).fill(0));
   const avv = Array.from({ length: n }, () => Array(n).fill(0));
