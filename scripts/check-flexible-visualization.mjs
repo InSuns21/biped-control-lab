@@ -7,9 +7,6 @@ import {
   flowSpeedFromRateM3s,
 } from "../docs/js/shower/flexible/conveying-flow.js";
 import {
-  dryStaticTipShapeReduced,
-} from "../docs/js/shower/flexible/assemble.js";
-import {
   createNewmarkGeneralLinear,
 } from "../docs/js/shower/flexible/integrator.js";
 import {
@@ -18,6 +15,7 @@ import {
 import {
   H1_3_REFERENCE,
   classifyReferenceFlow,
+  referenceInitialPerturbationReduced,
 } from "../docs/js/shower/flexible/scenarios.js";
 
 const dt = 0.002;
@@ -37,12 +35,12 @@ function runPreset(flowLpm, durationS = 12) {
     system.reduced.stiffness,
     system.reduced.headForce0,
   );
-  const perturbation = dryStaticTipShapeReduced(system, 0.008);
-  const q0 = equilibrium.map((value, i) => value + perturbation[i]);
+  const perturbation = referenceInitialPerturbationReduced(system);
+  const q0 = equilibrium.map((value, i) => value + perturbation.q[i]);
   const integrator = createNewmarkGeneralLinear(system.reduced, dt);
   let state = integrator.initialize({
     q: q0,
-    v: Array(q0.length).fill(0),
+    v: perturbation.v,
     force: system.reduced.headForce0,
   });
 
