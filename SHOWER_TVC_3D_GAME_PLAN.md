@@ -445,11 +445,13 @@ p_min <= p_CoP <= p_max
 
 実装は `docs/js/shower/quaternion.js` と `docs/js/shower/rigid-body.js`。姿勢は body→world の `[w,x,y,z]` quaternion、角速度と対角慣性テンソルは body frame に統一する。Euler の剛体方程式 `I omega_dot + omega x (I omega) = tau` を直接評価し、2 軸 TVC は `delta_x`、`delta_z` を個別に飽和する。X1-1 の +Z 断面と角加速度・角速度更新が一致すること、quaternion ノルム、ジャイロ項、2 軸 TVC の符号を CI 回帰で固定する。
 
-### X1-3: Three.js 可視化
+### X1-3: Three.js 可視化 ✅（Human Visual Audit は公開後）
 
 physics core とレンダリングを接続する。
 
-この段階で見た目を優先して物理式を書き換えない。
+実装は `docs/labs/x1-shower-tvc/`。Three.js は npm 依存から `docs/vendor/three.module.js` へコピーし、実行時 CDN へ依存しない。表示は X1-2 の quaternion / body-frame diagnostics を唯一の状態源とし、シャワーヘッド、水流、流水反力、重力、ジェットトルク、目標姿勢を3D表示する。HUD では roll / pitch / yaw、角速度、流量、2軸ジンバル適用値、推力、トルク、飽和状態を表示する。指令範囲を物理上限より広く取り、`|delta|<=25 deg`、`Q<=10 L/min` の飽和を画面上で確認できる。斜め・正面・側面・上面のカメラ切替を用意する。
+
+この段階で見た目を優先して物理式を書き換えない。CI では Three.js vendor asset、Lab ファイル、JS 構文、リンク、物理回帰を検証する。Human Visual Audit は GitHub Pages 公開後に、水流と反力の向き、矢印・重心・HUD、タブレット表示を実画面で確認する。
 
 ### X1-4: ゲーム化
 
