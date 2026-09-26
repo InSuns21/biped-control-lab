@@ -85,7 +85,8 @@ function staticAtFlow(
     headMassKg: 0.20,
     headRotInertiaKgM2: 0.002,
     headComAxialOffsetM: 0.055,
-    bendingDampingNms: 0,
+    rayleighMassPerS: 0,
+  rayleighStiffnessS: 0,
   });
   const head = {
     ...DEFAULT_SHOWER_HEAD_PARAMS,
