@@ -425,21 +425,45 @@ export function generalizedTipLoad(
   return force;
 }
 
+function externalContext(system, state) {
+  return {
+    system,
+    state,
+    kinematics: rodKinematics(system, state.anglesRad),
+  };
+}
+
 function resolveTipLoad(system, state, tipLoad) {
   if (typeof tipLoad === "function") {
-    return tipLoad({
-      system,
-      state,
-      kinematics: rodKinematics(system, state.anglesRad),
-    });
+    return tipLoad(externalContext(system, state));
   }
   return tipLoad;
+}
+
+function resolveAdditionalGeneralizedForce(
+  system,
+  state,
+  additionalGeneralizedForce,
+) {
+  if (!additionalGeneralizedForce) {
+    return Array(system.params.segmentCount).fill(0);
+  }
+  const force = typeof additionalGeneralizedForce === "function"
+    ? additionalGeneralizedForce(externalContext(system, state))
+    : additionalGeneralizedForce;
+  if (!Array.isArray(force) || force.length !== system.params.segmentCount) {
+    throw new RangeError(
+      "additionalGeneralizedForce must match segmentCount",
+    );
+  }
+  return force;
 }
 
 export function generalizedRodForce(
   system,
   stateInput,
   tipLoad = null,
+  additionalGeneralizedForce = null,
 ) {
   const state = normalizeRodState(system, stateInput);
   const resolvedTipLoad = resolveTipLoad(system, state, tipLoad);
@@ -466,6 +490,14 @@ export function generalizedRodForce(
       ),
     );
   }
+  addScaledInPlace(
+    force,
+    resolveAdditionalGeneralizedForce(
+      system,
+      state,
+      additionalGeneralizedForce,
+    ),
+  );
   force[0] = 0;
   return force;
 }
@@ -474,6 +506,7 @@ export function rodAcceleration(
   system,
   stateInput,
   tipLoad = null,
+  additionalGeneralizedForce = null,
 ) {
   const state = normalizeRodState(system, stateInput);
   const { mass, bias } = massMatrixAndBias(
@@ -485,6 +518,7 @@ export function rodAcceleration(
     system,
     state,
     tipLoad,
+    additionalGeneralizedForce,
   );
   const rhs = generalizedForce.map(
     (value, i) => value - bias[i],
@@ -537,12 +571,22 @@ export function totalMechanicalEnergy(system, stateInput) {
     + gravitationalPotential(system, state.anglesRad);
 }
 
-function freeResidual(system, anglesInput, tipLoad) {
+function freeResidual(
+  system,
+  anglesInput,
+  tipLoad,
+  additionalGeneralizedForce,
+) {
   const state = normalizeRodState(system, {
     anglesRad: anglesInput,
     angularRatesRadS: Array(system.params.segmentCount).fill(0),
   });
-  const force = generalizedRodForce(system, state, tipLoad);
+  const force = generalizedRodForce(
+    system,
+    state,
+    tipLoad,
+    additionalGeneralizedForce,
+  );
   return reduceVector(force, system.freeAngleIndices);
 }
 
@@ -550,6 +594,7 @@ export function solveStaticRodEquilibrium(
   system,
   {
     tipLoad = null,
+    additionalGeneralizedForce = null,
     initialAnglesRad = null,
     tolerance = 1e-9,
     maxIterations = 60,
@@ -563,7 +608,12 @@ export function solveStaticRodEquilibrium(
   angles[0] = system.params.baseAngleRad;
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
-    const residual = freeResidual(system, angles, tipLoad);
+    const residual = freeResidual(
+      system,
+      angles,
+      tipLoad,
+      additionalGeneralizedForce,
+    );
     const residualNorm = vectorNorm(residual);
     if (residualNorm <= tolerance) {
       return {
@@ -583,8 +633,18 @@ export function solveStaticRodEquilibrium(
       const minus = [...angles];
       plus[dof] += finiteDifferenceRad;
       minus[dof] -= finiteDifferenceRad;
-      const residualPlus = freeResidual(system, plus, tipLoad);
-      const residualMinus = freeResidual(system, minus, tipLoad);
+      const residualPlus = freeResidual(
+        system,
+        plus,
+        tipLoad,
+        additionalGeneralizedForce,
+      );
+      const residualMinus = freeResidual(
+        system,
+        minus,
+        tipLoad,
+        additionalGeneralizedForce,
+      );
       for (let row = 0; row < free.length; row += 1) {
         jacobian[row][column] = (
           residualPlus[row] - residualMinus[row]
@@ -604,7 +664,12 @@ export function solveStaticRodEquilibrium(
         candidate[free[i]] += stepScale * delta[i];
       }
       const nextNorm = vectorNorm(
-        freeResidual(system, candidate, tipLoad),
+        freeResidual(
+          system,
+          candidate,
+          tipLoad,
+          additionalGeneralizedForce,
+        ),
       );
       if (nextNorm < residualNorm) {
         angles = candidate;
@@ -626,7 +691,12 @@ export function solveStaticRodEquilibrium(
   }
 
   const residualNorm = vectorNorm(
-    freeResidual(system, angles, tipLoad),
+    freeResidual(
+      system,
+      angles,
+      tipLoad,
+      additionalGeneralizedForce,
+    ),
   );
   return {
     converged: residualNorm <= tolerance,
@@ -637,11 +707,21 @@ export function solveStaticRodEquilibrium(
   };
 }
 
-function derivative(system, stateInput, tipLoad) {
+function derivative(
+  system,
+  stateInput,
+  tipLoad,
+  additionalGeneralizedForce,
+) {
   const state = normalizeRodState(system, stateInput);
   return {
     anglesRad: [...state.angularRatesRadS],
-    angularRatesRadS: rodAcceleration(system, state, tipLoad),
+    angularRatesRadS: rodAcceleration(
+      system,
+      state,
+      tipLoad,
+      additionalGeneralizedForce,
+    ),
   };
 }
 
@@ -661,25 +741,34 @@ export function stepNonlinearRodRK4(
   stateInput,
   dt,
   tipLoad = null,
+  additionalGeneralizedForce = null,
 ) {
   if (!(dt > 0)) throw new RangeError("dt must be positive");
   const state = normalizeRodState(system, stateInput);
 
-  const k1 = derivative(system, state, tipLoad);
+  const k1 = derivative(
+    system,
+    state,
+    tipLoad,
+    additionalGeneralizedForce,
+  );
   const k2 = derivative(
     system,
     addStateScaled(state, k1, 0.5 * dt),
     tipLoad,
+    additionalGeneralizedForce,
   );
   const k3 = derivative(
     system,
     addStateScaled(state, k2, 0.5 * dt),
     tipLoad,
+    additionalGeneralizedForce,
   );
   const k4 = derivative(
     system,
     addStateScaled(state, k3, dt),
     tipLoad,
+    additionalGeneralizedForce,
   );
 
   const next = {
