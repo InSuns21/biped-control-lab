@@ -249,7 +249,7 @@ elements = 8
 The exact values will be revisited after H1-2 establishes a usable
 below/near/above-critical flow sweep.
 
-## 10. Stability definition reserved for H1-2
+## 10. H1-2 stability definition and validated crossing
 
 After flow terms are assembled, define the first-order state system from
 
@@ -270,7 +270,85 @@ max Re(lambda) > +eps  : unstable / growing mode
 The critical flow is a model result found by a flow-speed sweep/root search. It
 must not be hard-coded as a universal shower-hose number.
 
-## 11. H1-0 / H1-1 scope boundary
+H1-2 now implements that calculation. The browser-side core assembles the
+physical matrices and first-order state matrix in plain JavaScript; CI uses a
+general real non-symmetric eigensolver only to inspect the resulting complex
+eigenvalues.
+
+For the current educational defaults
+
+```text
+L = 1.2 m
+EI = 0.7 N m^2
+m_s = 0.25 kg/m
+inner diameter = 6 mm
+rho = 997 kg/m^3
+m_tip = 0.20 kg
+J_tip = 0.002 kg m^2
+elements = 8
+```
+
+CI finds
+
+```text
+U_cr ~= 9.4808 m/s
+Q_cr ~= 16.08 L/min
+Im(lambda_cr) ~= 14.797 rad/s
+```
+
+The nonzero imaginary part at the crossing is the regression guard that the
+default loss of stability is oscillatory flutter rather than a static
+divergence in this discretized model.
+
+These values are **not** measurements of a real shower hose. They are
+model-dependent educational values and will change when geometry, stiffness,
+tip-head dynamics, gravity, or nonlinear effects are revised.
+
+## 11. H1-2 discrete flow terms
+
+H1-2 is implemented in `conveying-flow.js`.
+
+For each Hermite element it keeps three fluid contributions separate:
+
+```text
+M_fluid
+G_flow(U) = 2 m_f U integral(N^T N_s ds)
+K_flow(U^2) = m_f U^2 integral(N^T N_ss ds)
+```
+
+The assembled equation is
+
+```text
+(M_struct + M_fluid + M_tip) q_ddot
++ (C_struct + G_flow) q_dot
++ (K_bend + K_flow) q = 0
+```
+
+A stationary **filled** hose at `U = 0` still has `M_fluid`. What vanishes
+at zero flow are `G_flow` and `K_flow`. This distinction is part of the
+regression suite.
+
+Required parity checks are now executable:
+
+```text
+G_flow(-U) = -G_flow(U)
+K_flow((-U)^2) = K_flow(U^2)
+```
+
+The effective matrices are non-symmetric, so H1-2 adds an LU-based linear
+solve and a general Newmark average-acceleration path rather than incorrectly
+using the H1-1 Cholesky-only path.
+
+CI also verifies:
+
+- low-flow eigenvalues have negative maximum real part
+- a bisection search finds the zero crossing
+- 4/6/8-element critical speeds are converged to the documented tolerance
+- an above-critical time history grows without adding fake animation forcing
+- halving the physics time step changes the selected RMS result by less than
+  the regression tolerance
+
+## 12. H1-0 / H1-1 / H1-2 scope boundary
 
 H1-0 fixes the conventions above.
 
@@ -284,7 +362,10 @@ H1-1 implements only:
 - dry natural frequencies
 - Newmark time integration
 
-H1-1 does **not** yet claim garden-hose flutter.
+H1-1 by itself does **not** claim garden-hose flutter.
 
-The project may call the phenomenon reproduced only after H1-2 demonstrates a
-flow-dependent stability crossing and matching growing time-domain response.
+H1-2 has now demonstrated a flow-dependent oscillatory stability crossing and
+a matching growing time-domain response for the current linear reference
+model. The next step, H1-3, is to make the shower-head end condition and outlet
+momentum bookkeeping more representative before exposing the model as the
+interactive Phase 1 game.
