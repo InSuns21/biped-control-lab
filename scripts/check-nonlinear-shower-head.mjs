@@ -52,12 +52,12 @@ const atTurn = nonlinearShowerHeadReaction(
     hoseInnerDiameterM: diameterM,
   },
 );
-const rotatedForce = rotate2(atZero.forceXYN, degToRad(70));
+const rotatedForce = rotate2(atZero.forceXYN, -degToRad(70));
 assert.ok(nearly(atTurn.forceXYN[0], rotatedForce[0], 1e-10));
 assert.ok(nearly(atTurn.forceXYN[1], rotatedForce[1], 1e-10));
 assert.ok(
   nearly(atTurn.momentNm, atZero.momentNm, 1e-10),
-  "co-rotating nozzle geometry should preserve the scalar tip moment",
+  "co-rotating nozzle geometry should preserve the rod-frame scalar tip moment",
 );
 
 // Zero flow remains exactly zero load.
