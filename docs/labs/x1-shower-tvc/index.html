@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Side Lab X1 Shower TVC | Biped Control Lab</title>
+  <link rel="stylesheet" href="../../css/site.css">
+</head>
+<body>
+<main class="lab-shell shower-lab">
+  <a class="back-link" href="../../#03">← 理論: PID / PDへ</a>
+  <h1>Side Lab X1 — Shower TVC 3D</h1>
+  <p class="lead">流水反力を2軸TVCで偏向し、quaternionで積分した3D剛体姿勢と、推力・重力・トルクを同時に観察します。</p>
+
+  <div class="callout" role="status" aria-label="Human Visual Audit status">
+    <strong>Human Visual Audit 監査中</strong><br>
+    この公開版は実画面確認のための監査対象です。水流・反力・重力・トルク矢印の向き、重心表示、HUD、カメラ切替、PC / タブレット表示は未承認で、監査完了後に必要な修正を反映します。
+  </div>
+
+  <div class="lab-layout shower-layout">
+    <section>
+      <div class="three-viewport">
+        <canvas id="scene" width="900" height="620" aria-label="Shower TVC 3D simulation"></canvas>
+      </div>
+      <div class="vector-legend" aria-label="3D vector legend">
+        <span><i class="swatch swatch-water"></i>水流（反力と逆向き）</span>
+        <span><i class="swatch swatch-thrust"></i>流水反力 F</span>
+        <span><i class="swatch swatch-gravity"></i>重力 mg</span>
+        <span><i class="swatch swatch-torque"></i>ジェットトルク τ</span>
+        <span><i class="swatch swatch-target"></i>目標姿勢 +Y</span>
+      </div>
+    </section>
+
+    <aside class="controls">
+      <div class="control">
+        <label for="deltaX">TVC δx <output id="deltaXOut">0°</output></label>
+        <input id="deltaX" type="range" min="-40" max="40" value="0" step="1">
+      </div>
+      <div class="control">
+        <label for="deltaZ">TVC δz <output id="deltaZOut">0°</output></label>
+        <input id="deltaZ" type="range" min="-40" max="40" value="0" step="1">
+      </div>
+      <div class="control">
+        <label for="flow">流量 Q <output id="flowOut">8.0 L/min</output></label>
+        <input id="flow" type="range" min="0" max="14" value="8" step="0.2">
+      </div>
+      <div class="control">
+        <label for="cameraView">カメラ</label>
+        <select id="cameraView">
+          <option value="iso">斜め</option>
+          <option value="front">正面 (+Z)</option>
+          <option value="side">側面 (+X)</option>
+          <option value="top">上面 (+Y)</option>
+        </select>
+      </div>
+
+      <div class="button-row">
+        <button id="pause" type="button">一時停止</button>
+        <button id="neutral" type="button">TVCを0°へ</button>
+        <button id="reset" type="button">姿勢リセット</button>
+      </div>
+
+      <div class="metrics shower-metrics">
+        <div class="metric"><span>roll / pitch / yaw</span><strong id="rpyMetric">-</strong></div>
+        <div class="metric"><span>ω body (rad/s)</span><strong id="omegaMetric">-</strong></div>
+        <div class="metric"><span>Q applied</span><strong id="flowMetric">-</strong></div>
+        <div class="metric"><span>δx / δz applied</span><strong id="gimbalMetric">-</strong></div>
+        <div class="metric"><span>|Fjet|</span><strong id="thrustMetric">-</strong></div>
+        <div class="metric"><span>|τjet|</span><strong id="torqueMetric">-</strong></div>
+        <div class="metric"><span>入力制約</span><strong id="saturationMetric">-</strong></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="panel">
+    <h2>見方</h2>
+    <p>薄い直立線が目標姿勢です。黄色の矢印はシャワーヘッドが受ける流水反力、水色の線はその反対向きへ出る水流、赤は重力、紫はジェットが作るトルクです。描画はX1-2のphysics stateを読むだけで、運動方程式はこのLab側に複製していません。ベクトル矢印の長さは見やすさのための表示スケールで、実寸ではありません。</p>
+    <p><strong>最初はTVCを0°のまま観察</strong>し、傾きが重力で増えることを確認してください。その後 δx / δz を動かすと、作用線の偏向が姿勢回転へどう変換されるかを3Dで確認できます。指令は物理上限を超えて入力でき、適用値は |δ|≤25°、Q≤10 L/min に飽和します。</p>
+  </section>
+
+  <script type="module" src="./main.js"></script>
+</main>
+</body>
+</html>
