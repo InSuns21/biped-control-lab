@@ -434,7 +434,7 @@ p_min <= p_CoP <= p_max
 
 実装は `docs/js/shower/one-axis.js`。semi-implicit Euler で `theta, omega` を更新し、P / PD / manual、流量飽和、ジンバル飽和、外乱トルクを描画層から独立して扱う。回帰は `scripts/check-shower-model.mjs` とし、`npm test` に統合する。
 
-### X1-2: 3D 剛体化
+### X1-2: 3D 剛体化 ✅
 
 - quaternion
 - 3 軸角速度
@@ -442,6 +442,8 @@ p_min <= p_CoP <= p_max
 - 2 軸 TVC
 
 へ拡張する。
+
+実装は `docs/js/shower/quaternion.js` と `docs/js/shower/rigid-body.js`。姿勢は body→world の `[w,x,y,z]` quaternion、角速度と対角慣性テンソルは body frame に統一する。Euler の剛体方程式 `I omega_dot + omega x (I omega) = tau` を直接評価し、2 軸 TVC は `delta_x`、`delta_z` を個別に飽和する。X1-1 の +Z 断面と角加速度・角速度更新が一致すること、quaternion ノルム、ジャイロ項、2 軸 TVC の符号を CI 回帰で固定する。
 
 ### X1-3: Three.js 可視化
 
