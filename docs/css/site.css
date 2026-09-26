@@ -117,3 +117,16 @@ button:hover { border-color: var(--accent); }
   .flexible-viewport canvas { min-height: 500px; }
   .phase-tab { flex: 1 1 100%; }
 }
+
+.shower-lab { overflow-x: clip; }
+.shower-layout > section,
+.shower-layout > aside,
+.flexible-viewport,
+.history-grid > * { min-width: 0; max-width: 100%; }
+.flexible-viewport canvas,
+.history-grid canvas { max-width: 100%; }
+.view-fit-status { margin: .4rem .15rem .65rem; color: var(--muted); font-size: .84rem; }
+.status-warn { color: #b26a00; }
+@media (prefers-color-scheme: dark) {
+  .status-warn { color: #f0ad4e; }
+}
