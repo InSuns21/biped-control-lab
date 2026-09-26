@@ -54,7 +54,8 @@ const reference = {
   headMassKg: 0,
   headRotInertiaKgM2: 0,
   headComAxialOffsetM: 0,
-  bendingDampingNms: 0,
+  rayleighMassPerS: 0,
+  rayleighStiffnessS: 0,
   baseAngleRad: 0,
 };
 const analyticHz = cantileverAnalyticFirstFrequencyHz({
@@ -151,7 +152,8 @@ assert.ok(
 const conservative = createNonlinearRod({
   segmentCount: 8,
   gravityMps2: 0,
-  bendingDampingNms: 0,
+  rayleighMassPerS: 0,
+  rayleighStiffnessS: 0,
   headMassKg: 0.20,
   headRotInertiaKgM2: 0.002,
 });
