@@ -3,83 +3,185 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Side Lab X1 Hanging Shower Control | Biped Control Lab</title>
+  <title>Side Lab X1 Flexible Hose Control | Biped Control Lab</title>
   <link rel="stylesheet" href="../../css/site.css">
 </head>
 <body>
 <main class="lab-shell shower-lab">
   <a class="back-link" href="../../#03">← 理論: PID / PDへ</a>
-  <h1>Side Lab X1 — Hanging Shower Control 3D</h1>
-  <p class="lead">手でホースを上から持ち、下にぶら下がるシャワーヘッドから水を下向きに流しながら、流水反力で暴れるヘッドを安定させます。</p>
+  <h1>Side Lab X1 — Flexible Hose Control</h1>
+  <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — セットアップ修正版</strong><br>
-    「手が上・ヘッドが下」の実機イメージへ修正した公開監査版です。ホース保持方向、水流・反力・重力・保持トルクの向き、重心、HUD、PC / タブレット表示は監査完了まで未承認です。
+    <strong>Human Visual Audit 監査中 — H1-4 Phase 1 可視化</strong><br>
+    Phase 1 の2D flexible-hose表示は公開監査対象です。ホース形状、シャワーヘッド、水流・反力、履歴グラフ、低流量／臨界／flutter の見え方、PC / タブレット表示は未承認です。
   </div>
 
-  <div class="lab-layout shower-layout">
-    <section>
-      <div class="three-viewport">
-        <canvas id="scene" width="900" height="620" aria-label="Hanging shower-head control 3D simulation"></canvas>
-      </div>
-      <div class="vector-legend" aria-label="3D vector legend">
-        <span><i class="swatch swatch-water"></i>下向き水流</span>
-        <span><i class="swatch swatch-thrust"></i>流水反力 F</span>
-        <span><i class="swatch swatch-gravity"></i>重力 mg</span>
-        <span><i class="swatch swatch-torque"></i>流水反力トルク</span>
-        <span><i class="swatch swatch-hold"></i>ホース保持トルク</span>
-        <span><i class="swatch swatch-target"></i>目標水流方向</span>
-      </div>
+  <div class="phase-switch" role="tablist" aria-label="Shower model phase">
+    <button id="phase1Tab" class="phase-tab" type="button" role="tab"
+      aria-selected="true" aria-controls="phase1Panel">
+      Phase 1 — flexible hose
+    </button>
+    <button id="phase0Tab" class="phase-tab" type="button" role="tab"
+      aria-selected="false" aria-controls="phase0Panel" tabindex="-1">
+      Phase 0 — rigid baseline
+    </button>
+  </div>
+
+  <section id="phase1Panel" class="phase-panel" role="tabpanel"
+    aria-labelledby="phase1Tab">
+    <div class="phase-note">
+      <strong>本命モデル:</strong>
+      8要素 Euler–Bernoulli FEM + internal-flow coupling + 曲がりシャワーヘッド境界。
+      現在の教育用モデルの臨界流量は <strong>約14.23 L/min</strong> です。
+    </div>
+
+    <div class="lab-layout shower-layout">
+      <section>
+        <div class="flexible-viewport">
+          <canvas id="p1FlexibleCanvas" width="760" height="640"
+            data-css-height="640"
+            aria-label="Flexible hose conveying water 2D simulation"></canvas>
+        </div>
+        <div class="vector-legend" aria-label="Phase 1 legend">
+          <span><i class="swatch swatch-hose"></i>柔軟ホース</span>
+          <span><i class="swatch swatch-water"></i>出口水流</span>
+          <span><i class="swatch swatch-reaction"></i>曲がりヘッド追加反力</span>
+          <span><i class="swatch swatch-equilibrium"></i>静的平衡形状</span>
+          <span><i class="swatch swatch-node"></i>FEM node</span>
+        </div>
+      </section>
+
+      <aside class="controls">
+        <div class="control">
+          <span class="control-title">流量プリセット</span>
+          <div class="button-row">
+            <button type="button" data-flow-lpm="8.0">低流量 8.0</button>
+            <button type="button" data-flow-lpm="14.0">臨界付近 14.0</button>
+            <button type="button" data-flow-lpm="16.0">Flutter 16.0</button>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="p1Flow">流量 Q <output id="p1FlowOut">16.0 L/min</output></label>
+          <input id="p1Flow" type="range" min="0" max="18" value="16" step="0.1">
+          <small>Qcr ≈ 14.23 L/min（現H1-3モデル）</small>
+        </div>
+
+        <div class="control">
+          <label for="p1DeformationScale">横変位表示倍率</label>
+          <select id="p1DeformationScale">
+            <option value="1" selected>×1 実スケール</option>
+            <option value="2">×2</option>
+            <option value="4">×4</option>
+          </select>
+        </div>
+
+        <label class="check-row">
+          <input id="p1ShowNodes" type="checkbox" checked>
+          FEM nodes を表示
+        </label>
+
+        <div class="button-row">
+          <button id="p1Pause" type="button">一時停止</button>
+          <button id="p1Reset" type="button">同じ流量で Reset</button>
+        </div>
+
+        <div class="metrics shower-metrics">
+          <div class="metric"><span>安定性領域</span><strong id="p1RegimeMetric">-</strong></div>
+          <div class="metric"><span>Q / Qcr</span><strong id="p1FlowMetric">-</strong></div>
+          <div class="metric"><span>内部流速 U</span><strong id="p1SpeedMetric">-</strong></div>
+          <div class="metric"><span>先端横変位</span><strong id="p1TipMetric">-</strong></div>
+          <div class="metric"><span>先端角度</span><strong id="p1AngleMetric">-</strong></div>
+          <div class="metric"><span>動的 RMS</span><strong id="p1RmsMetric">-</strong></div>
+          <div class="metric"><span>観測成長率</span><strong id="p1GrowthMetric">-</strong></div>
+          <div class="metric"><span>形状モード</span><strong id="p1ModeMetric">-</strong></div>
+          <div class="metric"><span>sim time</span><strong id="p1TimeMetric">-</strong></div>
+          <div class="metric"><span>線形モデル範囲</span><strong id="p1ValidityMetric">-</strong></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="history-grid">
+      <canvas id="p1TipChart" width="700" height="190" data-css-height="190"
+        aria-label="Tip displacement history"></canvas>
+      <canvas id="p1RmsChart" width="700" height="190" data-css-height="190"
+        aria-label="Hose RMS deflection history"></canvas>
+    </div>
+
+    <section class="panel">
+      <h2>Phase 1で見ているもの</h2>
+      <p>縦方向はホースの基準軸、横方向が小変形横変位です。太線が実際のFEM状態、破線がその流量での静的平衡形状です。初期に8 mmの微小摂動だけを与え、見た目用の正弦波は加えていません。</p>
+      <p><strong>低流量</strong>では摂動が減衰し、<strong>臨界付近</strong>では減衰が遅くなり、<strong>Flutter</strong>では内部流れとの連成によって振幅が成長します。線形 small-deflection の妥当範囲を超えた場合は、描画を飽和させず停止して明示します。</p>
+      <p>このH1-4では手元境界は固定です。次のH1-5で、手元位置・角度をPointer操作して暴れるホースを人間が抑えるゲームへ進めます。</p>
     </section>
+  </section>
 
-    <aside class="controls">
-      <div class="control">
-        <label for="holdX">手元ホース tilt X <output id="holdXOut">0°</output></label>
-        <input id="holdX" type="range" min="-35" max="35" value="0" step="1">
-      </div>
-      <div class="control">
-        <label for="holdZ">手元ホース tilt Z <output id="holdZOut">0°</output></label>
-        <input id="holdZ" type="range" min="-35" max="35" value="0" step="1">
-      </div>
-      <div class="control">
-        <label for="flow">流量 Q <output id="flowOut">8.0 L/min</output></label>
-        <input id="flow" type="range" min="0" max="14" value="8" step="0.2">
-      </div>
-      <div class="control">
-        <label for="cameraView">カメラ</label>
-        <select id="cameraView">
-          <option value="iso">斜め</option>
-          <option value="front">正面 (+Z)</option>
-          <option value="side">側面 (+X)</option>
-          <option value="top">上面 (+Y)</option>
-        </select>
-      </div>
+  <section id="phase0Panel" class="phase-panel" role="tabpanel"
+    aria-labelledby="phase0Tab" hidden>
+    <div class="phase-note">
+      <strong>比較モデル:</strong>
+      Phase 0 は単一剛体＋復元重力＋減衰なので自然に安定しやすく、
+      flexible-hose flutter を含みません。
+    </div>
 
-      <div class="button-row">
-        <button id="pause" type="button">一時停止</button>
-        <button id="neutral" type="button">手元を鉛直へ</button>
-        <button id="reset" type="button">姿勢リセット</button>
-      </div>
+    <div class="lab-layout shower-layout">
+      <section>
+        <div class="three-viewport">
+          <canvas id="p0Scene" width="900" height="620"
+            aria-label="Rigid hanging shower comparison simulation"></canvas>
+        </div>
+        <div class="vector-legend" aria-label="Phase 0 vector legend">
+          <span><i class="swatch swatch-water"></i>下向き水流</span>
+          <span><i class="swatch swatch-thrust"></i>流水反力 F</span>
+          <span><i class="swatch swatch-gravity"></i>重力 mg</span>
+          <span><i class="swatch swatch-torque"></i>流水反力トルク</span>
+          <span><i class="swatch swatch-hold"></i>ホース保持トルク</span>
+        </div>
+      </section>
 
-      <div class="metrics shower-metrics">
-        <div class="metric"><span>roll / pitch / yaw</span><strong id="rpyMetric">-</strong></div>
-        <div class="metric"><span>下向き誤差</span><strong id="downErrorMetric">-</strong></div>
-        <div class="metric"><span>ω body (rad/s)</span><strong id="omegaMetric">-</strong></div>
-        <div class="metric"><span>Q applied</span><strong id="flowMetric">-</strong></div>
-        <div class="metric"><span>保持 tilt X / Z</span><strong id="holdMetric">-</strong></div>
-        <div class="metric"><span>|F reaction|</span><strong id="thrustMetric">-</strong></div>
-        <div class="metric"><span>|τ water|</span><strong id="waterTorqueMetric">-</strong></div>
-        <div class="metric"><span>|τ hold|</span><strong id="holdTorqueMetric">-</strong></div>
-        <div class="metric"><span>入力制約</span><strong id="saturationMetric">-</strong></div>
-      </div>
-    </aside>
-  </div>
+      <aside class="controls">
+        <div class="control">
+          <label for="p0HoldX">手元ホース tilt X <output id="p0HoldXOut">0°</output></label>
+          <input id="p0HoldX" type="range" min="-35" max="35" value="0" step="1">
+        </div>
+        <div class="control">
+          <label for="p0HoldZ">手元ホース tilt Z <output id="p0HoldZOut">0°</output></label>
+          <input id="p0HoldZ" type="range" min="-35" max="35" value="0" step="1">
+        </div>
+        <div class="control">
+          <label for="p0Flow">流量 Q <output id="p0FlowOut">8.0 L/min</output></label>
+          <input id="p0Flow" type="range" min="0" max="14" value="8" step="0.2">
+        </div>
+        <div class="control">
+          <label for="p0CameraView">カメラ</label>
+          <select id="p0CameraView">
+            <option value="iso">斜め</option>
+            <option value="front">正面 (+Z)</option>
+            <option value="side">側面 (+X)</option>
+            <option value="top">上面 (+Y)</option>
+          </select>
+        </div>
 
-  <section class="panel">
-    <h2>このモデルで何をしているか</h2>
-    <p><strong>手元の保持点が上、重心が下</strong>なので、重力そのものは姿勢を鉛直へ戻す復元力です。一方、シャワーヘッドの噴出口合力線はホース軸から少しずれており、下向きに水を出すと、その反力が回転モーメントを作ります。柔らかいホースを手で傾けると保持トルクが生じ、それを使って水流を真下へ保ちます。</p>
-    <p>水色が実際に出ていく水、黄色がヘッドへ返る反力です。紫は流水反力が作るトルク、緑は手で保持したホースが与えるトルクです。矢印長は可視化用スケールで実寸ではありません。</p>
-    <p><strong>TVCはこのゲームの操作そのものではありません。</strong> 固定ノズルのシャワーヘッドを直接ジンバルしているわけではなく、「外力の作用線・方向と姿勢制御」という数理的な対応を後段でロケットTVCへ接続します。</p>
+        <div class="button-row">
+          <button id="p0Pause" type="button">一時停止</button>
+          <button id="p0Neutral" type="button">手元を鉛直へ</button>
+          <button id="p0Reset" type="button">姿勢リセット</button>
+        </div>
+
+        <div class="metrics shower-metrics">
+          <div class="metric"><span>roll / pitch / yaw</span><strong id="p0RpyMetric">-</strong></div>
+          <div class="metric"><span>下向き誤差</span><strong id="p0DownErrorMetric">-</strong></div>
+          <div class="metric"><span>ω body</span><strong id="p0OmegaMetric">-</strong></div>
+          <div class="metric"><span>Q applied</span><strong id="p0FlowMetric">-</strong></div>
+          <div class="metric"><span>保持 tilt X / Z</span><strong id="p0HoldMetric">-</strong></div>
+          <div class="metric"><span>|F reaction|</span><strong id="p0ThrustMetric">-</strong></div>
+          <div class="metric"><span>|τ water|</span><strong id="p0WaterTorqueMetric">-</strong></div>
+          <div class="metric"><span>|τ hold|</span><strong id="p0HoldTorqueMetric">-</strong></div>
+          <div class="metric"><span>入力制約</span><strong id="p0SaturationMetric">-</strong></div>
+        </div>
+      </aside>
+    </div>
   </section>
 
   <script type="module" src="./main.js"></script>
