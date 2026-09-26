@@ -232,7 +232,7 @@ universal shower-hose number.
 
 Before interactive visualization, the physics core must test:
 
-- `U = 0` removes all flow-induced terms
+- `U = 0` removes `G_flow` and `K_flow`, while a filled hose retains `M_fluid`
 - reversing `U` flips the velocity-linear coupling sign
 - reversing `U` does not flip the `U^2` coupling
 - dry damped hose decays from an initial displacement
@@ -278,5 +278,9 @@ Phase 1 adds another important lesson:
 - Phase 0 Human Visual Audit: comparison-model re-audit pending
 - Phase 1 H1-0 model contract / derivation: implemented
 - Phase 1 H1-1 dry flexible beam core: implemented
-- next implementation step: **H1-2 conveying-fluid coupling**
-- no Phase 1 renderer should be built before H1-2 physics validation
+- Phase 1 H1-2 conveying-fluid coupling / flutter validation: implemented
+- current reference result: `U_cr ~= 9.4808 m/s`, `Q_cr ~= 16.08 L/min`
+  for the documented educational defaults
+- next implementation step: **H1-3 shower-head boundary model**
+- no Phase 1 renderer should be treated as final before H1-3 boundary
+  consistency is fixed
