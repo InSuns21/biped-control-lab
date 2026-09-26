@@ -402,7 +402,7 @@ p_min <= p_CoP <= p_max
 
 ## 10. 実装フェーズ
 
-### X1-0: 設計固定
+### X1-0: 設計固定 ✅
 
 - 座標系・正方向
 - 単位
@@ -416,7 +416,9 @@ p_min <= p_CoP <= p_max
 
 を文書化する。
 
-### X1-1: 1 軸 physics core
+固定した設計契約は `docs/js/shower/README.md` に置く。X1-0 では、右手系 Y-up、+Z 回転、重心下の仮想支点、SI 単位、`T=C_T rho Q^2/A_eff`、`|delta|<=25 deg`、`0<=Q<=10 L/min` を採用した。1 軸モデルはこの 3D 設計の +Z 断面として扱う。
+
+### X1-1: 1 軸 physics core ✅
 
 描画なしで、
 
@@ -429,6 +431,8 @@ p_min <= p_CoP <= p_max
 - 飽和
 
 をテスト可能な純粋 JS として実装する。
+
+実装は `docs/js/shower/one-axis.js`。semi-implicit Euler で `theta, omega` を更新し、P / PD / manual、流量飽和、ジンバル飽和、外乱トルクを描画層から独立して扱う。回帰は `scripts/check-shower-model.mjs` とし、`npm test` に統合する。
 
 ### X1-2: 3D 剛体化
 
