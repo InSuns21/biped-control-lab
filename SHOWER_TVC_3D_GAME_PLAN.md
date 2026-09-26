@@ -1,37 +1,44 @@
-# HANGING SHOWER CONTROL 3D GAME PLAN
+# FLEXIBLE HOSE SHOWER CONTROL GAME PLAN
 
-## 0. 位置づけ
+## 0. Decision record
 
-この計画は、Biped Control Lab に「手でホースを上から持ち、下にぶら下がるシャワーヘッドから水を下向きに流しつつ、流水反力で暴れるヘッドを安定させる」3D 体感型 Lab を追加するための実装計画である。Human Visual Audit で旧版の『重心下支点＋可動ノズルTVC』が実際のゲーム意図と異なることが判明したため、本計画は hanging-hose model を正とする。
+Side Lab X1 の本命を、剛体シャワーヘッドの姿勢制御から **内部流れをもつ柔軟ホースの流体構造連成**へ切り替える。
 
-狙いは、二足歩行そのものを 3D 化することではない。既存の 2D 本編を維持したまま、
+Human Visual Audit と実演例の確認から、狙っている現象は
 
-> 下向き流水の反力 → ホース保持による姿勢制御 → PD / 制約 → TVCとの比較 → 支持領域制約 → 二足歩行
+> 手元でホースを保持・操作し、内部を水が流れる柔軟ホースと先端シャワーヘッドが蛇のように振れる／暴れる挙動を抑え、狙った方向へ誘導する
 
-という直感的な橋を追加する。
+ことであると整理する。
 
-既存の本編 01〜07 は必須学習経路として保持し、本 Lab は独立した Side Lab とする。
+現行 X1-0〜X1-3 は削除しない。これらは **Phase 0: rigid baseline** として凍結し、
 
-仮称:
+> 末端剛体＋定常流水反力だけでは、なぜ勝手に安定してしまうのか
 
-- 表示名: **Side Lab X1 — Hanging Shower Control**
-- 実装パス候補: `docs/labs/x1-shower-tvc/`
-- 通称候補: Shower Control Lab / Shower 9
+を比較する教材に降格する。
+
+本命は **Phase 1: flexible hose / pipe conveying fluid** とする。
+
+通常の固定ノズルシャワーを TVC と呼ばない。TVC は後段の比較対象であり、Phase 1 の不安定化機構は「柔軟体内部を移動する流体と構造変形の連成」にある。
+
+---
 
 ## 1. 学習目標
 
-この Lab の終了時に、読者が次を説明できる状態を目指す。
+Side Lab X1 の終了時に、読者が次を説明できる状態を目指す。
 
-1. 流体の運動量流束が剛体へ反力を与えること
-2. 重心を通らない力が `r × F` のトルクを生むこと
-3. 手が上・重心が下なら重力は復元トルクになること
-4. 下向き噴流の合力線が保持軸からずれると `r × F` の外乱トルクが生じること
-5. ホース保持方向を変えると、柔らかい支持を介して対抗トルクを作れること
-6. P / PD、入力飽和、復帰可能領域を体験できること
-7. 固定ノズルのシャワーはTVCそのものではなく、TVC・CoP/ZMPとは『実現可能な外力・モーメントで姿勢を制御する』という構造で比較できること
-8. 3D 剛体では Euler 角だけでなく quaternion と角速度で姿勢を扱う利点があること
+1. 末端の噴流反力だけでは、柔軟ホースの暴れを十分に説明できないこと
+2. 柔軟梁の固有モードと減衰の意味
+3. 内部流速 `U` が構造方程式へ速度依存項・`U^2` 項を持ち込むこと
+4. 流量を上げると減衰振動から flutter / 自励振動へ遷移し得ること
+5. 「外力を受けて揺れる」のと「流れからエネルギーを受けて自励的に揺れる」の違い
+6. 手元境界を動かすことで、柔軟体の複数モードを制御する難しさ
+7. P / PD / 状態フィードバックが、剛体1自由度と柔軟多自由度でどう違うか
+8. 入力飽和・遅れ・センサ帯域が制御可能性を制約すること
+9. TVC・CoP/ZMP・柔軟ホース制御は同一現象ではないが、「実現可能な外力・境界入力で運動を制御する」という制御構造で比較できること
 
-## 2. 教材上の配置
+---
+
+## 2. 教材上の位置づけ
 
 本編の番号は変更しない。
 
@@ -40,548 +47,619 @@
 ```text
 02 倒立振子
   ↓
-03 PID / PD フィードバック
+03 PID / PD
   ↓
-Side Lab X1 — Hanging Shower Control
-  ↓
+Side Lab X1
+  ├─ Phase 0: 剛体近似
+  └─ Phase 1: 柔軟ホース + 内部流れ
+        ↓
+    固有モード / flutter / 境界制御
+        ↓
 04 状態空間 / 05 LQR
-  ↓
-06 支持多角形と ZMP
+        ↓
+06 ZMP / 07 LIPM・Capture Point
 ```
 
-Side Lab X1 の最後で、次の対応を明示する。
+Phase 0 と Phase 1 を並べて、
+
+- 剛体近似では重力＋減衰により自然に落ち着く
+- 柔軟ホースでは内部流れとの連成により、条件次第で振動が成長する
+
+という差を最初に見せる。
+
+---
+
+## 3. Phase 0 — rigid baseline
+
+### 3.1 位置づけ
+
+現行 X1-0〜X1-3 の hanging rigid-body model を比較用として保持する。
+
+モデル:
+
+- 手元支点は上
+- COM / ヘッドは下
+- 水は下向き
+- 流水反力は上向き
+- ヘッドは単一剛体
+- ホースは回転ばね・ダンパ
+- quaternion による3D姿勢
+
+このモデルは **「柔軟ホースの本命モデル」ではない**。
+
+### 3.2 Phase 0 で学ぶこと
+
+- 流量 `Q` と運動量流束
+- `r × F`
+- 重心が支点より下なら重力は復元的
+- 剛体＋粘性減衰なら自然に安定しやすい
+- 「記事・実演のような蛇行が出ない」こと自体がモデル不足の証拠
+
+### 3.3 UI
+
+現行 3D ページを残し、監査完了後は画面上に
+
+> Phase 0 — rigid approximation  
+> このモデルは柔軟ホースの flutter を含まないため、自然に安定しやすい
+
+と常時表示する。
+
+---
+
+## 4. Phase 1 — flexible hose / conveying-fluid model
+
+### 4.1 第一版は 2D
+
+最初から3D柔軟体へ行かない。
+
+まず鉛直面内の横変位 `y(s,t)` を持つ柔軟ホースを実装する。
+
+- `s ∈ [0,L]`: ホース軸方向
+- `y(s,t)`: 横変位
+- `EI`: 曲げ剛性
+- `m_s`: ホース構造の単位長さ質量
+- `m_f = rho A_hose`: 内部水の単位長さ質量
+- `U = Q / A_hose`: 平均内部流速
+- `c`: 構造・材料の有効減衰
+
+連続体の基準式は、符号規約を固定したうえで概念的に
 
 ```text
-シャワー / ロケット:
-  推力方向 δ を動かせる範囲に限界がある
-
-二足歩行:
-  床反力作用点 p を動かせる範囲は足裏・支持多角形に制限される
-
-共通:
-  制御入力に幾何学的・物理的な実現可能領域がある
+(m_s + m_f) y_tt
++ c y_t
++ EI y_ssss
++ 2 m_f U y_st
++ m_f U^2 y_ss
+= f_ext
 ```
 
-この対応を、06「支持多角形と ZMP」への伏線とする。
+とする。
 
-## 3. 最小物理モデル
+重要なのは、
 
-### 3.1 第一段階では CFD をしない
+- `2 m_f U y_st`: 流れと構造速度の結合
+- `m_f U^2 y_ss`: 流速二乗で効く項
 
-水流そのものを粒子法や Navier–Stokes で解くことは、本 Lab の目的ではない。
+を、単なる末端反力とは別に持つことである。
 
-第一版では、水流を「ノズルから流出する運動量流束」としてモデル化する。
+実装時は文献と離散化の符号規約を再確認し、式をそのまま雰囲気で写さない。
 
-体積流量を `Q`、水密度を `rho`、有効噴出口面積を `A_eff` とすると、
+### 4.2 離散化
+
+Phase 1 第一版は **Euler–Bernoulli beam FEM** を第一候補とする。
+
+各ノード:
 
 ```text
-v = Q / A_eff
-T = rho Q v = rho Q^2 / A_eff
+q_i = [y_i, theta_i]
 ```
 
-を理想化した推力の大きさとする。
-
-現実のシャワーヘッドでは入口側の圧力、内部流路での曲がり、損失、多数ノズルの分布が効くため、実装では必要に応じて
+2節点要素を 8〜16 要素程度使い、
 
 ```text
-T = C_T rho Q^2 / A_eff
+M q_ddot + C(U) q_dot + K(U) q = f
 ```
 
-という無次元係数 `C_T` を導入する。
+へ落とす。
 
-`C_T` は「現実の流体を完全再現する係数」ではなく、簡略モデルの有効推力係数として扱う。
+行列は少なくとも次を分離して保持する。
 
-### 3.2 並進運動
+- `M_struct`: ホース構造質量
+- `M_fluid`: 内部水の移動質量
+- `K_bend`: 曲げ剛性
+- `G_flow(U)`: 速度比例の非対称 / gyroscopic coupling
+- `K_flow(U^2)`: 流速二乗で変わる有効剛性・非保存項
+- `C_struct`: 構造減衰
 
-重心位置を `x`、速度を `v_cm`、質量を `m` とする。
+最終式を1つの巨大な更新式へ潰さず、各項を診断可能にする。
 
-```text
-m dv_cm/dt = F_jet + m g + F_support + F_disturbance
-dx/dt = v_cm
-```
+### 4.3 境界条件
 
-第一版ではモードに応じて `F_support` を切り替える。
+手元 `s=0` はプレイヤーが操作する境界。
 
-- 姿勢制御モード: 支持点または仮想ジンバルにより並進を拘束し、回転へ集中する
-- フリーフライトモード: 並進も解放する
-- 着地チャレンジ: 地面との簡略接触を追加する
+第一版:
 
-最初から接触剛体シミュレータを作らない。
+- 手元横位置 `y(0,t)`
+- 手元角度 `theta(0,t)`
 
-### 3.3 回転運動
+を prescribed boundary とする。
 
-剛体座標系で慣性テンソルを `I`、角速度を `omega` とする。
+先端 `s=L` にはシャワーヘッドの
 
-```text
-I domega/dt + omega × (I omega) = tau_total
-```
+- 質量
+- 回転慣性
+- ヘッド形状
+- ノズル方向
 
-流水の推力ベクトルを `F_jet`、重心からノズル作用点までを `r_nozzle` とすると、
+を tip mass / tip inertia として加える。
 
-```text
-tau_jet = r_nozzle × F_jet
-```
+内部流れの出口運動量と、連続体式・自由端境界条件との整合を必ず確認する。**同じ follower-force 効果を分布項と末端力で二重計上しない。**
 
-を用いる。
+シャワーヘッド内部で流路が曲がる効果を追加する場合は、これは別の明示的な tip load として扱う。
 
-姿勢は quaternion `q` で保持し、毎ステップ正規化する。
+### 4.4 数値積分
 
-### 3.4 ホース保持入力
+柔軟梁は剛体モデルより stiff になるため、semi-implicit Euler 固定では決め打ちしない。
 
-メインゲームではノズルをジンバルしない。固定ノズルから水は body -Y へ出る。
+候補:
 
-プレイヤーは、ヘッドより上で手に持っているホース方向
+1. Newmark-beta
+2. generalized-alpha
+3. 状態空間化 + 安定な固定刻み積分
 
-```text
-hold_tilt_x, hold_tilt_z
-```
+第一実装では **線形 Phase 1 コアを先に作り、固有値・臨界流速の回帰が通る積分法を採用**する。
 
-を操作する。現在の body +Y 軸を `a`、手元ホースの目標方向を `h` とし、柔らかいホース / 手首支持を
+描画フレームと物理刻みを分離する。
 
-```text
-tau_hold_world = K_h (a x h)
-tau_hold_body = R(q)^T tau_hold_world - C_h omega
-```
+### 4.5 非線形は後段
 
-という回転ばね・ダンパとして近似する。
+最初は small-deflection linear beam とする。
 
-制約:
+次段階で必要なら:
 
-```text
-|hold_tilt_x| <= hold_tilt_max
-|hold_tilt_z| <= hold_tilt_max
-0 <= Q <= Q_max
-```
+- 幾何学的非線形
+- 大回転
+- 3D bending
+- torsion
+- ホース自己衝突
+- 床・浴槽との接触
 
-指令値と適用値は分離し、飽和を HUD と後段のゲーム判定で見えるようにする。
+を追加する。
 
-TVC は後段の比較教材として扱い、通常の固定ノズルシャワーを「TVCそのもの」と説明しない。
+第一版で CFD / Navier–Stokes / 水滴粒子法へは行かない。
 
-## 4. 制御モード
+---
 
-### Stage 1: 完全手動
+## 5. Phase 1 で再現したい現象
 
-プレイヤーが手元ホースの2軸保持方向と水量を直接操作する。
+### 5.1 Q = 0
 
-目的:
+初期変位を与えると減衰振動し、最終的に静止する。
 
-- 手が上、ヘッドが下という幾何を体感する
-- 水流合力線のずれでヘッドが振られることを確認する
-- 保持方向を逆へ切り返しすぎると振動が増えることを経験する
+これは通常の柔軟梁。
 
-### Stage 2: 姿勢計を追加
+### 5.2 低流量
 
-姿勢誤差、角速度、推力、トルクを HUD に表示する。
+固有振動数・減衰率が変化するが、まだ摂動は減衰する。
 
-プレイヤーは「角度だけを見る」と振動させやすいことを確認する。
+### 5.3 臨界流量付近
 
-### Stage 3: P 制御
+特定モードの実効減衰が小さくなり、振幅が長く残る。
 
-1軸では、流水反力の定常トルクを打ち消す feedforward に姿勢誤差P項を加える。
+### 5.4 臨界流量超過
 
-```text
-phi_hold_cmd = phi_ff - Kp theta
-```
+微小な初期摂動・ノイズから振幅が成長する。
 
-条件によっては振動や定常ずれが残ることを観察する。
+この **「放っておいても揺れが増える」領域**を Phase 1 の成立条件とする。
 
-### Stage 4: PD 制御
+線形モデルでは振幅が無限に成長し得るため、ゲーム化時には
 
-```text
-phi_hold_cmd = phi_ff - Kp theta - Kd theta_dot
-```
+- 小さな非線形飽和
+- 曲率上限
+- 破綻判定
 
-へ進む。
+のいずれかを導入する。
 
-3D では quaternion から下向き水流の姿勢誤差を作り、手元ホース方向の指令へ写像する。制御器は保持入力を出し、物理コアはホース回転ばね・ダンパを通して実トルクを生成する。
+「見た目のために適当な正弦波を足す」ことは禁止する。
 
-### Stage 5: 飽和
+---
 
-`hold_tilt_max` と `Q_max` を厳しくして、復帰可能領域を見せる。
+## 6. プレイヤー入力
 
-重要な学習点:
+ノズルをジンバルしない。
 
-> 制御則が数学的に安定でも、必要トルクが最大トルクを超えれば実機は復帰できない。
-
-### Stage 6: 外乱
-
-- 横風に相当する外力
-- 短いインパルス
-- 質量・慣性の変更
-- ノズル故障
-- センサノイズ
-
-を選択可能にする。
-
-### Stage 7: 着地チャレンジ
-
-発展ステージとして、
-
-- 姿勢
-- 水平位置
-- 鉛直速度
-- 残り水量
-
-を同時に管理して指定領域へ着地する。
-
-ここで「姿勢制御だけでは軌道制御にならない」ことを示す。
-
-## 5. ゲーム UI
-
-画面は PC / タブレットの両方で成立させる。
-
-### 5.1 3D ビュー
-
-常時可視化:
-
-- シャワーヘッド本体
-- ノズル
-- 水流
-- 重心
-- 推力ベクトル
-- 重力ベクトル
-- トルクまたはモーメントアーム
-- 目標姿勢
-
-ベクトルは Three.js の ArrowHelper 等を利用してよいが、長さのスケールと単位を UI 上で明示する。
-
-### 5.2 数理 HUD
-
-最低限:
-
-- roll / pitch / yaw
-- 角速度
-- `Q`
-- `delta_x, delta_z`
-- `|F_jet|`
-- `|tau_jet|`
-- 飽和フラグ
-
-を表示する。
-
-### 5.3 リアルタイムグラフ
-
-最低限:
-
-- 姿勢誤差
-- 角速度
-- 制御入力
-- 飽和状態
-
-を時系列表示する。
-
-グラフと 3D 表示が同じシミュレーション状態を参照する構造にする。
-
-### 5.4 操作
+プレイヤーが操作するのは手元境界。
 
 PC:
 
-- マウス / ポインタ: ジンバル方向
-- ホイールまたはキー: 流量
-- Space: 一時停止
-- R: リセット
+- Pointer drag: 手元横位置
+- Shift + drag または別軸: 手元角度
+- wheel / key: 流量
 
 タブレット:
 
-- Pointer Events を使い、マウス専用イベントにしない
-- 画面内 2 軸スティックまたはドラッグ領域
-- 流量スライダー
+- Pointer Events
+- 2D pad: 手元位置 / 角度
+- flow slider
 
-既存リポジトリで問題になった「タブレットでは操作不能」を再発させない。
+Phase 1 の本質は、**末端ではなく境界から柔軟多自由度系を制御する**こと。
 
-## 6. 3D 技術方針
+---
 
-### 6.1 描画
+## 7. ゲームステージ
 
-Three.js を第一候補とする。
+### F1 — Dry hose
 
-外部 CDN への実行時依存は避ける。
+`Q = 0`。
 
-現在の `prepare:web` と同じ思想で、
+手で揺らして固有モードと減衰を見る。
 
-1. `three` を npm 依存へ追加
-2. `node_modules/three/build/three.module.js` など必要最小限を `docs/vendor/` へコピー
-3. GitHub Pages では同一オリジンから読み込む
+### F2 — Low flow
 
-方針を優先する。
+水を流すが安定領域。
 
-### 6.2 物理
+Phase 0 の「末端反力だけ」と比較する。
 
-第一版では Cannon / Ammo / Rapier 等の汎用物理エンジンを導入しない。
+### F3 — Near critical
 
-理由:
+流量を上げ、振動が減衰しにくくなる領域を体験する。
 
-- 教材の中心となる運動方程式がブラックボックス化する
-- 回帰テストでモデルを直接検証しにくい
-- 接触物理が不要な初期ステージでは過剰
+### F4 — Flutter
 
-純粋な JavaScript モジュールとして剛体状態更新を実装し、描画層から分離する。
+臨界流量を越え、自励振動を発生させる。
 
-積分はまず固定刻みの semi-implicit Euler とし、必要なら RK4 と比較できるようにする。
+ここで初めて「何もしないと暴れる」をゲームの中心にする。
 
-## 7. 推奨ファイル構成
+### F5 — Manual stabilization
+
+手元位置・角度を人間が操作し、
 
 ```text
-docs/
-  labs/
-    x1-shower-tvc/
-      index.html
-      main.js
-      ui.js
-      scene.js
-  js/
-    shower/
-      rigid-body.js
-      jet-model.js
-      controller.js
-      quaternion.js
-      scenarios.js
-  theory/
-    SX1_shower_tvc.md
-  vendor/
-    three.module.js
+tip position
+tip angle
+hose RMS deflection
+```
+
+を規定範囲に保つ。
+
+### F6 — P / PD
+
+まず観測量を少数に絞り、境界入力の P / PD を比較する。
+
+単一角度だけでは高次モードを抑えられないケースも残す。
+
+### F7 — State feedback
+
+FEM 状態を低次元 modal coordinates に射影し、LQR などへ接続する。
+
+ここを本編 04 / 05 への橋にする。
+
+### F8 — Disturbance / uncertainty
+
+- 流量急変
+- ホース長変更
+- 曲げ剛性変更
+- 先端質量変更
+- センサノイズ
+- 制御遅れ
+
+を入れる。
+
+---
+
+## 8. UI / visualization
+
+### 8.1 Phase selector
+
+同一 Side Lab 内で
+
+- Phase 0: rigid baseline
+- Phase 1: flexible hose
+
+を明確に切り替える。
+
+デフォルトは Phase 1。
+
+### 8.2 2D flexible view
+
+Phase 1 第一版は 2D を優先する。
+
+常時表示:
+
+- 手元境界
+- ホース中心線
+- FEM nodes / elements の表示切替
+- シャワーヘッド
+- 水流方向
+- tip position
+- tip angle
+- 変形倍率
+- 流量
+- 現在の安定性指標
+
+### 8.3 HUD
+
+最低限:
+
+- `Q [L/min]`
+- `U [m/s]`
+- tip displacement
+- tip angle
+- RMS hose deflection
+- dominant mode
+- estimated growth / decay rate
+- hand input
+- saturation flag
+
+### 8.4 グラフ
+
+- tip displacement vs time
+- modal amplitude vs time
+- hand input vs time
+- flow rate vs time
+
+発展:
+
+- eigenvalue plane
+- flow speed vs modal damping
+- mode shape display
+
+---
+
+## 9. 自動テスト
+
+Phase 0 の既存回帰は残す。
+
+Phase 1 では以下を必須にする。
+
+### 9.1 構造系
+
+- `Q = 0`, `c = 0` でエネルギーが大きく破綻しない
+- `Q = 0`, `c > 0` で初期変位が減衰する
+- tip mass を増やすと第一固有振動数が下がる
+- 要素数を増やすと低次固有振動数が収束する
+
+### 9.2 流体構造連成
+
+- `U = 0` で流れ由来行列が消える
+- `U -> -U` で速度比例項の符号は反転する
+- `U^2` 項は流れ方向反転で不変
+- 低流量では摂動が減衰する
+- 臨界流量近傍で最大実部固有値が 0 付近へ来る
+- 臨界流量超過で少なくとも1モードが成長する
+- 要素数変更で臨界流量が大きく飛ばない
+
+### 9.3 数値健全性
+
+- NaN / Inf を出さない
+- 物理刻み変更で主要挙動が大きく変わらない
+- 描画fpsと物理結果を分離する
+- outlet momentum effect を二重計上しない
+
+### 9.4 Web
+
+既存 `npm test` へ統合。
+
+Human Visual Audit では、
+
+- 低流量で自然減衰
+- 臨界付近で長く振れる
+- 高流量で明確に自励振動
+- 手元操作で振れ方が変わる
+- タブレット Pointer Events
+
+を実画面で確認する。
+
+---
+
+## 10. ファイル構成
+
+Phase 0 は既存ファイルを保持する。
+
+Phase 1 は分離する。
+
+```text
+docs/js/shower/
+  phase0/
+    ...将来必要なら既存 rigid core を移動
+  flexible/
+    beam-element.js
+    assemble.js
+    conveying-flow.js
+    boundary.js
+    integrator.js
+    eigen.js
+    scenarios.js
+
+docs/labs/x1-shower-tvc/
+  index.html
+  main.js
+  scene.js
+  flexible-view.js
+  flexible-ui.js
+
 scripts/
   check-shower-model.mjs
+  check-flexible-hose-model.mjs
 ```
 
-ファイル名は実装時に既存規約と再確認する。
+最初からファイル移動で既存 Phase 0 を壊さない。Phase 1 が安定した後に整理する。
 
-理論ページを SPA に載せる場合は `routes.js` へ登録し、生の Markdown へ遷移しないこと。
+---
 
-## 8. 数理ページの構成
+## 11. 実装フェーズ
 
-`SX1_shower_tvc.md` を作る場合、AGENTS.md の規約に従い次の順で書く。
+### Phase 0 — rigid baseline ✅
 
-1. 前提
-2. この章のゴール
-3. シャワーを持つと押し返される直感
-4. 検査体積と運動量流束
-5. `F ≈ rho Q^2 / A_eff` の導出と限界
-6. `tau = r × F`
-7. 1 軸剛体モデル
-8. P / PD 制御
-9. 3D 剛体と quaternion
-10. 入力飽和
-11. TVC とロケットの対応
-12. CoP / ZMP への対応
-13. Lab X1 で確認
-14. 06「支持多角形と ZMP」への接続
+旧 X1-0〜X1-3。
 
-「普通の固定シャワーヘッドの反力」と「ノズルを本体に対して動かす TVC」を混同しないこと。
+- P0-0 座標・剛体設計 ✅
+- P0-1 1軸剛体 core ✅
+- P0-2 quaternion 3D rigid body ✅
+- P0-3 Three.js visualization ✅
+- Human Visual Audit: **比較モデルとして再監査が必要**
 
-## 9. 二足歩行への接続
+Phase 0 はここで機能追加停止。
 
-教材として最も重要な対応は次。
+### H1-0 — flexible model contract / derivation
 
-### TVC
+次の着手点。
 
-```text
-tau = r_T × T
-delta_min <= delta <= delta_max
-```
+- 2D beam 座標・符号
+- `L, EI, m_s, A_hose, rho`
+- `Q -> U`
+- FEM element DOF
+- conveying-fluid element matrices
+- base prescribed BC
+- tip mass / inertia BC
+- damping model
+- outlet momentum の扱い
+- 臨界流速の定義
 
-### 二足歩行
+を `docs/js/shower/flexible/README.md` に固定する。
 
-```text
-tau = r_CoP × F_GRF
-p_min <= p_CoP <= p_max
-```
+**この段階では描画しない。**
 
-完全に同じ物理ではないが、
+### H1-1 — dry flexible beam
 
-> 外力の大きさ・方向・作用線を、実現可能領域の中で操作して重心・姿勢を制御する
+- Euler–Bernoulli FEM
+- assembly
+- tip mass
+- damping
+- time integration
+- Q = 0 regression
+- natural-frequency convergence
 
-という制御構造が共通する。
+### H1-2 — conveying-fluid coupling
 
-特に Side Lab X1 の「飽和して戻せない」経験から、
+- `G_flow(U)`
+- `K_flow(U^2)`
+- eigenvalue analysis
+- flow-speed sweep
+- critical-flow estimate
+- below/above-critical time-domain regression
 
-> CoP を爪先まで動かしても戻せない → 支持点そのものを変える → 一歩踏み出す
+ここが Phase 1 の物理成立判定。
 
-という Capture Point / step recovery への導線を作る。
+### H1-3 — shower-head boundary model
 
-## 10. 実装フェーズ
+- head mass / inertia
+- bent head geometry
+- outlet direction
+- momentum boundary consistency
+- optional explicit bend/reaction load
 
-### X1-0: 設計固定 ✅（Human Visual Audit 後に hanging-hose model へ改訂）
+### H1-4 — 2D interactive visualization
 
-- 座標系・正方向
-- 単位
-- 剛体形状
-- 重心位置
-- 慣性テンソル
-- ノズル位置
-- 推力モデル
-- 入力制約
-- 1 軸モードと 3D モードの関係
+- flexible centerline
+- hand boundary
+- head
+- water
+- nodes / modes
+- HUD / graphs
+- Phase 0 / Phase 1 selector
 
-を文書化する。
+公開後 Human Visual Audit。
 
-固定した設計契約は `docs/js/shower/README.md` に置く。正規モデルは右手系 Y-up、手元支点が上、COMとヘッドが下、固定ノズル水流は body -Y、流水反力は body +Y。ノズル合力線のオフセットで `r × F` が生じ、プレイヤーは `hold_tilt_x/z` を通じたホース保持トルクで姿勢を制御する。`T=C_T rho Q^2/A_eff`、`|hold_tilt|<=25 deg`、`0<=Q<=10 L/min` とする。
+### H1-5 — manual game
 
-### X1-1: 1 軸 physics core ✅（hanging-hose model へ改訂）
+- hand position / angle control
+- low-flow / near-critical / flutter stages
+- success / failure
+- scoring
+- tablet controls
 
-描画なしで、
+### H1-6 — feedback control
 
-- 重力
-- 推力
-- トルク
-- 角度
-- 角速度
 - P / PD
-- 飽和
+- modal sensing
+- state-space realization
+- LQR comparison
+- actuator saturation / delay
 
-をテスト可能な純粋 JS として実装する。
+### H1-7 — theory page / biped bridge
 
-実装は `docs/js/shower/one-axis.js`。semi-implicit Euler で `theta, omega` を更新し、復元重力、オフセット流水反力、ホース保持ばね・ダンパ、manual / P / PD、流量・保持角飽和、外乱トルクを描画層から独立して扱う。回帰は `scripts/check-shower-model.mjs` とし、`npm test` に統合する。
+- rigid vs flexible comparison
+- garden-hose instability
+- eigenvalues and flutter
+- boundary control
+- TVCとの相違
+- CoP/ZMPとの相違と共通点
+- 04 / 05 / 06 / 07 への相互リンク
 
-### X1-2: 3D 剛体化 ✅（hanging-hose model へ改訂）
+---
 
-- quaternion
-- 3 軸角速度
-- 慣性テンソル
-- 2 軸 TVC
+## 12. 完了条件
 
-へ拡張する。
+Phase 1 第一版は以下をすべて満たしたら完了。
 
-実装は `docs/js/shower/quaternion.js` と `docs/js/shower/rigid-body.js`。姿勢は body→world の `[w,x,y,z]` quaternion、角速度と対角慣性テンソルは body frame に統一する。Euler の剛体方程式 `I omega_dot + omega x (I omega) = tau` を直接評価し、重力、流水反力、ホース保持、外乱を合成する。quaternion ノルム、ジャイロ項、重力の復元符号、オフセット流水反力、保持トルク方向を CI 回帰で固定する。
-
-### X1-3: Three.js 可視化 ✅（Human Visual Audit 継続中・hanging-hose版へ更新）
-
-physics core とレンダリングを接続する。
-
-実装は `docs/labs/x1-shower-tvc/`。Three.js は npm 依存から vendor し、実行時 CDN へ依存しない。表示は X1-2 の quaternion / diagnostics を唯一の状態源とし、上側の手元ホース、下側のシャワーヘッド、下向き水流、上向き流水反力、重力、流水反力トルク、ホース保持トルク、目標下向き水流を3D表示する。HUD では姿勢、角速度、下向き誤差、流量、保持角、反力、両トルク、飽和を表示する。
-
-この段階で見た目を優先して物理式を書き換えない。CI では Three.js vendor asset、Lab ファイル、JS 構文、リンク、物理回帰を検証する。Human Visual Audit は GitHub Pages 公開後に、水流と反力の向き、矢印・重心・HUD、タブレット表示を実画面で確認する。
-
-### X1-4: ゲーム化
-
-Stage 1〜6 を実装する。
-
-成功条件・失敗条件・スコアは、物理量に基づく単純なものから始める。
-
-例:
-
-```text
-10 秒間:
-|tilt| < 5 deg
-かつ
-未飽和時間率 > 80 %
-```
-
-### X1-5: 理論ページ接続
-
-理論章と Lab の双方から相互リンクする。
-
-### X1-6: 二足歩行への橋
-
-03 PID、06 ZMP、07 LIPM / Capture Point の本文から必要最小限の相互参照を追加する。
-
-## 11. テスト
-
-最低限、次を自動化する。
-
-### 11.1 物理回帰
-
-- `Q = 0` なら流水反力 0
-- `Q` を 2 倍にしたとき、理想モデルでは反力が 4 倍
-- 手が上・COMが下なら重力トルクは復元符号になる
-- ノズル合力線のオフセット符号を反転すると流水反力トルク符号が反転する
-- 手元ホースを逆側へ傾けると保持トルク符号が反転する
-- quaternion ノルムが長時間積分で 1 付近に維持される
-- 対称な慣性テンソルで軸ごとの期待挙動が得られる
-
-### 11.2 制御回帰
-
-- 適切な PD ゲインで小外乱から収束
-- `Kd = 0` では減衰が失われるケースを再現
-- `hold_tilt_max` に達したら指令値と実入力を区別して記録
-- 最大トルクを超える外乱では復帰不能になる
-
-### 11.3 Web
-
-既存の `npm test` に統合する。
-
-- JS 構文
-- vendor asset 存在
-- 相対リンク
-- SPA ルート
-- モデル回帰
-
-を CI で確認する。
-
-### 11.4 Human Visual Audit
-
-CI とは別に必須。
-
-確認:
-
-- 水流と推力矢印の向きが矛盾していない
-- 重心位置が見える
-- 矢印がカメラ距離で極端に潰れない
-- HUD がタブレットで画面外へ出ない
-- Pointer Events がタッチで動く
-- ベクトル・ラベル・数式の記号が一致する
-
-## 12. 非目標
-
-第一版では以下を行わない。
-
-- Navier–Stokes の数値流体解析
-- シャワー内部流路の CFD
-- 水滴一粒ずつの粒子シミュレーション
-- 実物シャワーヘッドの厳密同定
-- 高精度な地面接触 / 摩擦シミュレーション
-- Falcon 9 の実機誘導則の再現
-- 二足歩行本編の 3D 化
-
-これらは本 Lab の教育目的に対して過剰である。
-
-## 13. 完了条件
-
-第一版完了は次をすべて満たした状態とする。
-
-- [ ] 1 軸手動 TVC を遊べる
-- [ ] P / PD の違いを操作で確認できる
-- [ ] 手元ホース2軸保持で3Dヘッド姿勢を操作できる
-- [ ] 流量と保持角に飽和がある
-- [ ] 重心・推力・トルクを画面上で確認できる
-- [ ] 姿勢・角速度・入力の時系列が見える
-- [ ] PC とタブレットで操作できる
-- [ ] 数理ページからモデルの式を追える
-- [ ] 06 ZMP / 07 Capture Point への接続が説明される
+- [ ] Q = 0 の柔軟ホースが妥当な減衰振動をする
+- [ ] 低流量で安定
+- [ ] 臨界流量を数値的に推定できる
+- [ ] 臨界超過で自励振動が再現される
+- [ ] mesh / dt 変更に対し主要結果が収束する
+- [ ] 手元境界入力で振動を変えられる
+- [ ] Phase 0 と Phase 1 を画面で比較できる
+- [ ] PC / タブレットで操作できる
+- [ ] 物理量とUI表示が一致する
 - [ ] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 
-## 14. 次段階候補
+---
 
-第一版後に検討する。
+## 13. 非目標
 
-- LQR による 3D 姿勢制御
-- 状態推定 / センサノイズ
-- MPC と入力制約
-- 燃料 / 水量消費を含む最適制御
-- 移動目標への軌道追従
-- 着地
-- 複数ノズル故障時の制御配分
-- 「同じ制御器を倒立振子・TVC・二足歩行へ差し替えて比較する」統合デモ
+Phase 1 第一版では行わない。
 
-最終的には、
+- Navier–Stokes CFD
+- SPH / 水滴粒子法
+- ホース断面変形
+- 流体圧縮性
+- cavitation
+- turbulence の直接数値計算
+- 3D self-contact
+- 実物製品のパラメータ同定
+
+これらがなくても、まず **「剛体モデルでは消えていた流体構造連成による flutter」** を再現できるかを判定する。
+
+---
+
+## 14. 長期拡張
+
+Phase 1 成立後に検討する。
+
+- 3D Cosserat rod
+- torsion
+- nonlinear beam
+- model reduction
+- observer / Kalman filter
+- MPC
+- delayed human control
+- system identification
+- real shower videoとの定性的比較
+
+最終的な教材導線は、
 
 ```text
-倒立振子
+剛体1自由度
   ↓
-Shower TVC
+Phase 0: rigid shower
   ↓
-入力制約付き姿勢制御
+Phase 1: flexible hose + internal flow
   ↓
-ZMP / CoP
+固有モード / eigenvalue / flutter
   ↓
-Capture Point
+境界制御 / state feedback / LQR
+  ↓
+実現可能入力・飽和
+  ↓
+TVC（比較）
+  ↓
+CoP / ZMP / Capture Point
   ↓
 Preview / MPC
   ↓
-Centroidal Dynamics
-  ↓
-Whole-Body QP
+Centroidal Dynamics / Whole-Body QP
 ```
 
-という一本の学習経路に接続できる。
+とする。
