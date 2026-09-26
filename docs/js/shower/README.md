@@ -284,5 +284,11 @@ Phase 1 adds another important lesson:
 - bent-head H1-3 reference: `U_cr ~= 8.3871 m/s`, `Q_cr ~= 14.23 L/min`
 - straight/equal-area H1-3 limit is regression-locked to reproduce H1-2
   exactly, preventing duplicate outlet momentum loading
-- next implementation step: **H1-4 2D interactive visualization**
-- Phase 1 Human Visual Audit has not yet been performed
+- Phase 1 H1-4 2D interactive visualization: implemented
+- Phase 1 is now the default Side Lab surface; Phase 0 is a comparison tab
+- H1-4 reference presets: 8 L/min stable, 14 L/min near critical,
+  18 L/min clearly above critical
+- H1-4 CI time histories: 8 L/min late/early RMS ~= 0.062,
+  18 L/min ~= 2.702 over the inspection horizon
+- next implementation step after visual approval: **H1-5 manual boundary-control game**
+- Phase 1 Human Visual Audit is still pending

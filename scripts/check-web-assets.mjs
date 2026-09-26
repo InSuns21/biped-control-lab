@@ -16,6 +16,10 @@ await requireFile("docs/vendor/three.module.js");
 await requireFile("docs/labs/x1-shower-tvc/index.html");
 await requireFile("docs/labs/x1-shower-tvc/main.js");
 await requireFile("docs/labs/x1-shower-tvc/scene.js");
+await requireFile("docs/labs/x1-shower-tvc/phase0.js");
+await requireFile("docs/labs/x1-shower-tvc/flexible-ui.js");
+await requireFile("docs/labs/x1-shower-tvc/flexible-view.js");
+await requireFile("docs/js/shower/flexible/scenarios.js");
 for (const [, , filename] of chapters) await requireFile(`docs/theory/${filename}`);
 
 const code = await readFile("docs/vendor/marked.umd.js", "utf8");
@@ -37,4 +41,4 @@ if (threeModule.includes("./three.core.js")) {
   await requireFile("docs/vendor/three.core.js");
 }
 
-console.log(`Web runtime assets OK: Marked + KaTeX + Three.js core/module + Shower TVC + ${chapters.length} theory routes`);
+console.log(`Web runtime assets OK: Marked + KaTeX + Three.js + Shower Phase 0/1 assets + ${chapters.length} theory routes`);
