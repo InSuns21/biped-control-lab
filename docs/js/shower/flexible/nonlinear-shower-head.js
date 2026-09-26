@@ -50,9 +50,9 @@ export function nonlinearShowerHeadReaction(
   return {
     ...source,
     sourceForceAxialTransverseN: [...source.forceXYN],
-    sourceMomentNm: source.momentNm,
+    sourceMomentNm: source.generalizedForce[1],
     forceXYN: [source.forceXYN[1], source.forceXYN[0]],
-    momentNm: -source.momentNm,
+    momentNm: -source.generalizedForce[1],
     inletDirection: [source.inletDirection[1], source.inletDirection[0]],
     outletDirection: [source.outletDirection[1], source.outletDirection[0]],
     nozzleOffsetWorldM: [
