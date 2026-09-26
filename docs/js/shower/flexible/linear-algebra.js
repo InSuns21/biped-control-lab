@@ -214,3 +214,71 @@ export function generalizedSymmetricEigenvalues(stiffness, mass) {
 export function quadraticEnergy(matrix, vector) {
   return 0.5 * dot(vector, matVec(matrix, vector));
 }
+
+
+export function luFactor(matrix) {
+  const n = matrix.length;
+  if (!matrix.every((row) => row.length === n)) {
+    throw new RangeError("LU factorization requires a square matrix");
+  }
+
+  const lu = matrix.map((row) => [...row]);
+  const pivots = Array.from({ length: n }, (_, i) => i);
+
+  for (let k = 0; k < n; k += 1) {
+    let pivotRow = k;
+    let pivotAbs = Math.abs(lu[k][k]);
+    for (let i = k + 1; i < n; i += 1) {
+      const candidate = Math.abs(lu[i][k]);
+      if (candidate > pivotAbs) {
+        pivotAbs = candidate;
+        pivotRow = i;
+      }
+    }
+
+    if (!(pivotAbs > 1e-14)) {
+      throw new RangeError("matrix is singular to working precision");
+    }
+
+    if (pivotRow !== k) {
+      [lu[k], lu[pivotRow]] = [lu[pivotRow], lu[k]];
+      [pivots[k], pivots[pivotRow]] = [pivots[pivotRow], pivots[k]];
+    }
+
+    for (let i = k + 1; i < n; i += 1) {
+      lu[i][k] /= lu[k][k];
+      for (let j = k + 1; j < n; j += 1) {
+        lu[i][j] -= lu[i][k] * lu[k][j];
+      }
+    }
+  }
+
+  return { lu, pivots };
+}
+
+export function solveWithLuFactor(factor, rhs) {
+  const { lu, pivots } = factor;
+  const n = lu.length;
+  if (rhs.length !== n) throw new RangeError("rhs shape mismatch");
+
+  const x = pivots.map((sourceIndex) => rhs[sourceIndex]);
+
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < i; j += 1) {
+      x[i] -= lu[i][j] * x[j];
+    }
+  }
+
+  for (let i = n - 1; i >= 0; i -= 1) {
+    for (let j = i + 1; j < n; j += 1) {
+      x[i] -= lu[i][j] * x[j];
+    }
+    x[i] /= lu[i][i];
+  }
+
+  return x;
+}
+
+export function solveLinear(matrix, rhs) {
+  return solveWithLuFactor(luFactor(matrix), rhs);
+}
