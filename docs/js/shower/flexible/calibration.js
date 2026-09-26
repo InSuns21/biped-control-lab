@@ -88,6 +88,50 @@ export function equilibriumValidity(
   };
 }
 
+export function initialCurvaturePerturbationReduced(
+  system,
+  {
+    tipOffsetM = 0.008,
+    tipRotationRad = 0,
+    velocityAmplitudeMps = 0,
+  } = {},
+) {
+  const q = [];
+  const v = [];
+  const L = system.params.lengthM;
+  const lastNode = system.nodeCount - 1;
+
+  for (let node = 1; node <= lastNode; node += 1) {
+    const x = node / lastNode;
+    const f = x * x * (3 - 2 * x);
+    const dfDx = 6 * x * (1 - x);
+    const g = x * x * (1 - x);
+    const dgDx = 2 * x - 3 * x * x;
+
+    const displacement = tipOffsetM * f
+      - tipRotationRad * L * g;
+    const rotation = tipOffsetM * dfDx / L
+      - tipRotationRad * dgDx;
+
+    const phase = 2 * Math.PI * x;
+    const velocity = velocityAmplitudeMps
+      * x * x
+      * Math.sin(phase);
+    const angularVelocity = velocityAmplitudeMps / L
+      * (
+        2 * x * Math.sin(phase)
+        + 2 * Math.PI * x * x * Math.cos(phase)
+      );
+
+    q.push(displacement);
+    q.push(rotation);
+    v.push(velocity);
+    v.push(angularVelocity);
+  }
+
+  return { q, v };
+}
+
 export function predictedFactorTimeS(growthRatePerS, factor) {
   if (!(growthRatePerS > 0) || !(factor > 1)) return Infinity;
   return Math.log(factor) / growthRatePerS;
@@ -101,15 +145,17 @@ export function simulateOnset(
     displacementAmplitudeM = 0.008,
     velocityAmplitudeMps = 0.02,
     basePulse = null,
+    initialPerturbation = null,
     target = FAST_ONSET_TARGET,
   } = {},
 ) {
   const equilibrium = staticEquilibrium(system);
   const equilibriumCheck = equilibriumValidity(system, equilibrium, target);
-  const initial = referenceInitialPerturbationReduced(system, {
-    displacementAmplitudeM,
-    velocityAmplitudeMps,
-  });
+  const initial = initialPerturbation
+    ?? referenceInitialPerturbationReduced(system, {
+      displacementAmplitudeM,
+      velocityAmplitudeMps,
+    });
   const integrator = createNewmarkGeneralLinear(system.reduced, dt);
   let state = integrator.initialize({
     q: equilibrium.map((value, i) => value + initial.q[i]),
