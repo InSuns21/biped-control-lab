@@ -6,9 +6,6 @@ import {
   flowSpeedFromRateM3s,
 } from "../../js/shower/flexible/conveying-flow.js";
 import {
-  dryStaticTipShapeReduced,
-} from "../../js/shower/flexible/assemble.js";
-import {
   createNewmarkGeneralLinear,
 } from "../../js/shower/flexible/integrator.js";
 import {
@@ -17,14 +14,13 @@ import {
 import {
   H1_3_REFERENCE,
   classifyReferenceFlow,
+  referenceInitialPerturbationReduced,
 } from "../../js/shower/flexible/scenarios.js";
 import { createFlexibleView } from "./flexible-view.js";
 
 const FIXED_DT = 0.002;
 const HISTORY_SECONDS = 12;
 const HISTORY_SAMPLE_DT = 0.05;
-const INITIAL_TIP_PERTURBATION_M = 0.008;
-
 const lpmToM3s = (lpm) => lpm / 60000;
 const radToDeg = (rad) => rad * 180 / Math.PI;
 
@@ -173,14 +169,11 @@ export function mountFlexiblePhase(root) {
       q = [...state.q];
       v = [...state.v];
     } else {
-      const perturbation = dryStaticTipShapeReduced(
-        nextSystem,
-        INITIAL_TIP_PERTURBATION_M,
-      );
+      const perturbation = referenceInitialPerturbationReduced(nextSystem);
       q = nextEquilibrium.map(
-        (value, i) => value + perturbation[i],
+        (value, i) => value + perturbation.q[i],
       );
-      v = Array(q.length).fill(0);
+      v = perturbation.v;
     }
 
     system = nextSystem;
