@@ -101,7 +101,7 @@ const candidates = coarse
   .filter((x) => (
     x.converged
     && x.sigma > 0
-    && x.predicted3xS >= 0.7
+    && x.predicted3xS >= 0.15
     && x.predicted3xS <= 4.0
     && x.maxAbsAngleDeg < 100
     && x.tipY > 0.10
@@ -136,12 +136,19 @@ assert.ok(
 const unique = [];
 for (const flowLpm of [18, 20, 22, 24]) {
   const bucket = candidates
-    .filter((candidate) => candidate.overrides.flowLpm === flowLpm)
+    .filter((candidate) => candidate.overrides.flowLpm === flowLpm);
+  if (bucket.length === 0) continue;
+
+  const fastest = [...bucket]
+    .sort((a, b) => b.sigma - a.sigma)[0];
+  const nearTarget = [...bucket]
     .sort((a, b) => (
       Math.abs(a.predicted3xS - 1.5)
       - Math.abs(b.predicted3xS - 1.5)
-    ));
-  unique.push(...bucket.slice(0, 2));
+    ))[0];
+
+  unique.push(fastest);
+  if (nearTarget !== fastest) unique.push(nearTarget);
 }
 
 const refined = [];
