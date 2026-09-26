@@ -15,8 +15,12 @@ await cp(
   { recursive: true }
 );
 await copyFile(
+  resolve("node_modules/three/build/three.core.js"),
+  resolve(vendor, "three.core.js")
+);
+await copyFile(
   resolve("node_modules/three/build/three.module.js"),
   resolve(vendor, "three.module.js")
 );
 
-console.log("Web vendor assets prepared: Marked + KaTeX + Three.js");
+console.log("Web vendor assets prepared: Marked + KaTeX + Three.js core/module");
