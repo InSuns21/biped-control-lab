@@ -197,11 +197,13 @@ export function createShowerScene(canvas) {
     thrustArrow.visible = thrustN > 1e-6;
 
     const waterDirection = forceDirection.clone().multiplyScalar(-1);
-    const streamStart = nozzleLocal.clone();
     const streamEnd = nozzleLocal.clone().add(
       waterDirection.multiplyScalar(thrustN > 1e-6 ? 0.62 : 0.001),
     );
-    waterStream.geometry.setFromPoints([streamStart, streamEnd]);
+    const streamPosition = waterStream.geometry.getAttribute("position");
+    streamPosition.setXYZ(0, nozzleLocal.x, nozzleLocal.y, nozzleLocal.z);
+    streamPosition.setXYZ(1, streamEnd.x, streamEnd.y, streamEnd.z);
+    streamPosition.needsUpdate = true;
     waterStream.visible = thrustN > 1e-6;
 
     const torque = diagnostics.jetTorqueBodyNm;
