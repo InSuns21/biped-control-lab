@@ -287,8 +287,16 @@ Phase 1 adds another important lesson:
 - Phase 1 H1-4 2D interactive visualization: implemented
 - Phase 1 is now the default Side Lab surface; Phase 0 is a comparison tab
 - H1-4 reference presets: 8 L/min stable, 14 L/min near critical,
-  18 L/min clearly above critical
-- H1-4 CI time histories: 8 L/min late/early RMS ~= 0.062,
-  18 L/min ~= 2.702 over the inspection horizon
-- next implementation step after visual approval: **H1-5 manual boundary-control game**
+  18 L/min clearly above critical in the linearized eigenvalue model
+- H1-4A fast-onset calibration: implemented
+- H1-4A found the 18 L/min linear static equilibrium itself is outside the
+  small-deflection range (about 1.079 m / 98.27 deg)
+- no explored parameter-only growing case was both fast and statically valid
+  inside the current linear guard
+- a valid 5 L/min case responds on about a 1 s scale to a one-shot movable
+  hand-boundary pulse, so fast visible motion can be boundary-excited
+- detailed H1-4A report: `flexible/H1_4A_CALIBRATION.md`
+- next implementation step: **H1-4B geometrically nonlinear hose**
+- H1-5 manual game is postponed as the fidelity path until H1-4B resolves the
+  large-rotation / large-curvature regime
 - Phase 1 Human Visual Audit is still pending

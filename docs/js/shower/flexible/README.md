@@ -430,3 +430,47 @@ H1-3 now adds eccentric shower-head inertia and the bent-outlet momentum
 boundary consistently. The next step is H1-4: expose the validated linear
 Phase 1 model in a 2D interactive visualization, with Human Visual Audit before
 it is treated as an approved game surface.
+
+
+## 14. H1-4A fast-onset calibration gate
+
+H1-4A tested whether the slow visible onset in H1-4 can be repaired by
+parameter changes inside the existing linear small-deflection model.
+
+The detailed report is in `H1_4A_CALIBRATION.md`.
+
+Key result:
+
+```text
+18 L/min current reference:
+  static max displacement ~= 1.079 m
+  static max rotation     ~= 98.27 deg
+  -> outside the small-deflection validity guard
+```
+
+Making `EI`, damping, flow, hose length or tip mass more aggressive can make
+`max Re(lambda)` very large, but the explored growing parameter combinations
+also move the static reference configuration outside the present linear guard.
+
+Changing the initial curvature alone did not create a valid 1--3 s
+self-excited onset in the explored cases.
+
+H1-4A also implements prescribed hand-boundary motion through the partitioned
+system
+
+```text
+M_ff qdd_f + C_ff qd_f + K_ff q_f
+  = f_f - M_fb qdd_b - C_fb qd_b - K_fb q_b
+```
+
+A one-shot hand pulse can create visible motion on about a 1 s scale in a valid
+low-flow linear case. That demonstrates a boundary-excited fast response, but
+it is not evidence that water flow alone creates the video's rapid
+large-amplitude onset.
+
+Therefore:
+
+- the movable-boundary implementation is retained for later gameplay
+- the high-flow H1-4 view is labeled a qualitative linear extrapolation
+- the next fidelity step is H1-4B: a geometrically nonlinear 2D hose model
+  before claiming large-amplitude video-like reproduction

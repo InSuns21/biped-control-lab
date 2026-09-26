@@ -35,6 +35,14 @@
       8要素 Euler–Bernoulli FEM + internal-flow coupling + 曲がりシャワーヘッド境界。
       現在の教育用モデルの臨界流量は <strong>約14.23 L/min</strong> です。
     </div>
+    <div id="p1LinearWarning" class="callout" role="note">
+      <strong>H1-4A 監査結果:</strong>
+      高流量側では、曲がりヘッド反力による静的平衡そのものが
+      small-deflection 線形梁の範囲外です。18 L/min では計算上の静的変位が
+      約1.08 m、回転が約98°になるため、高流量表示は
+      <strong>instability mechanism の定性的な linear extrapolation</strong>
+      として見てください。大振幅の実物再現は次の H1-4B nonlinear model で扱います。
+    </div>
 
     <div class="lab-layout shower-layout">
       <section>
@@ -59,6 +67,7 @@
         <div class="control">
           <span class="control-title">流量プリセット</span>
           <div class="button-row">
+            <button type="button" data-flow-lpm="5.0">線形範囲 5.0</button>
             <button type="button" data-flow-lpm="8.0">低流量 8.0</button>
             <button type="button" data-flow-lpm="14.0">臨界付近 14.0</button>
             <button type="button" data-flow-lpm="18.0">Flutter 18.0</button>
