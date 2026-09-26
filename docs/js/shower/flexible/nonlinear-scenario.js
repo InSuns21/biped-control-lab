@@ -266,3 +266,77 @@ export function simulateNonlinearShowerOnset(
     finalState: state,
   };
 }
+
+
+export function linearizeNonlinearShowerScenario(
+  scenario,
+  equilibrium,
+  {
+    angleStepRad = 1e-6,
+    rateStepRadS = 1e-6,
+  } = {},
+) {
+  const system = scenario.system;
+  const free = system.freeAngleIndices;
+  const n = free.length;
+  const count = system.params.segmentCount;
+  const zeroRates = Array(count).fill(0);
+
+  const accelerationAt = (anglesRad, angularRatesRadS) => {
+    const { rodAcceleration } = globalThis.__nonlinearRodExportsForTests ?? {};
+    if (rodAcceleration) {
+      return rodAcceleration(
+        system,
+        { anglesRad, angularRatesRadS },
+        scenario.tipLoad,
+        scenario.flowForce,
+      );
+    }
+    throw new Error("rodAcceleration injection missing");
+  };
+
+  const aqq = Array.from({ length: n }, () => Array(n).fill(0));
+  const avv = Array.from({ length: n }, () => Array(n).fill(0));
+
+  for (let column = 0; column < n; column += 1) {
+    const dof = free[column];
+
+    const plusAngles = [...equilibrium.anglesRad];
+    const minusAngles = [...equilibrium.anglesRad];
+    plusAngles[dof] += angleStepRad;
+    minusAngles[dof] -= angleStepRad;
+    const plusA = accelerationAt(plusAngles, zeroRates);
+    const minusA = accelerationAt(minusAngles, zeroRates);
+
+    const plusRates = [...zeroRates];
+    const minusRates = [...zeroRates];
+    plusRates[dof] += rateStepRadS;
+    minusRates[dof] -= rateStepRadS;
+    const plusV = accelerationAt(equilibrium.anglesRad, plusRates);
+    const minusV = accelerationAt(equilibrium.anglesRad, minusRates);
+
+    for (let row = 0; row < n; row += 1) {
+      const rowDof = free[row];
+      aqq[row][column] = (
+        plusA[rowDof] - minusA[rowDof]
+      ) / (2 * angleStepRad);
+      avv[row][column] = (
+        plusV[rowDof] - minusV[rowDof]
+      ) / (2 * rateStepRadS);
+    }
+  }
+
+  const stateMatrix = Array.from(
+    { length: 2 * n },
+    () => Array(2 * n).fill(0),
+  );
+  for (let i = 0; i < n; i += 1) {
+    stateMatrix[i][n + i] = 1;
+    for (let j = 0; j < n; j += 1) {
+      stateMatrix[n + i][j] = aqq[i][j];
+      stateMatrix[n + i][n + j] = avv[i][j];
+    }
+  }
+
+  return stateMatrix;
+}
