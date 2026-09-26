@@ -501,9 +501,9 @@ scripts/
 
 Phase 0 はここで機能追加停止。
 
-### H1-0 — flexible model contract / derivation
+### H1-0 — flexible model contract / derivation ✅
 
-次の着手点。
+座標・Hermite補間・乾燥梁の閉形式要素行列・conveying-fluid の Galerkin 体積項・clamped base・tip mass / inertia・Rayleigh damping・Newmark・固有値による臨界流速定義を `docs/js/shower/flexible/README.md` に固定した。
 
 - 2D beam 座標・符号
 - `L, EI, m_s, A_hose, rho`
@@ -520,15 +520,19 @@ Phase 0 はここで機能追加停止。
 
 **この段階では描画しない。**
 
-### H1-1 — dry flexible beam
+### H1-1 — dry flexible beam ✅
 
 - Euler–Bernoulli FEM
-- assembly
-- tip mass
-- damping
-- time integration
-- Q = 0 regression
-- natural-frequency convergence
+- consistent mass / bending stiffness assembly
+- clamped-base DOF elimination
+- tip mass / tip rotational inertia
+- Rayleigh damping
+- average-acceleration Newmark (`beta=1/4, gamma=1/2`)
+- dry natural-frequency analysis
+- analytical cantilever first-mode convergence
+- undamped energy conservation / damped energy decay regression
+
+実装は `docs/js/shower/flexible/`、回帰は `scripts/check-flexible-hose-model.mjs` とし、`npm test` に統合する。
 
 ### H1-2 — conveying-fluid coupling
 
