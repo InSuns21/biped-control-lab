@@ -354,18 +354,47 @@ for (const x of boundaryCases.slice(0, 12)) {
 const parameterFast = parameterTimeDomain.some((x) => x.fast);
 const curvatureFast = curvatureCases.some((x) => x.fast);
 const boundaryFast = boundaryCases.some((x) => x.fast);
+const baselineEquilibrium = equilibriumValidity(
+  baselineSystem,
+  staticEquilibrium(baselineSystem),
+);
+const lowFlowEquilibrium = equilibriumValidity(
+  lowFlowSystem,
+  staticEquilibrium(lowFlowSystem),
+);
 
-const decision = parameterFast
-  ? "A_PARAMETER_ONLY"
-  : ((curvatureFast || boundaryFast)
-    ? "B_INITIAL_OR_BOUNDARY"
-    : "C_LINEAR_INSUFFICIENT");
+assert.equal(
+  validGrowingCombinations.length,
+  0,
+  "no explored parameter-only growing case should remain inside the current small-deflection guard",
+);
+assert.equal(parameterFast, false);
+assert.equal(curvatureFast, false);
+assert.equal(boundaryFast, true);
+assert.equal(baselineEquilibrium.valid, false);
+assert.equal(lowFlowEquilibrium.valid, true);
+
+const decision = {
+  selfExcitedFastOnset: "C_LINEAR_SMALL_DEFLECTION_INSUFFICIENT",
+  boundaryExcitedFastOnset: "B_MOVABLE_BOUNDARY_REPRODUCES_FAST_VISIBLE_MOTION",
+  next: "H1-4B_GEOMETRICALLY_NONLINEAR_MODEL",
+};
 
 console.log("\nH1-4A_DECISION", JSON.stringify({
-  decision,
+  ...decision,
   parameterFast,
   curvatureFast,
   boundaryFast,
+  baselineEquilibrium: {
+    valid: baselineEquilibrium.valid,
+    maxDisplacementMm: 1000 * baselineEquilibrium.maximumDisplacementM,
+    maxRotationDeg: baselineEquilibrium.maximumRotationRad * 180 / Math.PI,
+  },
+  lowFlowEquilibrium: {
+    valid: lowFlowEquilibrium.valid,
+    maxDisplacementMm: 1000 * lowFlowEquilibrium.maximumDisplacementM,
+    maxRotationDeg: lowFlowEquilibrium.maximumRotationRad * 180 / Math.PI,
+  },
   targetOnsetS: [
     FAST_ONSET_TARGET.onsetMinS,
     FAST_ONSET_TARGET.onsetMaxS,
