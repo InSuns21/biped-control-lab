@@ -43,6 +43,9 @@
             data-css-height="640"
             aria-label="Flexible hose conveying water 2D simulation"></canvas>
         </div>
+        <p id="p1ViewFitStatus" class="view-fit-status" role="status">
+          横表示: ×1.00（縦横同一縮尺）
+        </p>
         <div class="vector-legend" aria-label="Phase 1 legend">
           <span><i class="swatch swatch-hose"></i>柔軟ホース</span>
           <span><i class="swatch swatch-water"></i>出口水流</span>
@@ -85,6 +88,7 @@
             <option value="2">×2</option>
             <option value="4">×4</option>
           </select>
+          <small>狭い画面で収まらない場合だけ、自動fitで縮小して実効倍率を表示します。</small>
         </div>
 
         <label class="check-row">

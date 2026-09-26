@@ -112,6 +112,7 @@ export function mountFlexiblePhase(root) {
   const modeMetric = root.querySelector("#p1ModeMetric");
   const timeMetric = root.querySelector("#p1TimeMetric");
   const validityMetric = root.querySelector("#p1ValidityMetric");
+  const viewFitStatus = root.querySelector("#p1ViewFitStatus");
 
   const view = createFlexibleView({
     hoseCanvas,
@@ -291,7 +292,7 @@ export function mountFlexiblePhase(root) {
       head: system.head,
     });
 
-    view.renderHose({
+    const viewState = view.renderHose({
       system,
       state,
       equilibrium,
@@ -302,6 +303,12 @@ export function mountFlexiblePhase(root) {
       criticalFlowLpm: H1_3_REFERENCE.criticalFlowLpm,
       limitExceeded,
     });
+    viewFitStatus.textContent = viewState.autoFitActive
+      ? `横表示: 指定 ×${viewState.requestedScale.toFixed(0)} → 自動fit ×${viewState.effectiveScale.toFixed(2)}`
+      : `横表示: ×${viewState.effectiveScale.toFixed(2)}（縦横同一縮尺）`;
+    viewFitStatus.className = viewState.autoFitActive
+      ? "view-fit-status status-warn"
+      : "view-fit-status";
     view.renderCharts(history);
     updateMetrics();
   }
