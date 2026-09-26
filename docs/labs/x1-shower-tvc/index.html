@@ -29,15 +29,15 @@
     <aside class="controls">
       <div class="control">
         <label for="deltaX">TVC δx <output id="deltaXOut">0°</output></label>
-        <input id="deltaX" type="range" min="-25" max="25" value="0" step="1">
+        <input id="deltaX" type="range" min="-40" max="40" value="0" step="1">
       </div>
       <div class="control">
         <label for="deltaZ">TVC δz <output id="deltaZOut">0°</output></label>
-        <input id="deltaZ" type="range" min="-25" max="25" value="0" step="1">
+        <input id="deltaZ" type="range" min="-40" max="40" value="0" step="1">
       </div>
       <div class="control">
         <label for="flow">流量 Q <output id="flowOut">8.0 L/min</output></label>
-        <input id="flow" type="range" min="0" max="10" value="8" step="0.2">
+        <input id="flow" type="range" min="0" max="14" value="8" step="0.2">
       </div>
       <div class="control">
         <label for="cameraView">カメラ</label>
@@ -57,7 +57,7 @@
 
       <div class="metrics shower-metrics">
         <div class="metric"><span>roll / pitch / yaw</span><strong id="rpyMetric">-</strong></div>
-        <div class="metric"><span>ω body</span><strong id="omegaMetric">-</strong></div>
+        <div class="metric"><span>ω body (rad/s)</span><strong id="omegaMetric">-</strong></div>
         <div class="metric"><span>Q applied</span><strong id="flowMetric">-</strong></div>
         <div class="metric"><span>δx / δz applied</span><strong id="gimbalMetric">-</strong></div>
         <div class="metric"><span>|Fjet|</span><strong id="thrustMetric">-</strong></div>
@@ -69,8 +69,8 @@
 
   <section class="panel">
     <h2>見方</h2>
-    <p>薄い直立線が目標姿勢です。黄色の矢印はシャワーヘッドが受ける流水反力、水色の線はその反対向きへ出る水流、赤は重力、紫はジェットが作るトルクです。描画はX1-2のphysics stateを読むだけで、運動方程式はこのLab側に複製していません。</p>
-    <p><strong>最初はTVCを0°のまま観察</strong>し、傾きが重力で増えることを確認してください。その後 δx / δz を動かすと、作用線の偏向が姿勢回転へどう変換されるかを3Dで確認できます。</p>
+    <p>薄い直立線が目標姿勢です。黄色の矢印はシャワーヘッドが受ける流水反力、水色の線はその反対向きへ出る水流、赤は重力、紫はジェットが作るトルクです。描画はX1-2のphysics stateを読むだけで、運動方程式はこのLab側に複製していません。ベクトル矢印の長さは見やすさのための表示スケールで、実寸ではありません。</p>
+    <p><strong>最初はTVCを0°のまま観察</strong>し、傾きが重力で増えることを確認してください。その後 δx / δz を動かすと、作用線の偏向が姿勢回転へどう変換されるかを3Dで確認できます。指令は物理上限を超えて入力でき、適用値は |δ|≤25°、Q≤10 L/min に飽和します。</p>
   </section>
 
   <script type="module" src="./main.js"></script>
