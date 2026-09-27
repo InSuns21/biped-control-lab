@@ -13,8 +13,8 @@
   <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-5-2 Stabilization Game Core</strong><br>
-    低流量・臨界付近・flutter の3ステージで、Pointer操作による安定化、成功/失敗、target滞在率、境界仕事、スコアを公開監査します。
+    <strong>Human Visual Audit 監査中 — H1-5-3 3D Game View</strong><br>
+    H1-5-2 の同じ nonlinear physics / game state を Three.js の3D浴室空間へ表示します。3Dホース、ヘッド、水流、Pointer操作、PC / タブレット表示を公開監査します。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -75,17 +75,55 @@
 
       <div class="lab-layout shower-layout">
         <section>
-          <div class="flexible-viewport">
-            <canvas id="nlCanvas" width="760" height="640"
-              data-css-height="640"
-              aria-label="Geometrically nonlinear flexible shower hose simulation"></canvas>
+          <div class="view-switch" role="tablist" aria-label="Gameplay view">
+            <button id="nl3dViewTab" class="phase-tab" type="button" role="tab"
+              aria-selected="true" aria-controls="nl3dViewPanel">
+              3D Game
+            </button>
+            <button id="nl2dViewTab" class="phase-tab" type="button" role="tab"
+              aria-selected="false" aria-controls="nl2dViewPanel" tabindex="-1">
+              2D Debug
+            </button>
           </div>
-          <div class="vector-legend" aria-label="H1-4B legend">
-            <span><i class="swatch swatch-hose"></i>非線形ホース</span>
-            <span><i class="swatch swatch-water"></i>出口水流</span>
-            <span><i class="swatch swatch-reaction"></i>曲がりヘッド反力</span>
-            <span><i class="swatch swatch-equilibrium"></i>非線形静的平衡</span>
-            <span><i class="swatch swatch-node"></i>rod node</span>
+
+          <div id="nl3dViewPanel" role="tabpanel" aria-labelledby="nl3dViewTab">
+            <div class="three-viewport game-3d-viewport">
+              <canvas id="nl3dCanvas" width="900" height="640"
+                aria-label="3D flexible shower stabilization game"></canvas>
+            </div>
+            <div class="game-3d-toolbar">
+              <label for="nl3dCamera">Camera</label>
+              <select id="nl3dCamera">
+                <option value="game" selected>Game angle</option>
+                <option value="front">Front</option>
+                <option value="close">Close</option>
+              </select>
+              <span>drag on the 3D view to control the hand target</span>
+            </div>
+            <div class="vector-legend" aria-label="H1-5-3 3D legend">
+              <span><i class="swatch swatch-hose"></i>3D hose</span>
+              <span><i class="swatch swatch-water"></i>water</span>
+              <span><i class="swatch swatch-reaction"></i>head reaction</span>
+              <span><i class="swatch swatch-equilibrium"></i>equilibrium</span>
+              <span><i class="swatch swatch-hand"></i>actual hand</span>
+              <span><i class="swatch swatch-target"></i>hand target</span>
+            </div>
+          </div>
+
+          <div id="nl2dViewPanel" role="tabpanel"
+            aria-labelledby="nl2dViewTab" hidden>
+            <div class="flexible-viewport">
+              <canvas id="nlCanvas" width="760" height="640"
+                data-css-height="640"
+                aria-label="Geometrically nonlinear flexible shower hose simulation"></canvas>
+            </div>
+            <div class="vector-legend" aria-label="H1-4B 2D legend">
+              <span><i class="swatch swatch-hose"></i>非線形ホース</span>
+              <span><i class="swatch swatch-water"></i>出口水流</span>
+              <span><i class="swatch swatch-reaction"></i>曲がりヘッド反力</span>
+              <span><i class="swatch swatch-equilibrium"></i>非線形静的平衡</span>
+              <span><i class="swatch swatch-node"></i>rod node</span>
+            </div>
           </div>
         </section>
 
@@ -193,6 +231,7 @@
         <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
         <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
         <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
+        <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
       </section>
     </section>
 
