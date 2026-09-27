@@ -2,9 +2,9 @@
 <title id="t">Euler–Bernoulli 梁で4階微分が現れるまで</title>
 <desc id="d">梁の変位、傾き、曲率と、微小区間の曲げモーメント、せん断力、分布荷重を対応付ける図。</desc>
 <defs>
-<marker id="a" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#155eef"/></marker>
-<marker id="g" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#18794e"/></marker>
-<marker id="r" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c92a2a"/></marker>
+<marker id="a" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#155eef"/></marker>
+<marker id="g" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#18794e"/></marker>
+<marker id="r" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c92a2a"/></marker>
 </defs>
 <rect width="1000" height="650" rx="18" fill="#fff"/>
 <text x="500" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">Euler–Bernoulli 梁：曲げ復元が4階微分になるまで</text>
