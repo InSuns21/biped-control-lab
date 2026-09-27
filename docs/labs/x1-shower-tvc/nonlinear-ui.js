@@ -44,6 +44,7 @@ import {
 import {
   automaticGameHandTarget,
   FIXED_STATE_FEEDBACK_GAIN_SCALE,
+  referenceEquilibriumKinematics,
 } from "../../js/shower/flexible/game-feedback-controller.js";
 import {
   createGame3DView,
@@ -434,6 +435,25 @@ export function mountNonlinearPhase(root) {
       equilibrium.kinematics,
     );
   }
+  function gameStabilityMetrics(current = currentGeometry()) {
+    const movingReference = referenceEquilibriumKinematics(
+      equilibrium.kinematics,
+      {
+        lateralPositionM: currentBoundary.lateralPositionM,
+        angleRad: currentBoundary.angleRad,
+      },
+    );
+    const metrics = geometryMetrics(
+      current,
+      movingReference,
+    );
+    return {
+      ...metrics,
+      tipAngleErrorRad:
+        current.tipAngleRad - movingReference.tipAngleRad,
+    };
+  }
+
 
   function solutionCacheKey(flowLpm) {
     return `${presetId}:${Number(flowLpm).toFixed(3)}`;
@@ -1549,12 +1569,12 @@ export function mountNonlinearPhase(root) {
     updateAimSample(current, reaction);
 
     if (gameState?.status === "running") {
+      const gameMetrics = gameStabilityMetrics(current);
       gameState = updateGameState(
         gameState,
         {
-          rmsM: metrics.rmsM,
-          tipAngleErrorRad:
-            current.tipAngleRad - equilibrium.kinematics.tipAngleRad,
+          rmsM: gameMetrics.rmsM,
+          tipAngleErrorRad: gameMetrics.tipAngleErrorRad,
           handPowerW: lastBoundaryDiagnostics.handPowerW,
           actuatorSaturated: anySaturation(lastActuatorSaturation),
           waterHit: Boolean(aimSample?.hit),
