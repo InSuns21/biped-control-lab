@@ -30,6 +30,7 @@ import {
 import {
   automaticGameHandTarget,
   FIXED_STATE_FEEDBACK_GAIN_SCALE,
+  referenceEquilibriumKinematics,
 } from "../docs/js/shower/flexible/game-feedback-controller.js";
 import {
   designFullStateLqr,
@@ -283,9 +284,16 @@ function simulate(difficultyId, mode) {
       outletDirection: reaction.outletDirection,
       target,
     });
+    const movingReference = referenceEquilibriumKinematics(
+      equilibrium.kinematics,
+      {
+        lateralPositionM: boundary.lateralPositionM,
+        angleRad: boundary.angleRad,
+      },
+    );
     const metrics = geometryMetrics(
       current,
-      equilibrium.kinematics,
+      movingReference,
     );
 
     effortJ += 0.5 * (
@@ -304,8 +312,7 @@ function simulate(difficultyId, mode) {
       {
         rmsM: metrics.rmsM,
         tipAngleErrorRad:
-          current.tipAngleRad
-          - equilibrium.kinematics.tipAngleRad,
+          current.tipAngleRad - movingReference.tipAngleRad,
         handPowerW: next.diagnostics.handPowerW,
         actuatorSaturated: saturated,
         waterHit: aim.hit,
