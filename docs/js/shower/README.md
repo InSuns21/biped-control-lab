@@ -315,5 +315,12 @@ Phase 1 adds another important lesson:
   (relative error about `4.4e-10` in the current test)
 - browser UI provides one-shot lateral / angular / combined hand pulses and
   live reaction / power / cumulative-work diagnostics
-- next implementation step: **H1-5-1 direct Pointer control**
+- Phase 1 H1-5-1 direct Pointer control: implemented
+- horizontal drag sets lateral hand target; vertical drag sets hand-angle target
+- mouse / pen / touch share Pointer Events + pointer capture
+- hand target is separated from the physical boundary by a rate-limited actuator
+- default actuator travel: +/-80 mm and +/-30 deg
+- default limits: 0.45 m/s, 4.0 m/s^2, 2.8 rad/s, 20 rad/s^2
+- browser plots actual / target trajectories for hand position and angle
+- next implementation step: **H1-5-2 stabilization game**
 - Phase 1 Human Visual Audit is still pending
