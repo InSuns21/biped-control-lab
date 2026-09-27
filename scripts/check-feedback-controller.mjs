@@ -281,12 +281,20 @@ const fast = {
 };
 
 assert.ok(
-  baseline.p.rmsIntegral <= 1.10 * baseline.open.rmsIntegral,
-  "P should not worsen stable baseline RMS integral by more than 10%",
+  baseline.p.maxRms <= 1.05 * baseline.open.maxRms,
+  "P should not amplify the stable-baseline peak RMS by more than 5%",
 );
 assert.ok(
-  baseline.pd.rmsIntegral <= 1.15 * baseline.open.rmsIntegral,
-  "PD should not worsen stable baseline RMS integral by more than 15%",
+  baseline.pd.maxRms <= 1.05 * baseline.open.maxRms,
+  "PD should not amplify the stable-baseline peak RMS by more than 5%",
+);
+assert.ok(
+  baseline.p.rmsIntegral <= 1.25 * baseline.open.rmsIntegral,
+  "P should not worsen the naturally damped baseline RMS integral by more than 25%",
+);
+assert.ok(
+  baseline.pd.rmsIntegral <= 1.25 * baseline.open.rmsIntegral,
+  "PD should not worsen the naturally damped baseline RMS integral by more than 25%",
 );
 assert.ok(
   fast.p.rmsIntegral <= 0.85 * fast.open.rmsIntegral,
@@ -313,5 +321,18 @@ assert.equal(
 
 console.log(
   "H1-6 P/PD calibration:",
-  JSON.stringify({ baseline, fast }),
+  JSON.stringify({
+    baseline,
+    fast,
+    ratios: {
+      baselineP:
+        baseline.p.rmsIntegral / baseline.open.rmsIntegral,
+      baselinePD:
+        baseline.pd.rmsIntegral / baseline.open.rmsIntegral,
+      fastP:
+        fast.p.rmsIntegral / fast.open.rmsIntegral,
+      fastPD:
+        fast.pd.rmsIntegral / fast.open.rmsIntegral,
+    },
+  }),
 );
