@@ -1042,7 +1042,7 @@ Human Visual Audit では特に、
 
 を確認する。
 
-#### H1-5-2 — stabilization game core
+#### H1-5-2 — stabilization game core ✅
 
 **この工程はゲームルールだけに限定する。**
 3D描画・浴室空間・3Dカメラ・3Dホース表現をここへ混ぜない。
@@ -1091,7 +1091,28 @@ score は
 を用いる。正味仕事 `integral P dt` だけではエネルギーを入れてから抜く操作が
 相殺されるので、操作コストには `integral |P| dt` を使う。
 
-この工程でゲームの数理仕様を固定し、**完了後は直ちにH1-5-3へ進む。**
+実装済み:
+
+- ✅ F2 Low Flow / F3 Near Critical / F4/F5 Flutter
+- ✅ stage start / restart
+- ✅ time limit
+- ✅ RMS target
+- ✅ tip-angle-error target
+- ✅ hold-time failure envelope
+- ✅ target内滞在率
+- ✅ `integral |P_hand| dt` effort
+- ✅ actuator saturation time
+- ✅ 0–1000 score
+- ✅ success / failure
+- ✅ game中の flow / preset / pulse lock
+- ✅ Pointerのみをplayer inputとして維持
+- ✅ game logic をphysics/renderから分離
+- ✅ pure game-rule regression
+- ✅ browser wiring regression
+
+ゲームルールは物理 `dt` ごとに更新し、render fps へ依存しない。
+
+この工程でゲームの数理仕様を固定した。**次は直ちにH1-5-3へ進む。**
 
 #### H1-5-3 — 3D Game View
 
