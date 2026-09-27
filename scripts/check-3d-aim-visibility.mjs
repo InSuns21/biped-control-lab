@@ -88,7 +88,7 @@ function reactionAtEquilibrium(scenario, equilibrium) {
 
 function makeCamera(config, aspect) {
   const camera = new THREE.PerspectiveCamera(
-    43,
+    config.fovDeg ?? 43,
     aspect,
     0.02,
     12,
@@ -170,7 +170,7 @@ for (const id of ["easy", "normal", "expert", "insane"]) {
             && Math.abs(ndc.y) <= 0.92
             && ndc.z >= -1
             && ndc.z <= 1,
-          `${id} t=${timeS}s bullseye must stay visible in ${viewName}/${aspectName}`,
+          `${id} t=${timeS}s bullseye must stay visible in ${viewName}/${aspectName}; ndc=${JSON.stringify({ x: ndc.x, y: ndc.y, z: ndc.z })}`,
         );
       }
     }
