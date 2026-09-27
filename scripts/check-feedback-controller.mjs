@@ -247,10 +247,10 @@ function simulate(kind, mode, {
   };
   const p = pHandTarget(positiveError);
   const pd = pdHandTarget(positiveError);
-  assert.ok(p.lateralPositionM < 0);
-  assert.ok(p.angleRad < 0);
-  assert.ok(pd.lateralPositionM < p.lateralPositionM);
-  assert.ok(pd.angleRad < p.angleRad);
+  assert.ok(p.lateralPositionM > 0);
+  assert.ok(p.angleRad > 0);
+  assert.ok(pd.lateralPositionM > p.lateralPositionM);
+  assert.ok(pd.angleRad > p.angleRad);
 
   const huge = pdHandTarget({
     ...positiveError,
@@ -261,11 +261,11 @@ function simulate(kind, mode, {
   });
   assert.equal(
     huge.lateralPositionM,
-    DEFAULT_HAND_ACTUATOR_LIMITS.lateralMinM,
+    DEFAULT_HAND_ACTUATOR_LIMITS.lateralMaxM,
   );
   assert.equal(
     huge.angleRad,
-    DEFAULT_HAND_ACTUATOR_LIMITS.angleMinRad,
+    DEFAULT_HAND_ACTUATOR_LIMITS.angleMaxRad,
   );
 }
 
@@ -279,6 +279,37 @@ const fast = {
   p: simulate("fast22", "p", { durationS: 3.5 }),
   pd: simulate("fast22", "pd", { durationS: 3.5 }),
 };
+
+assert.ok(
+  baseline.p.rmsIntegral <= 1.10 * baseline.open.rmsIntegral,
+  "P should not worsen stable baseline RMS integral by more than 10%",
+);
+assert.ok(
+  baseline.pd.rmsIntegral <= 1.15 * baseline.open.rmsIntegral,
+  "PD should not worsen stable baseline RMS integral by more than 15%",
+);
+assert.ok(
+  fast.p.rmsIntegral <= 0.85 * fast.open.rmsIntegral,
+  "P must reduce Fast 22 RMS integral by at least 15%",
+);
+assert.ok(
+  fast.pd.rmsIntegral <= 0.75 * fast.open.rmsIntegral,
+  "PD must reduce Fast 22 RMS integral by at least 25%",
+);
+assert.ok(
+  fast.pd.rmsIntegral < fast.p.rmsIntegral,
+  "PD should outperform P on Fast 22 for the calibrated gains",
+);
+assert.equal(
+  fast.p.saturationTimeS,
+  0,
+  "calibrated P controller should avoid actuator saturation",
+);
+assert.equal(
+  fast.pd.saturationTimeS,
+  0,
+  "calibrated PD controller should avoid actuator saturation",
+);
 
 console.log(
   "H1-6 P/PD calibration:",
