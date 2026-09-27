@@ -204,3 +204,37 @@ export function handActuatorLimitsLabel(
       limits.angularMaxAccelerationRadS2 * 180 / Math.PI,
   };
 }
+
+
+export const DEFAULT_POINTER_CONTROL_MAPPING = Object.freeze({
+  fullWidthLateralSpanM: 0.16,
+  fullHeightAngularSpanRad: 60 * Math.PI / 180,
+});
+
+export function pointerDeltaToHandTarget(
+  targetInput,
+  {
+    deltaXPx,
+    deltaYPx,
+    widthPx,
+    heightPx,
+  },
+  limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  mapping = DEFAULT_POINTER_CONTROL_MAPPING,
+) {
+  if (!(widthPx > 0) || !(heightPx > 0)) {
+    throw new RangeError("pointer control viewport must be positive");
+  }
+  const target = clampHandTarget(targetInput, limits);
+  return clampHandTarget(
+    {
+      lateralPositionM: target.lateralPositionM
+        + deltaXPx / widthPx
+        * mapping.fullWidthLateralSpanM,
+      angleRad: target.angleRad
+        - deltaYPx / heightPx
+        * mapping.fullHeightAngularSpanRad,
+    },
+    limits,
+  );
+}
