@@ -198,6 +198,7 @@ export function mountNonlinearPhase(root) {
   ];
   const gameStartButton = root.querySelector("#nlGameStart");
   const gameRestartButton = root.querySelector("#nlGameRestart");
+  const beginHumanButton = root.querySelector("#nlBeginHuman");
   const resultRestartButton = root.querySelector("#nlResultRestart");
   const controlModeHelp = root.querySelector("#nlControlModeHelp");
   const playInstruction = root.querySelector("#nlPlayInstruction");
@@ -307,6 +308,9 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
   let selectedDifficultyId = "normal";
+  let gameLaunchPhase = "idle";
+  let gameCountdownValue = null;
+  let launchSequenceId = 0;
   let gameState = null;
   let aimReference = null;
   let aimTarget = null;
@@ -570,6 +574,25 @@ export function mountNonlinearPhase(root) {
   function nextPaint() {
     return new Promise((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  }
+
+  function waitMs(ms) {
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function focusGameplayView() {
+    setVisualMode("3d");
+    requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)",
+      )?.matches;
+      game3dViewPanel.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
     });
   }
 
@@ -873,12 +896,14 @@ export function mountNonlinearPhase(root) {
     title,
     body,
     score = "",
+    showBegin = false,
     showRestart = false,
   }) {
     gameOverlayKicker.textContent = kicker;
     gameOverlayTitle.textContent = title;
     gameOverlayBody.textContent = body;
     gameOverlayScore.textContent = score;
+    beginHumanButton.hidden = !showBegin;
     resultRestartButton.hidden = !showRestart;
     gameOverlay.hidden = false;
   }
@@ -889,15 +914,18 @@ export function mountNonlinearPhase(root) {
       kicker: `${difficulty.title} · ${difficulty.subtitle} · ${controlModeLabel(mode)}`,
       title: automatic ? "AUTO PLAY READY" : "READY",
       body: automatic
-        ? `自動制御が手元を操作します。プレイヤー操作は不要です。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`
-        : `3D画面をドラッグして手元を操作します。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
+        ? "自動制御でプレイします。3秒カウントダウン後に開始します。操作は不要です。"
+        : "まだ時間は進みません。姿勢を整えたら、ここをタップして開始してください。",
       score: "",
+      showBegin: !automatic,
       showRestart: false,
     });
   }
 
   function showGameResult() {
     if (!gameState || gameState.status === "running") return;
+    gameLaunchPhase = "result";
+    gameCountdownValue = null;
     const success = gameState.status === "success";
     const reason = gameState.failureReason === "aim ratio"
       ? "命中率不足"
@@ -934,21 +962,51 @@ export function mountNonlinearPhase(root) {
     if (!gameState) {
       const selected = gameDifficultyById(selectedDifficultyId);
       gameStageMetric.textContent = `${selected.title} · 未開始`;
-      gameStatusMetric.textContent = hud.status;
-      gameStatusMetric.className = "";
-      gameTimeMetric.textContent = hud.timeLabel;
-      gameScoreMetric.textContent = hud.scoreLabel;
-      gameInsideMetric.textContent = hud.targetLabel;
-      gameHitMetric.textContent = hud.hitLabel;
-      gameEffortMetric.textContent = hud.effortLabel;
+      gameStatusMetric.textContent = gameLaunchPhase === "preparing"
+        ? "PREPARING…"
+        : hud.status;
+      gameStatusMetric.className = gameLaunchPhase === "preparing"
+        ? "status-warn"
+        : "";
+      gameTimeMetric.textContent = "-";
+      gameScoreMetric.textContent = "-";
+      gameInsideMetric.textContent = "-";
+      gameHitMetric.textContent = "-";
+      gameEffortMetric.textContent = "-";
       gameTargetsMetric.textContent = "-";
       gameRestartButton.disabled = true;
       return;
     }
 
     const stage = gameState.stage;
+    const runMode = gameState.controlMode ?? controlMode;
     gameStageMetric.textContent =
-      `${stage.title} · ${controlModeLabel(gameState.controlMode ?? controlMode)}`;
+      `${stage.title} · ${controlModeLabel(runMode)}`;
+
+    if (
+      gameState.status === "running"
+      && gameLaunchPhase !== "running"
+    ) {
+      if (gameLaunchPhase === "armed-human") {
+        gameStatusMetric.textContent = "READY — TAP TO PLAY";
+      } else if (gameLaunchPhase === "countdown") {
+        gameStatusMetric.textContent = gameCountdownValue === null
+          ? "GET READY"
+          : `START IN ${gameCountdownValue}`;
+      } else {
+        gameStatusMetric.textContent = "READY";
+      }
+      gameStatusMetric.className = "status-warn";
+      gameTimeMetric.textContent = "0.0 s";
+      gameScoreMetric.textContent = "-";
+      gameInsideMetric.textContent = "-";
+      gameHitMetric.textContent = "-";
+      gameEffortMetric.textContent = "-";
+      gameTargetsMetric.textContent = "-";
+      gameRestartButton.disabled = false;
+      return;
+    }
+
     gameStatusMetric.textContent = hud.status;
     gameStatusMetric.className = gameState.status === "success"
       ? "status-ok"
@@ -970,6 +1028,9 @@ export function mountNonlinearPhase(root) {
   }
 
   function cancelGame() {
+    launchSequenceId += 1;
+    gameLaunchPhase = "idle";
+    gameCountdownValue = null;
     gameState = null;
     aimTarget = null;
     aimSample = null;
@@ -981,79 +1042,74 @@ export function mountNonlinearPhase(root) {
     updateGameHud();
   }
 
-  async function startGame(difficultyId) {
-    if (initializationBusy) return;
-    const requestedMode = controlModeSelect.value;
-    const difficulty = gameDifficultyById(difficultyId);
-
-    gameState = null;
-    aimTarget = null;
-    aimSample = null;
-    presetId = difficulty.presetId;
-    playback.value = "1";
-    actuatorLimits = scaleHandActuatorLimits(
-      DEFAULT_HAND_ACTUATOR_LIMITS,
-      difficulty.authorityScale,
-    );
-    actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
-    showDifficultyIntro(difficulty, requestedMode);
-
-    const ready = await configureResponsive({
-      preserveFlow: false,
-    });
-    if (!ready) return;
-
-    const modeReady = await setControlMode(requestedMode);
-    if (!modeReady) {
-      hideGameOverlay();
-      return;
+  function beginGameRun(sequenceId = launchSequenceId) {
+    if (
+      sequenceId !== launchSequenceId
+      || !gameState
+      || gameState.status !== "running"
+      || !["armed-human", "countdown"].includes(gameLaunchPhase)
+    ) {
+      return false;
     }
 
-    aimReference = buildAimReference();
-    aimTarget = buildAimTarget(difficulty, 0);
-    const current = currentGeometry();
-    const reaction = reactionForState();
-    updateAimSample(current, reaction);
-    gameState = {
-      ...createDifficultyGameState(difficultyId),
-      controlMode: requestedMode,
-    };
-    comparisonDifficultyId = difficultyId;
-    updateComparisonTable();
-
-    paused = true;
+    gameLaunchPhase = "running";
+    gameCountdownValue = null;
+    hideGameOverlay();
+    paused = false;
     pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
-    setGameControlLock(true);
+    lastFrameMs = performance.now();
     updateGameHud();
     render();
+    return true;
+  }
 
-    window.setTimeout(() => {
+  async function runAutomaticCountdown(
+    difficulty,
+    runMode,
+    sequenceId,
+  ) {
+    gameLaunchPhase = "countdown";
+    for (const count of [3, 2, 1]) {
       if (
-        gameState?.difficultyId === difficultyId
-        && gameState.status === "running"
+        sequenceId !== launchSequenceId
+        || !gameState
+        || gameState.status !== "running"
       ) {
-        hideGameOverlay();
-        paused = false;
-        lastFrameMs = performance.now();
+        return;
       }
-    }, 1200);
+      gameCountdownValue = count;
+      showGameOverlay({
+        kicker: `${difficulty.title} · ${controlModeLabel(runMode)}`,
+        title: String(count),
+        body: "自動制御がプレイします。操作は不要です。",
+      });
+      updateGameHud();
+      render();
+      await waitMs(800);
+    }
+
+    if (sequenceId !== launchSequenceId) return;
+    gameCountdownValue = 0;
+    showGameOverlay({
+      kicker: `${difficulty.title} · ${controlModeLabel(runMode)}`,
+      title: "GO",
+      body: "自動制御を開始します。",
+    });
+    updateGameHud();
+    render();
+    await waitMs(300);
+    beginGameRun(sequenceId);
   }
 
-  function flashRestartFeedback() {
-    gameRestartButton.textContent = "Restarted ✓";
-    window.setTimeout(() => {
-      gameRestartButton.textContent = "Restart";
-    }, 650);
-  }
-
-  function restartGame() {
-    if (!gameState || initializationBusy) return;
-    const difficultyId = gameState.difficultyId;
-    const runMode = gameState.controlMode ?? controlMode;
+  function armPreparedGame(
+    difficultyId,
+    runMode,
+    sequenceId,
+  ) {
+    if (sequenceId !== launchSequenceId) return;
     const difficulty = gameDifficultyById(difficultyId);
 
-    resetSimulationState();
     aimReference = buildAimReference();
     aimTarget = buildAimTarget(difficulty, 0);
     updateAimSample(currentGeometry(), reactionForState());
@@ -1061,18 +1117,102 @@ export function mountNonlinearPhase(root) {
       ...createDifficultyGameState(difficultyId),
       controlMode: runMode,
     };
+    comparisonDifficultyId = difficultyId;
     controlMode = runMode;
     controlModeSelect.value = runMode;
-    comparisonDifficultyId = difficultyId;
 
-    paused = false;
-    pauseButton.disabled = false;
+    paused = true;
+    pauseButton.disabled = true;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
-    hideGameOverlay();
+
+    if (runMode === "human") {
+      gameLaunchPhase = "armed-human";
+      gameCountdownValue = null;
+      showDifficultyIntro(difficulty, runMode);
+    } else {
+      gameLaunchPhase = "countdown";
+      gameCountdownValue = 3;
+      showDifficultyIntro(difficulty, runMode);
+    }
+
     updateGameHud();
     updateComparisonTable();
     render();
+    focusGameplayView();
+
+    if (runMode !== "human") {
+      void runAutomaticCountdown(
+        difficulty,
+        runMode,
+        sequenceId,
+      );
+    }
+  }
+
+  async function startGame(difficultyId) {
+    if (initializationBusy) return;
+    launchSequenceId += 1;
+    const sequenceId = launchSequenceId;
+    const requestedMode = controlModeSelect.value;
+    const difficulty = gameDifficultyById(difficultyId);
+
+    gameLaunchPhase = "preparing";
+    gameCountdownValue = null;
+    gameState = null;
+    aimTarget = null;
+    aimSample = null;
+    hideGameOverlay();
+    updateGameHud();
+
+    presetId = difficulty.presetId;
+    playback.value = "1";
+    actuatorLimits = scaleHandActuatorLimits(
+      DEFAULT_HAND_ACTUATOR_LIMITS,
+      difficulty.authorityScale,
+    );
+    actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
+
+    const ready = await configureResponsive({
+      preserveFlow: false,
+    });
+    if (!ready || sequenceId !== launchSequenceId) return;
+
+    const modeReady = await setControlMode(requestedMode);
+    if (!modeReady || sequenceId !== launchSequenceId) {
+      hideGameOverlay();
+      return;
+    }
+
+    armPreparedGame(
+      difficultyId,
+      requestedMode,
+      sequenceId,
+    );
+  }
+
+  function flashRestartFeedback() {
+    gameRestartButton.textContent = "Ready ✓";
+    window.setTimeout(() => {
+      gameRestartButton.textContent = "Restart";
+    }, 650);
+  }
+
+  function restartGame() {
+    if (!gameState || initializationBusy) return;
+    launchSequenceId += 1;
+    const sequenceId = launchSequenceId;
+    const difficultyId = gameState.difficultyId;
+    const runMode = gameState.controlMode ?? controlMode;
+
+    resetSimulationState();
+    controlMode = runMode;
+    controlModeSelect.value = runMode;
+    armPreparedGame(
+      difficultyId,
+      runMode,
+      sequenceId,
+    );
     flashRestartFeedback();
   }
 
@@ -1614,6 +1754,11 @@ export function mountNonlinearPhase(root) {
     await startGame(selectedDifficultyId);
   });
 
+  beginHumanButton.addEventListener("click", () => {
+    if (gameLaunchPhase !== "armed-human") return;
+    beginGameRun();
+  });
+
   gameRestartButton.addEventListener("click", () => {
     restartGame();
   });
@@ -1717,6 +1862,8 @@ export function mountNonlinearPhase(root) {
   }
 
   setVisualMode("3d");
+  gameLaunchPhase = "idle";
+  gameCountdownValue = null;
   controlMode = "human";
   controlModeSelect.value = "human";
   selectDifficulty(selectedDifficultyId);
