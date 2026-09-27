@@ -1666,24 +1666,206 @@ integral / effortでは open-loop より不利になる。
 これは「制御を入れれば常に得」という誤解を避ける比較結果として保持する。
 
 
-#### H1-6-2 — full-state realization / state feedback / LQR
+#### H1-6-2 — full-state realization / state feedback / LQR ✅（Human Visual Audit 継続中）
 
-ここでのみ rod free-angle state
+ここでのみ full rod state を使用可能にする。
+
+H1-6-2 第一実装では、plantを別の線形モデルへ置き換えず、
+**既存 nonlinear rod + existing hand actuator の1-step mapを平衡点まわりで数値線形化**
+する。
+
+状態は boundary angle の二重保持を避けて
 
 ```text
-delta q, delta qdot
+x =
+[
+  delta theta_1 ... delta theta_{N-1},
+  delta omega_1 ... delta omega_{N-1},
+  x_hand,
+  v_hand,
+  theta_hand,
+  omega_hand
+]
 ```
 
-を使用可能にする。
+とする。rod segment 0 の angle / angular-rate は hand actuator state から復元する。
 
-- nonlinear equilibrium 周りの state-space realization
-- boundary input Jacobian
-- controllability / effective controllable subspace
-- state feedback
-- continuous/discrete LQR
-- actuator saturation
-- optional sensor / actuator delay
-- small-amplitude nonlinear closed-loop validation
+入力:
+
+```text
+u = [x_hand_target, theta_hand_target]
+```
+
+したがって control path は Human / P / PD と同じ
+
+```text
+state feedback
+  -> hand target
+  -> existing rate-limited actuator
+  -> prescribed boundary
+  -> nonlinear rod
+```
+
+であり、LQRだけactuatorを bypassしない。
+
+##### H1-6-2A — discrete full-state realization
+
+物理刻み `dt=0.002 s` の nonlinear one-step map
+
+```text
+x_{k+1} = F(x_k, u_k)
+```
+
+を nonlinear equilibrium `(x,u)=(0,0)` まわりで central finite difference し、
+
+```text
+delta x_{k+1} = A_d delta x_k + B_d delta u_k
+```
+
+を得る。
+
+必須回帰:
+
+- equilibrium residual が十分小さい
+- central-difference epsilon 変更で主要行列成分が大きく飛ばない
+- `B_d` の2入力が0でない
+- linear one-step prediction が小摂動 nonlinear step と一致
+- state encode/decode round trip
+
+##### H1-6-2B — controllability / effective subspace
+
+controllability matrix
+
+```text
+C = [B, AB, A^2B, ...]
+```
+
+の numerical rank を計算する。
+
+- full rankならそのまま記録
+- full rankでなくても「失敗」とはせず、effective controllable rankを明示
+- singular-value threshold相当のscale-aware rank判定を使う
+- actuatorを含む augmented state と rod-only state の両方を診断する
+
+##### H1-6-2C — discrete LQR
+
+第一版のproduction controllerは discrete LQR とする。
+
+```text
+J = sum_k (x_k^T Q x_k + u_k^T R u_k)
+u_k = -K x_k
+```
+
+DAREを反復で解き、
+
+- `Q`: rod angle / rod rate / actuator state を別weight
+- `R`: hand position target / angle target の使用コスト
+- outputは既存 hand target clamp を通す
+- actual actuator speed / acceleration saturationも既存実装を共有
+
+する。
+
+##### H1-6-2D — continuous-time cross-check
+
+discrete realizationから
+
+```text
+A_c ~= (A_d-I)/dt
+B_c ~= B_d/dt
+```
+
+の小刻み近似を診断用に持つ。
+
+第一版では continuous CARE gainをproductionに使わず、
+continuous/discreteの符号・時定数スケール整合を確認する。
+厳密continuous CAREは必要なら後続で追加する。
+
+##### H1-6-2E — nonlinear validation / UI
+
+同一初期摂動で
+
+- open
+- P
+- PD
+- LQR
+
+を比較する。
+
+最低限:
+
+- baseline 18 L/min で数値発散しない
+- Fast 22 で open-loop より RMS integral を低減
+- P / PD と同じ actuator limit
+- saturation timeを記録
+- small-amplitude linear predictionとnonlinear responseの方向が一致
+- controller OFFでH1-5互換
+
+UI:
+
+- Control mode: Human / P / PD / LQR
+- full-state norm
+- LQR hand target
+- controllability rank
+- linearization residual
+- saturation flag
+
+optional sensor / actuator delay は H1-6-3 または F8 で追加する。
+
+実装結果:
+
+```text
+6-segment diagnostic realization
+  augmented dimension      = 14
+  controllability rank     = 14 / 14
+  rod controllability      = 10 / 10
+  equilibrium residual     ~= 2.31e-14
+  DARE iterations          = 1948
+
+12-segment Fast 22 production realization
+  augmented dimension      = 26
+  controllability rank     = 25 / 26
+  rod controllability      = 22 / 22
+  equilibrium residual     ~= 1.78e-14
+  DARE iterations          = 1682
+  max |K|                  ~= 23.56
+```
+
+finite-difference epsilonを0.5x / 2xしても、
+6-segment基準のA/B相対差はおおむね `1e-10` オーダーで一致した。
+
+nonlinear closed-loop regression:
+
+```text
+baseline 18 L/min, 8-segment, 4 s
+  open RMS integral = 0.00808 m s
+  LQR               = 0.00473 m s
+  ratio             = 0.586
+  peak RMS           ~= same initial peak
+  saturation         = 0 s
+
+Fast 22, 8-segment, 3.5 s
+  open RMS integral = 0.22338 m s
+  LQR               = 0.00799 m s
+  ratio             = 0.0358
+  open peak RMS      = 373.6 mm
+  LQR peak RMS       = 9.13 mm
+  saturation         = 0 s
+```
+
+UI:
+
+- ✅ Human / P / PD / LQR
+- ✅ LQR初回選択時のみ nonlinear finite-difference realization + DARE
+- ✅ scenario / flowごとにdesign cache
+- ✅ full-state norm表示
+- ✅ controllability rank表示
+- ✅ equilibrium residual表示
+- ✅ LQRも既存 hand target clamp / actuatorを共有
+- ✅ game中はH1-6-3までHuman固定
+
+12-segment augmented stateは25/26 rankだが、
+**rod stateは22/22 full rank**であるため、1次元の弱いaugmented方向を
+「ホースを制御不能」と解釈しない。effective controllable subspaceを表示して保持する。
 
 #### H1-6-3 — Human vs Controller
 

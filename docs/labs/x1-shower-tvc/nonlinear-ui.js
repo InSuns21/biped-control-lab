@@ -38,6 +38,10 @@ import {
   senseTipFeedback,
 } from "../../js/shower/flexible/feedback-controller.js";
 import {
+  designFullStateLqr,
+  lqrHandTarget,
+} from "../../js/shower/flexible/state-feedback-controller.js";
+import {
   createGame3DView,
 } from "./game-3d-view.js";
 import {
@@ -229,6 +233,8 @@ export function mountNonlinearPhase(root) {
   const controlCommandMetric = root.querySelector(
     "#nlControlCommandMetric",
   );
+  const lqrStateMetric = root.querySelector("#nlLqrStateMetric");
+  const lqrDesignMetric = root.querySelector("#nlLqrDesignMetric");
   const timeMetric = root.querySelector("#nlTimeMetric");
   const statusMetric = root.querySelector("#nlStatusMetric");
   const presetNote = root.querySelector("#nlPresetNote");
@@ -266,6 +272,10 @@ export function mountNonlinearPhase(root) {
   let manualControlUsed = false;
   let controlMode = "human";
   let lastControlSensing = null;
+  let activeLqrDesign = null;
+  let lastLqrStateNorm = null;
+  let lqrDesignBusy = false;
+  const lqrDesignCache = new Map();
   let history = [];
   let simTime = 0;
   let lastHistoryTime = -Infinity;
@@ -403,6 +413,72 @@ export function mountNonlinearPhase(root) {
     return `${presetId}:${Number(flowLpm).toFixed(3)}`;
   }
 
+  function lqrDesignCacheKey() {
+    return [
+      presetId,
+      Number(flow.value).toFixed(3),
+      scenario?.system?.params?.segmentCount ?? 0,
+      DT.toFixed(6),
+    ].join(":");
+  }
+
+  function invalidateActiveLqrDesign() {
+    activeLqrDesign = null;
+    lastLqrStateNorm = null;
+    if (controlMode === "lqr") {
+      controlMode = "human";
+      controlModeSelect.value = "human";
+    }
+  }
+
+  async function ensureLqrDesign() {
+    if (!scenario || !equilibrium) return null;
+    const key = lqrDesignCacheKey();
+    const cached = lqrDesignCache.get(key);
+    if (cached) {
+      activeLqrDesign = cached;
+      return cached;
+    }
+
+    lqrDesignBusy = true;
+    const wasPaused = paused;
+    paused = true;
+    controlModeSelect.disabled = true;
+    statusMetric.textContent = "DESIGNING LQR…";
+    statusMetric.className = "status-warn";
+    lqrDesignMetric.textContent = "線形化 + DAREを計算中…";
+    await nextPaint();
+
+    try {
+      const design = designFullStateLqr(
+        scenario,
+        equilibrium,
+        {
+          dt: DT,
+          limits: actuatorLimits,
+          lqrOptions: {
+            tolerance: 1e-8,
+            maxIterations: 4000,
+          },
+        },
+      );
+      lqrDesignCache.set(key, design);
+      activeLqrDesign = design;
+      return design;
+    } catch (error) {
+      console.error("LQR design failed", error);
+      lqrDesignMetric.textContent = "LQR設計失敗";
+      statusMetric.textContent = "LQR設計失敗";
+      statusMetric.className = "status-danger";
+      return null;
+    } finally {
+      lqrDesignBusy = false;
+      paused = wasPaused;
+      controlModeSelect.disabled = gameState?.status === "running";
+      lastFrameMs = performance.now();
+    }
+  }
+
   function resetSimulationState() {
     state = perturbEquilibriumState(
       scenario,
@@ -451,6 +527,7 @@ export function mountNonlinearPhase(root) {
     scenario = solved.scenario;
     equilibrium = solved.equilibrium;
     aimReference = null;
+    invalidateActiveLqrDesign();
     resetSimulationState();
   }
 
@@ -554,15 +631,28 @@ export function mountNonlinearPhase(root) {
     });
   }
 
-  function setControlMode(mode, {
+  async function setControlMode(mode, {
     centerTarget = true,
   } = {}) {
-    if (!["human", "p", "pd"].includes(mode)) {
+    if (!["human", "p", "pd", "lqr"].includes(mode)) {
       throw new RangeError(`unknown control mode: ${mode}`);
     }
+
+    if (mode === "lqr") {
+      const design = await ensureLqrDesign();
+      if (!design) {
+        controlMode = "human";
+        controlModeSelect.value = "human";
+        centerHandButton.disabled = initializationBusy;
+        render();
+        return false;
+      }
+    }
+
     controlMode = mode;
     controlModeSelect.value = mode;
     lastControlSensing = null;
+    lastLqrStateNorm = null;
 
     if (centerTarget) {
       handTarget = clampHandTarget(
@@ -577,6 +667,7 @@ export function mountNonlinearPhase(root) {
     centerHandButton.disabled = mode !== "human"
       || initializationBusy;
     render();
+    return true;
   }
 
   function setVisualMode(mode) {
@@ -702,7 +793,7 @@ export function mountNonlinearPhase(root) {
 
   async function startGame(difficultyId) {
     if (initializationBusy) return;
-    setControlMode("human");
+    await setControlMode("human");
     const difficulty = gameDifficultyById(difficultyId);
     gameState = null;
     aimTarget = null;
@@ -849,11 +940,24 @@ export function mountNonlinearPhase(root) {
         `${controlMode.toUpperCase()} feedbackがhand targetを生成`;
     }
 
-    if (lastControlSensing) {
+    if (controlMode === "lqr" && activeLqrDesign) {
+      controlSenseMetric.textContent =
+        "full rod + hand actuator state";
+      controlCommandMetric.textContent =
+        `LQR -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+      lqrStateMetric.textContent = lastLqrStateNorm === null
+        ? "-"
+        : `||x||₂ = ${lastLqrStateNorm.toExponential(3)}`;
+      const diag = activeLqrDesign.controllability;
+      lqrDesignMetric.textContent =
+        `rank ${diag.rank}/${diag.dimension} (rod ${diag.rodRank}/${diag.rodDimension}) / residual ${activeLqrDesign.realization.residualNorm.toExponential(2)}`;
+    } else if (lastControlSensing) {
       controlSenseMetric.textContent =
         `ex ${(1000 * lastControlSensing.tipLateralErrorM).toFixed(1)} mm / vx ${(1000 * lastControlSensing.tipLateralVelocityMps).toFixed(1)} mm/s / eθ ${radToDeg(lastControlSensing.tipAngleErrorRad).toFixed(1)}° / ω ${radToDeg(lastControlSensing.tipAngularRateRadS).toFixed(1)}°/s`;
       controlCommandMetric.textContent =
         `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+      lqrStateMetric.textContent = "-";
+      lqrDesignMetric.textContent = "P/PD: tip local sensing";
     } else {
       controlSenseMetric.textContent = controlMode === "human"
         ? "Human mode: feedback sensor未使用"
@@ -861,6 +965,10 @@ export function mountNonlinearPhase(root) {
       controlCommandMetric.textContent = controlMode === "human"
         ? "Pointer -> hand target"
         : "-";
+      lqrStateMetric.textContent = "-";
+      lqrDesignMetric.textContent = controlMode === "human"
+        ? "Human mode"
+        : (lqrDesignBusy ? "DESIGNING LQR…" : "-");
     }
 
     timeMetric.textContent = `${simTime.toFixed(2)} s`;
@@ -904,7 +1012,17 @@ export function mountNonlinearPhase(root) {
   }
 
   function step() {
-    if (controlMode !== "human" && !gameState) {
+    if (controlMode === "lqr" && !gameState) {
+      const result = lqrHandTarget(
+        activeLqrDesign,
+        state,
+        handActuator,
+        actuatorLimits,
+      );
+      handTarget = result.target;
+      lastLqrStateNorm = result.stateNorm;
+      lastControlSensing = null;
+    } else if (controlMode !== "human" && !gameState) {
       lastControlSensing = senseTipFeedback(
         scenario.system,
         state,
@@ -919,8 +1037,10 @@ export function mountNonlinearPhase(root) {
       if (feedbackTarget) {
         handTarget = feedbackTarget;
       }
+      lastLqrStateNorm = null;
     } else if (controlMode === "human") {
       lastControlSensing = null;
+      lastLqrStateNorm = null;
     }
 
     const actuatorStart = handActuator;
@@ -1155,12 +1275,12 @@ export function mountNonlinearPhase(root) {
     },
   );
 
-  controlModeSelect.addEventListener("change", () => {
+  controlModeSelect.addEventListener("change", async () => {
     if (gameState) {
-      setControlMode("human");
+      await setControlMode("human");
       return;
     }
-    setControlMode(controlModeSelect.value);
+    await setControlMode(controlModeSelect.value);
   });
 
   presetButtons.forEach((button) => {
@@ -1281,7 +1401,7 @@ export function mountNonlinearPhase(root) {
   }
 
   setVisualMode("3d");
-  setControlMode("human", { centerTarget: false });
+  void setControlMode("human", { centerTarget: false });
   setGameControlLock(false);
   updateGameHud();
   void configureResponsive({ preserveFlow: false });
