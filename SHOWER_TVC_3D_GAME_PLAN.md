@@ -1042,6 +1042,59 @@ Human Visual Audit では特に、
 
 を確認する。
 
+#### H1-5-1A — control authority tuning ✅（Human Visual Audit反映）
+
+H1-5-3 の実機操作監査で、
+
+> dragしてもホースへの効きが弱く感じる
+
+という問題が確認された。
+
+原因は plant ではなく input mapping / actuator tuning 側だった。
+従来は900 px幅の画面で50 px横dragしても約9 mmしかtargetが動かず、
+さらに rate limit により actual hand の立ち上がりも遅かった。
+
+ゲーム用の既定値を次へ更新する。
+
+```text
+hand travel:
+  x_h      : +/- 120 mm
+  theta_h  : +/- 45 deg
+
+actuator:
+  |v_h|     <= 0.75 m/s
+  |a_h|     <= 8.0 m/s^2
+  |omega_h| <= 4.5 rad/s
+  |alpha_h| <= 36 rad/s^2
+
+pointer mapping:
+  full-width drag  -> 480 mm command span
+  full-height drag -> 180 deg command span
+  (physical travel limitsでclamp)
+```
+
+狙いは「物理を強くする」ことではなく、
+
+```text
+short drag
+  -> clearly visible target
+  -> hand actuator follows within ~0.2 s
+  -> prescribed boundary does measurable work on the hose
+```
+
+というゲーム操作のcontrol authorityを確保すること。
+
+自動回帰:
+
+- ✅ 60 px desktop dragで lateral target >= 30 mm
+- ✅ 60 px vertical dragで angle target >= 15 deg
+- ✅ 0.20 s後にactual handがtargetの70%以上へ追従
+- ✅ direct-control regressionで lateral motion > 60 mm
+- ✅ direct-control regressionで angular motion > 18 deg
+- ✅ flowing hose state difference > 0.05
+
+ホース本体の物理式・flow coupling・game score式は変更しない。
+
 #### H1-5-2 — stabilization game core ✅
 
 **この工程はゲームルールだけに限定する。**
