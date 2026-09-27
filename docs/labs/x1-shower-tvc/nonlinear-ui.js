@@ -480,7 +480,7 @@ export function mountNonlinearPhase(root) {
     });
     pauseButton.disabled = next;
     resetButton.disabled = next;
-    centerHandButton.disabled = next;
+    centerHandButton.disabled = next || controlMode !== "human";
     gameRestartButton.setAttribute("aria-busy", String(next));
 
     if (next) {
@@ -503,7 +503,7 @@ export function mountNonlinearPhase(root) {
     });
     pauseButton.disabled = false;
     resetButton.disabled = false;
-    centerHandButton.disabled = false;
+    centerHandButton.disabled = controlMode !== "human";
     gameRestartButton.disabled = !gameState;
     gameStatusMetric.textContent = "ERROR";
     gameStatusMetric.className = "status-danger";
