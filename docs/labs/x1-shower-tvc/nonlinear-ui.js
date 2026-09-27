@@ -650,6 +650,10 @@ export function mountNonlinearPhase(root) {
     const cached = solutionCache.get(key);
     if (cached) {
       applySolvedScenario(cached);
+      if (!gameState) {
+        paused = true;
+        pauseButton.textContent = "再開";
+      }
       render();
       return true;
     }
@@ -745,28 +749,28 @@ export function mountNonlinearPhase(root) {
   function updateControlModeHelp(mode = controlModeSelect.value) {
     const descriptions = {
       human: {
-        help: "自分で操作します。3D画面をドラッグし、横で手元位置、縦で手元角度を動かします。",
-        play: "Human: 3D画面をドラッグして照準へ水を当てます。",
-        toolbar: "Human: 3D画面をドラッグして手元を操作",
+        help: "自分で操作します。START後に3D画面で「タップして開始」を押し、横/縦ドラッグで手元を動かします。",
+        play: "Human: START後に3D画面へ移動し、タップしてからドラッグ操作します。",
+        toolbar: "Human: タップして開始後、3D画面をドラッグ",
       },
       p: {
         help: "自動プレイです。P制御が先端の位置・角度誤差を見て手元を自動操作します。あなたの操作は不要です。",
-        play: "Auto P: START後は操作せず、制御器の照準と安定化を観察します。",
+        play: "Auto P: START後に3・2・1で開始。操作せず、制御器の照準と安定化を観察します。",
         toolbar: "Auto P: controllerが手元を自動操作",
       },
       pd: {
         help: "自動プレイです。PD制御が先端の誤差に加えて速度も見て手元を自動操作します。あなたの操作は不要です。",
-        play: "Auto PD: START後は操作せず、速度フィードバックの効果を観察します。",
+        play: "Auto PD: START後に3・2・1で開始。操作せず、速度フィードバックの効果を観察します。",
         toolbar: "Auto PD: controllerが手元を自動操作",
       },
       state: {
         help: "自動プレイです。State FBがホース内部の状態まで使って手元を自動操作します。あなたの操作は不要です。",
-        play: "Auto State FB: START後は操作せず、full-state制御を観察します。",
+        play: "Auto State FB: START後に3・2・1で開始。操作せず、full-state制御を観察します。",
         toolbar: "Auto State FB: controllerが手元を自動操作",
       },
       lqr: {
         help: "自動プレイです。LQRがfull-state feedbackで手元を自動操作します。初回START時だけ制御器設計を計算します。",
-        play: "Auto LQR: START後は操作せず、LQRの安定化と照準を観察します。",
+        play: "Auto LQR: START後に3・2・1で開始。操作せず、LQRの安定化と照準を観察します。",
         toolbar: "Auto LQR: controllerが手元を自動操作",
       },
     };
