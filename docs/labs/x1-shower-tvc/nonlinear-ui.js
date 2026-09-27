@@ -21,12 +21,15 @@ import {
   DEFAULT_HAND_ACTUATOR_LIMITS,
   handActuatorLimitsLabel,
   pointerDeltaToHandTarget,
+  scaleHandActuatorLimits,
   stepHandActuator,
 } from "../../js/shower/flexible/hand-actuator.js";
 import {
-  createGameState,
+  createAimTarget,
+  createDifficultyGameState,
+  evaluateWaterAim,
+  gameDifficultyById,
   gameHudSnapshot,
-  gameStageById,
   updateGameState,
 } from "../../js/shower/flexible/game.js";
 import {
@@ -176,16 +179,23 @@ export function mountNonlinearPhase(root) {
   const handPulseButtons = [
     ...root.querySelectorAll("[data-hand-pulse]"),
   ];
-  const gameStageButtons = [
-    ...root.querySelectorAll("[data-game-stage]"),
+  const gameDifficultyButtons = [
+    ...root.querySelectorAll("[data-game-difficulty]"),
   ];
   const gameRestartButton = root.querySelector("#nlGameRestart");
+  const resultRestartButton = root.querySelector("#nlResultRestart");
+  const gameOverlay = root.querySelector("#nlGameOverlay");
+  const gameOverlayKicker = root.querySelector("#nlGameOverlayKicker");
+  const gameOverlayTitle = root.querySelector("#nlGameOverlayTitle");
+  const gameOverlayBody = root.querySelector("#nlGameOverlayBody");
+  const gameOverlayScore = root.querySelector("#nlGameOverlayScore");
 
   const gameStageMetric = root.querySelector("#nlGameStage");
   const gameStatusMetric = root.querySelector("#nlGameStatus");
   const gameTimeMetric = root.querySelector("#nlGameTime");
   const gameScoreMetric = root.querySelector("#nlGameScore");
   const gameInsideMetric = root.querySelector("#nlGameInside");
+  const gameHitMetric = root.querySelector("#nlGameHit");
   const gameEffortMetric = root.querySelector("#nlGameEffort");
   const gameTargetsMetric = root.querySelector("#nlGameTargets");
 
@@ -220,8 +230,8 @@ export function mountNonlinearPhase(root) {
   });
   const game3dView = createGame3DView(game3dCanvas);
 
-  const actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
-  const actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
+  let actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
+  let actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
 
   let presetId = "fast22";
   let preset = PRESETS[presetId];
@@ -252,6 +262,8 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
   let gameState = null;
+  let aimTarget = null;
+  let aimSample = null;
   let activeVisualMode = "3d";
   let initializationBusy = false;
   const solutionCache = new Map();
