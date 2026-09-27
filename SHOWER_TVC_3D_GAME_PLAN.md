@@ -1555,7 +1555,7 @@ sensor
 人間操作と自動制御で actuator / saturation / delay を共有し、
 比較条件を揃える。
 
-#### H1-6-0 — control contract / sensing
+#### H1-6-0 — control contract / sensing ✅
 
 まず観測量を固定する。
 
@@ -1579,7 +1579,7 @@ tip velocity は rod angle / angular-rate と hand boundary velocity から
 P / PD は rod全node角度を見てはいけない。
 full-state sensing は H1-6-2 から解禁する。
 
-#### H1-6-1 — P / PD boundary stabilization
+#### H1-6-1 — P / PD boundary stabilization ✅（Human Visual Audit 継続中）
 
 最初は aiming を分離し、同一初期摂動に対する振動抑制で比較する。
 
@@ -1607,8 +1607,12 @@ theta_h* = -Kptheta e_theta - Kdtheta theta_dot_tip
 - PD は velocity sign に対し減衰方向へ働く
 - target clamp
 - actuator limits を bypass しない
-- baseline 18 L/min の同一初期摂動で open-loop より RMS integral を低減
+- baseline 18 L/min で peak RMS を増幅しない
+- naturally damped baseline の RMS integral 悪化を上限内へ制限
+- Fast 22 で P / PD が RMS integral を明確に低減
+- PD が P より強く抑制
 - Fast 22 でも数値発散しない
+- calibrated P / PD は actuator saturation 0 s
 - controller OFF で H1-5 と完全互換
 
 UI:
@@ -1620,6 +1624,47 @@ UI:
 
 この段階では game aiming score を勝敗比較へ使わない。
 まず stabilizer 単体の効果を分離して確認する。
+
+実装済み既定ゲイン:
+
+```text
+P:
+  Kpx = Kptheta = -0.04
+
+PD:
+  Kpx = Kptheta = -0.08
+  Kdx = Kdtheta = -0.015 s
+```
+
+ここで負符号は式 `u = -K e` に対する値なので、
+実際の hand target は tip displacement / velocity と同方向へ追従する。
+この plant では手元をtipと逆向きへ押すと relative deformation を増やし、
+初回校正では明確に不安定化したため不採用とした。
+
+production-horizon nonlinear regression:
+
+```text
+baseline 18 L/min, 5 s
+  open RMS integral = 0.01215 m s
+  P                 = 0.01518 m s  (1.249x)
+  PD                = 0.01472 m s  (1.212x)
+  peak RMS           = all about 10.08 mm
+  saturation         = 0 s
+
+Fast 22, 3.5 s
+  open RMS integral = 0.27106 m s
+  P                 = 0.23073 m s  (0.851x, about 14.9% reduction)
+  PD                = 0.10641 m s  (0.393x, about 60.7% reduction)
+  open peak RMS      = 433.6 mm
+  P peak RMS         = 378.7 mm
+  PD peak RMS        = 175.3 mm
+  saturation         = 0 s
+```
+
+baseline 18 は元々自然減衰が非常に強いので、P/PDはpeakを増やさない一方、
+integral / effortでは open-loop より不利になる。
+これは「制御を入れれば常に得」という誤解を避ける比較結果として保持する。
+
 
 #### H1-6-2 — full-state realization / state feedback / LQR
 
