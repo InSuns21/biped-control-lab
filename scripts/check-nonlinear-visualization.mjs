@@ -169,6 +169,17 @@ assert.ok(
   "difficulty buttons must select without immediately starting",
 );
 assert.ok(
+  nonlinearUi.includes("function gameStabilityMetrics(")
+    && nonlinearUi.includes("referenceEquilibriumKinematics(")
+    && nonlinearUi.includes("rmsM: gameMetrics.rmsM"),
+  "game stability must be measured in the moving hand frame",
+);
+assert.ok(
+  nonlinearUi.includes("automaticGameAimLookaheadS(")
+    && nonlinearUi.includes("aimTarget: controlAimTarget"),
+  "full-state auto play must use the calibrated moving-target lookahead",
+);
+assert.ok(
   !nonlinearUi.includes("await startGame(button.dataset.gameDifficulty)"),
   "difficulty selection must not immediately start the game",
 );
