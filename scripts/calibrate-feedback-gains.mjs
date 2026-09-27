@@ -176,13 +176,13 @@ function simulate(solved, gains, durationS) {
 const baselineSolved = solveContinuation(optionsFor("baseline18"));
 const fastSolved = solveContinuation(optionsFor("fast22"));
 
-const openBaseline = simulate(baselineSolved, null, 4);
-const openFast = simulate(fastSolved, null, 3.5);
+const openBaseline = simulate(baselineSolved, null, 3);
+const openFast = simulate(fastSolved, null, 3);
 
-const positionGains = [-0.15, -0.30, -0.50, 0.10];
-const angleGains = [-0.10, -0.25, -0.45, 0.10];
-const velocityGains = [-0.02, -0.06, -0.12, 0.02];
-const angularRateGains = [-0.02, -0.06, -0.12, 0.02];
+const positionGains = [-0.15, -0.35];
+const angleGains = [-0.15, -0.35];
+const velocityGains = [-0.03, -0.08];
+const angularRateGains = [-0.03, -0.08];
 
 const candidates = [];
 for (const lateralPositionGain of positionGains) {
@@ -201,14 +201,14 @@ for (const lateralPositionGain of positionGains) {
 }
 
 const results = candidates.map((gains) => {
-  const baseline = simulate(baselineSolved, gains, 4);
-  const fast = simulate(fastSolved, gains, 3.5);
+  const baseline = simulate(baselineSolved, gains, 3);
+  const fast = simulate(fastSolved, gains, 3);
   const score =
     baseline.integral / openBaseline.integral
     + fast.integral / openFast.integral
     + 0.05 * (
-      baseline.saturationS / 4
-      + fast.saturationS / 3.5
+      baseline.saturationS / 3
+      + fast.saturationS / 3
     );
   return { gains, baseline, fast, score };
 });
