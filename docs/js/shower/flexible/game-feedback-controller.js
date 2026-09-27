@@ -7,7 +7,7 @@ import {
   senseTipFeedback,
 } from "./feedback-controller.js";
 import {
-  fullStateFeedbackHandTarget,
+  fullStateServoHandTarget,
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
@@ -367,12 +367,12 @@ export function automaticGameHandTarget(
     );
   }
 
-  const stateFeedback = fullStateFeedbackHandTarget(
+  const stateFeedback = fullStateServoHandTarget(
     lqrDesign,
     rodState,
     actuatorState,
     {
-      referenceTarget: aiming.target,
+      feedforwardTarget: aiming.target,
       gainScale: mode === "state"
         ? stateGainScale
         : 1,
