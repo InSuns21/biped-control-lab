@@ -15,6 +15,15 @@ import {
   ZERO_HAND_BOUNDARY,
 } from "../../js/shower/flexible/nonlinear-boundary.js";
 import {
+  actuatorBoundaryTrajectory,
+  clampHandTarget,
+  createHandActuatorState,
+  DEFAULT_HAND_ACTUATOR_LIMITS,
+  handActuatorLimitsLabel,
+  pointerDeltaToHandTarget,
+  stepHandActuator,
+} from "../../js/shower/flexible/hand-actuator.js";
+import {
   createNonlinearView,
 } from "./nonlinear-view.js";
 
@@ -35,7 +44,7 @@ const PRESETS = Object.freeze({
   }),
   fast22: Object.freeze({
     label: "Fast sensitivity 22 L/min",
-    note: "CI onset ≈ 1.58 s。手元pulseで境界仕事との関係も確認できます。",
+    note: "CI onset ≈ 1.58 s。Pointer操作で手元境界から抑制・励起できます。",
     flowLpm: 22,
     lengthM: 1.5,
     flexuralRigidityNm2: 0.25,
@@ -120,10 +129,16 @@ function geometryMetrics(current, equilibrium) {
   };
 }
 
+function anySaturation(saturation) {
+  return Object.values(saturation ?? {}).some(Boolean);
+}
+
 export function mountNonlinearPhase(root) {
   const canvas = root.querySelector("#nlCanvas");
   const rmsChart = root.querySelector("#nlRmsChart");
   const tipChart = root.querySelector("#nlTipChart");
+  const handXChart = root.querySelector("#nlHandXChart");
+  const handAngleChart = root.querySelector("#nlHandAngleChart");
   const flow = root.querySelector("#nlFlow");
   const flowOut = root.querySelector("#nlFlowOut");
   const playback = root.querySelector("#nlPlayback");
@@ -131,6 +146,7 @@ export function mountNonlinearPhase(root) {
   const showNodes = root.querySelector("#nlShowNodes");
   const pauseButton = root.querySelector("#nlPause");
   const resetButton = root.querySelector("#nlReset");
+  const centerHandButton = root.querySelector("#nlCenterHand");
   const presetButtons = [...root.querySelectorAll("[data-nl-preset]")];
   const handPulseButtons = [
     ...root.querySelectorAll("[data-hand-pulse]"),
@@ -146,11 +162,14 @@ export function mountNonlinearPhase(root) {
   const onsetMetric = root.querySelector("#nlOnsetMetric");
   const ciMetric = root.querySelector("#nlCiMetric");
   const handMetric = root.querySelector("#nlHandMetric");
+  const handTargetMetric = root.querySelector("#nlHandTargetMetric");
   const handReactionMetric = root.querySelector(
     "#nlHandReactionMetric",
   );
   const handPowerMetric = root.querySelector("#nlHandPowerMetric");
   const handWorkMetric = root.querySelector("#nlHandWorkMetric");
+  const actuatorMetric = root.querySelector("#nlActuatorMetric");
+  const pointerMetric = root.querySelector("#nlPointerMetric");
   const timeMetric = root.querySelector("#nlTimeMetric");
   const statusMetric = root.querySelector("#nlStatusMetric");
   const presetNote = root.querySelector("#nlPresetNote");
@@ -159,7 +178,12 @@ export function mountNonlinearPhase(root) {
     canvas,
     rmsChart,
     tipChart,
+    handXChart,
+    handAngleChart,
   });
+
+  const actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
+  const actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
 
   let presetId = "fast22";
   let preset = PRESETS[presetId];
@@ -168,11 +192,18 @@ export function mountNonlinearPhase(root) {
   let state = null;
   let currentBoundary = { ...ZERO_HAND_BOUNDARY };
   let lastBoundaryDiagnostics = null;
+  let handActuator = createHandActuatorState();
+  let handTarget = clampHandTarget({
+    lateralPositionM: 0,
+    angleRad: 0,
+  });
+  let lastActuatorSaturation = {};
   let activePulses = [];
   let cumulativeHandWorkJ = 0;
   let initialRmsM = 0;
   let onsetThresholdM = 0.020;
   let observedOnsetS = null;
+  let manualControlUsed = false;
   let history = [];
   let simTime = 0;
   let lastHistoryTime = -Infinity;
@@ -183,6 +214,10 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
 
+  let pointerId = null;
+  let pointerLastX = 0;
+  let pointerLastY = 0;
+
   function loadOptions() {
     return {
       tipLoad: scenario.tipLoad,
@@ -191,7 +226,7 @@ export function mountNonlinearPhase(root) {
     };
   }
 
-  function boundaryAtTime(timeS) {
+  function pulseBoundaryAtTime(timeS) {
     const values = activePulses.map((pulse) => smoothHandPulse(
       timeS,
       pulse,
@@ -248,9 +283,16 @@ export function mountNonlinearPhase(root) {
       },
     );
 
+    handActuator = createHandActuatorState();
+    handTarget = clampHandTarget({
+      lateralPositionM: 0,
+      angleRad: 0,
+    }, actuatorLimits);
     currentBoundary = { ...ZERO_HAND_BOUNDARY };
     activePulses = [];
     cumulativeHandWorkJ = 0;
+    lastActuatorSaturation = {};
+    manualControlUsed = false;
     lastBoundaryDiagnostics = handBoundaryDynamics(
       scenario.system,
       state,
@@ -282,6 +324,10 @@ export function mountNonlinearPhase(root) {
       t: simTime,
       rmsMm: metrics.rmsM * 1000,
       tipMm: metrics.tipDisplacementM * 1000,
+      handXmm: 1000 * currentBoundary.lateralPositionM,
+      handTargetXmm: 1000 * handTarget.lateralPositionM,
+      handAngleDeg: radToDeg(currentBoundary.angleRad),
+      handTargetAngleDeg: radToDeg(handTarget.angleRad),
     });
     const cutoff = simTime - HISTORY_SECONDS;
     while (history.length > 2 && history[0].t < cutoff) {
@@ -303,19 +349,39 @@ export function mountNonlinearPhase(root) {
       `${radToDeg(current.tipAngleRad).toFixed(1)}°`;
     rmsMetric.textContent =
       `${(metrics.rmsM * 1000).toFixed(1)} mm`;
-    onsetMetric.textContent = observedOnsetS === null
-      ? `未到達 / threshold ${(onsetThresholdM * 1000).toFixed(1)} mm`
-      : `${observedOnsetS.toFixed(3)} s`;
+
+    if (manualControlUsed) {
+      onsetMetric.textContent = observedOnsetS === null
+        ? "manual inputあり / 自励onset判定は参考"
+        : `${observedOnsetS.toFixed(3)} s / manual inputあり`;
+    } else {
+      onsetMetric.textContent = observedOnsetS === null
+        ? `未到達 / threshold ${(onsetThresholdM * 1000).toFixed(1)} mm`
+        : `${observedOnsetS.toFixed(3)} s`;
+    }
     ciMetric.textContent = preset.ciOnset;
 
     handMetric.textContent =
       `x ${(1000 * currentBoundary.lateralPositionM).toFixed(1)} mm / θ ${radToDeg(currentBoundary.angleRad).toFixed(1)}°`;
+    handTargetMetric.textContent =
+      `x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
     handReactionMetric.textContent =
       `F ${lastBoundaryDiagnostics.reactionForceXN.toFixed(2)} N / M ${lastBoundaryDiagnostics.reactionMomentNm.toFixed(3)} N·m`;
     handPowerMetric.textContent =
       `${lastBoundaryDiagnostics.handPowerW >= 0 ? "+" : ""}${lastBoundaryDiagnostics.handPowerW.toFixed(3)} W`;
     handWorkMetric.textContent =
       `${cumulativeHandWorkJ >= 0 ? "+" : ""}${cumulativeHandWorkJ.toFixed(4)} J`;
+
+    const saturated = anySaturation(lastActuatorSaturation);
+    actuatorMetric.textContent = saturated
+      ? "速度/加速度 limit作動"
+      : `v≤${actuatorLabels.lateralMaxSpeedMps.toFixed(2)} m/s, ω≤${actuatorLabels.angularMaxSpeedDegS.toFixed(0)}°/s`;
+    actuatorMetric.className = saturated
+      ? "status-warn"
+      : "status-ok";
+    pointerMetric.textContent = pointerId === null
+      ? "待機: 横drag=x*, 縦drag=θ*"
+      : "Pointer操作中";
 
     timeMetric.textContent = `${simTime.toFixed(2)} s`;
     statusMetric.textContent = stoppedReason
@@ -337,6 +403,7 @@ export function mountNonlinearPhase(root) {
       equilibriumKinematics: equilibrium.kinematics,
       reaction,
       handBoundary: currentBoundary,
+      handTarget,
       handReaction: lastBoundaryDiagnostics,
       showNodes: showNodes.checked,
       stoppedReason,
@@ -346,12 +413,36 @@ export function mountNonlinearPhase(root) {
   }
 
   function step() {
+    const actuatorStart = handActuator;
+    const actuatorStep = stepHandActuator(
+      actuatorStart,
+      handTarget,
+      DT,
+      actuatorLimits,
+    );
+    const actuatorTrajectory = actuatorBoundaryTrajectory(
+      actuatorStart,
+      actuatorStep,
+      DT,
+    );
+
+    const boundaryAtStepTime = (absoluteTimeS) => {
+      const actuatorBoundary = actuatorTrajectory(
+        absoluteTimeS - simTime,
+      );
+      const pulseBoundary = pulseBoundaryAtTime(absoluteTimeS);
+      return sumHandBoundaries([
+        actuatorBoundary,
+        pulseBoundary,
+      ]);
+    };
+
     const next = stepRodWithHandBoundaryRK4(
       scenario.system,
       state,
       simTime,
       DT,
-      boundaryAtTime,
+      boundaryAtStepTime,
       loadOptions(),
     );
 
@@ -362,10 +453,16 @@ export function mountNonlinearPhase(root) {
       )
       * DT;
 
+    handActuator = actuatorStep.state;
+    lastActuatorSaturation = actuatorStep.saturation;
     state = next.state;
     currentBoundary = next.boundary;
     lastBoundaryDiagnostics = next.diagnostics;
     simTime += DT;
+
+    activePulses = activePulses.filter(
+      (pulse) => simTime <= pulse.startTimeS + pulse.durationS,
+    );
 
     if (
       !state.anglesRad.every(Number.isFinite)
@@ -389,7 +486,7 @@ export function mountNonlinearPhase(root) {
       ...state.anglesRad.map((angle) => Math.abs(angle)),
     );
     if (maxAngle > 3.0 || metrics.rmsM > 0.75) {
-      stoppedReason = "H1-5-0 2Dモデルの監査上限に到達";
+      stoppedReason = "H1-5 2Dモデルの監査上限に到達";
       paused = true;
     }
   }
@@ -399,41 +496,64 @@ export function mountNonlinearPhase(root) {
     angleAmplitudeRad = 0,
   }) {
     if (stoppedReason) return;
+    manualControlUsed = true;
     activePulses.push({
       startTimeS: simTime,
       durationS: Number(pulseDuration.value),
       lateralAmplitudeM,
       angleAmplitudeRad,
     });
-    // Keep only active/recent entries.
-    activePulses = activePulses.filter(
-      (pulse) => simTime <= pulse.startTimeS + pulse.durationS,
+  }
+
+  function setPointerTargetFromDelta(deltaXPx, deltaYPx) {
+    const rect = canvas.getBoundingClientRect();
+    handTarget = pointerDeltaToHandTarget(
+      handTarget,
+      {
+        deltaXPx,
+        deltaYPx,
+        widthPx: Math.max(1, rect.width),
+        heightPx: Math.max(1, rect.height),
+      },
+      actuatorLimits,
     );
+    manualControlUsed = true;
   }
 
-  function frame(now) {
-    rafId = null;
-    if (!active) return;
-
-    const elapsed = Math.min((now - lastFrameMs) / 1000, 0.05);
-    lastFrameMs = now;
-
-    if (!paused && !stoppedReason) {
-      accumulator += elapsed * Number(playback.value);
-      let steps = 0;
-      while (accumulator >= DT && steps < 40) {
-        step();
-        accumulator -= DT;
-        steps += 1;
-        if (stoppedReason) break;
-      }
-      if (steps >= 40) accumulator = 0;
-      recordHistory();
+  function finishPointer(event) {
+    if (event.pointerId !== pointerId) return;
+    if (canvas.hasPointerCapture?.(pointerId)) {
+      canvas.releasePointerCapture(pointerId);
     }
-
+    pointerId = null;
+    canvas.classList.remove("pointer-active");
     render();
-    rafId = requestAnimationFrame(frame);
   }
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (pointerId !== null || stoppedReason) return;
+    pointerId = event.pointerId;
+    pointerLastX = event.clientX;
+    pointerLastY = event.clientY;
+    canvas.setPointerCapture(event.pointerId);
+    canvas.classList.add("pointer-active");
+    manualControlUsed = true;
+    event.preventDefault();
+    render();
+  });
+
+  canvas.addEventListener("pointermove", (event) => {
+    if (event.pointerId !== pointerId) return;
+    const dx = event.clientX - pointerLastX;
+    const dy = event.clientY - pointerLastY;
+    pointerLastX = event.clientX;
+    pointerLastY = event.clientY;
+    setPointerTargetFromDelta(dx, dy);
+    event.preventDefault();
+  });
+
+  canvas.addEventListener("pointerup", finishPointer);
+  canvas.addEventListener("pointercancel", finishPointer);
 
   presetButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -467,6 +587,15 @@ export function mountNonlinearPhase(root) {
     });
   });
 
+  centerHandButton.addEventListener("click", () => {
+    handTarget = clampHandTarget({
+      lateralPositionM: 0,
+      angleRad: 0,
+    }, actuatorLimits);
+    manualControlUsed = true;
+    render();
+  });
+
   flow.addEventListener("input", () => {
     flowOut.value = `${Number(flow.value).toFixed(1)} L/min`;
   });
@@ -489,6 +618,30 @@ export function mountNonlinearPhase(root) {
   resetButton.addEventListener("click", () => {
     configure({ preserveFlow: true });
   });
+
+  function frame(now) {
+    rafId = null;
+    if (!active) return;
+
+    const elapsed = Math.min((now - lastFrameMs) / 1000, 0.05);
+    lastFrameMs = now;
+
+    if (!paused && !stoppedReason) {
+      accumulator += elapsed * Number(playback.value);
+      let steps = 0;
+      while (accumulator >= DT && steps < 40) {
+        step();
+        accumulator -= DT;
+        steps += 1;
+        if (stoppedReason) break;
+      }
+      if (steps >= 40) accumulator = 0;
+      recordHistory();
+    }
+
+    render();
+    rafId = requestAnimationFrame(frame);
+  }
 
   configure({ preserveFlow: false });
 
