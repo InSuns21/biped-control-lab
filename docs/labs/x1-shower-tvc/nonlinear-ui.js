@@ -42,6 +42,7 @@ import {
   lqrHandTarget,
 } from "../../js/shower/flexible/state-feedback-controller.js";
 import {
+  automaticGameAimLookaheadS,
   automaticGameHandTarget,
   FIXED_STATE_FEEDBACK_GAIN_SCALE,
   referenceEquilibriumKinematics,
@@ -774,22 +775,22 @@ export function mountNonlinearPhase(root) {
         toolbar: "Human: タップして開始後、3D画面をドラッグ",
       },
       p: {
-        help: "自動プレイです。P制御が先端の位置・角度誤差を見て手元を自動操作します。あなたの操作は不要です。",
+        help: "自動プレイです。P制御が局所誤差だけで手元を操作します。高難度では制御則の限界で失敗することがあります。",
         play: "Auto P: START後に3・2・1で開始。操作せず、制御器の照準と安定化を観察します。",
         toolbar: "Auto P: controllerが手元を自動操作",
       },
       pd: {
-        help: "自動プレイです。PD制御が先端の誤差に加えて速度も見て手元を自動操作します。あなたの操作は不要です。",
+        help: "自動プレイです。PD制御が局所誤差と速度を使います。Expertまでは追従できますが、Fast 22では限界が見えます。",
         play: "Auto PD: START後に3・2・1で開始。操作せず、速度フィードバックの効果を観察します。",
         toolbar: "Auto PD: controllerが手元を自動操作",
       },
       state: {
-        help: "自動プレイです。State FBがホース内部の状態まで使って手元を自動操作します。あなたの操作は不要です。",
+        help: "自動プレイです。State FBが内部状態と0.12秒先の照準参照を使って手元を自動操作します。",
         play: "Auto State FB: START後に3・2・1で開始。操作せず、full-state制御を観察します。",
         toolbar: "Auto State FB: controllerが手元を自動操作",
       },
       lqr: {
-        help: "自動プレイです。LQRがfull-state feedbackで手元を自動操作します。初回START時だけ制御器設計を計算します。",
+        help: "自動プレイです。LQRがモデル整合な定常参照と0.12秒先の照準を使います。初回START時だけ制御器設計を計算します。",
         play: "Auto LQR: START後に3・2・1で開始。操作せず、LQRの安定化と照準を観察します。",
         toolbar: "Auto LQR: controllerが手元を自動操作",
       },
@@ -967,8 +968,8 @@ export function mountNonlinearPhase(root) {
       kicker: `${gameState.stage.title} · ${controlModeLabel(runMode)}`,
       title: success ? "SUCCESS" : "FAILED",
       body: success
-        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`
-        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`,
+        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean flex RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`
+        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean flex RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`,
       score: `SCORE ${gameState.score}`,
       showRestart: true,
     });
@@ -1410,6 +1411,21 @@ export function mountNonlinearPhase(root) {
       gameState?.status === "running"
       && controlMode !== "human"
     ) {
+      const difficulty = gameDifficultyById(
+        gameState.difficultyId,
+      );
+      const lookaheadS = automaticGameAimLookaheadS(
+        controlMode,
+      );
+      const controlAimTarget = lookaheadS > 0
+        ? buildAimTarget(
+            difficulty,
+            Math.min(
+              difficulty.durationS,
+              gameState.elapsedS + lookaheadS,
+            ),
+          )
+        : aimTarget;
       const automatic = automaticGameHandTarget(
         controlMode,
         {
@@ -1421,7 +1437,7 @@ export function mountNonlinearPhase(root) {
           equilibriumReaction: reactionForAngles(
             equilibrium.anglesRad,
           ),
-          aimTarget,
+          aimTarget: controlAimTarget,
           lqrDesign: activeLqrDesign,
           limits: actuatorLimits,
           stateGainScale: FIXED_STATE_FEEDBACK_GAIN_SCALE,
