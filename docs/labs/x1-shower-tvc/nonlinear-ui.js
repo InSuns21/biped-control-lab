@@ -546,15 +546,7 @@ export function mountNonlinearPhase(root) {
     flow.disabled = locked;
     playback.disabled = locked;
     controlModeSelect.disabled = locked;
-    controlModeSelect.addEventListener("change", () => {
-    if (gameState) {
-      setControlMode("human");
-      return;
-    }
-    setControlMode(controlModeSelect.value);
-  });
-
-  presetButtons.forEach((button) => {
+    presetButtons.forEach((button) => {
       button.disabled = locked;
     });
     handPulseButtons.forEach((button) => {
@@ -1162,6 +1154,14 @@ export function mountNonlinearPhase(root) {
       });
     },
   );
+
+  controlModeSelect.addEventListener("change", () => {
+    if (gameState) {
+      setControlMode("human");
+      return;
+    }
+    setControlMode(controlModeSelect.value);
+  });
 
   presetButtons.forEach((button) => {
     button.addEventListener("click", async () => {
