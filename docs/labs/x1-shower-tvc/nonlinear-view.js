@@ -278,7 +278,7 @@ export function createNonlinearView({
     head: "#8b949e",
     accent: cssColor("--accent", "#79a8ff"),
     danger: cssColor("--danger", "#ff8787"),
-    hand: colors.hand,
+    hand: "#49a078",
     target: "#2f8f83",
   };
 
