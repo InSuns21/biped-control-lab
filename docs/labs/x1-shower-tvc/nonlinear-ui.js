@@ -782,6 +782,8 @@ export function mountNonlinearPhase(root) {
       handBoundary: currentBoundary,
       handTarget,
       handReaction: lastBoundaryDiagnostics,
+      aimTarget,
+      aimSample,
       showNodes: showNodes.checked,
       stoppedReason,
     };
@@ -869,6 +871,9 @@ export function mountNonlinearPhase(root) {
       observedOnsetS = simTime;
     }
 
+    const reaction = reactionForState();
+    updateAimSample(current, reaction);
+
     if (gameState?.status === "running") {
       gameState = updateGameState(
         gameState,
@@ -878,6 +883,10 @@ export function mountNonlinearPhase(root) {
             current.tipAngleRad - equilibrium.kinematics.tipAngleRad,
           handPowerW: lastBoundaryDiagnostics.handPowerW,
           actuatorSaturated: anySaturation(lastActuatorSaturation),
+          waterHit: Boolean(aimSample?.hit),
+          waterMissDistanceM:
+            aimSample?.missDistanceM ?? Infinity,
+          aimQuality: aimSample?.aimQuality ?? 0,
         },
         DT,
       );
@@ -886,6 +895,7 @@ export function mountNonlinearPhase(root) {
         paused = true;
         pauseButton.textContent = "再開";
         setGameControlLock(false);
+        showGameResult();
       }
     }
 
@@ -1030,11 +1040,14 @@ export function mountNonlinearPhase(root) {
 
   gameDifficultyButtons.forEach((button) => {
     button.addEventListener("click", async () => {
-      await startGame(button.dataset.gameStage);
+      await startGame(button.dataset.gameDifficulty);
     });
   });
 
   gameRestartButton.addEventListener("click", () => {
+    restartGame();
+  });
+  resultRestartButton.addEventListener("click", () => {
     restartGame();
   });
 
