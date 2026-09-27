@@ -86,6 +86,142 @@ function equilibriumNozzleOrigin(
   ];
 }
 
+function aimingReferenceCandidate({
+  nozzle0,
+  outlet0,
+  target,
+  angleRad,
+  limits,
+}) {
+  const rotatedNozzle = rotateRodVector(nozzle0, angleRad);
+  const rotatedOutlet = normalize2(
+    rotateRodVector(outlet0, angleRad),
+  );
+  const targetFromRotatedNozzle = [
+    target.center[0] - rotatedNozzle[0],
+    target.center[1] - rotatedNozzle[1],
+  ];
+  const baseSignedMiss = cross2(
+    rotatedOutlet,
+    targetFromRotatedNozzle,
+  );
+
+  // A lateral base shift changes signed miss by d_y * x_hand.
+  const rawLateralPositionM = Math.abs(rotatedOutlet[1]) > 1e-7
+    ? -baseSignedMiss / rotatedOutlet[1]
+    : 0;
+  const lateralPositionM = Math.min(
+    limits.lateralMaxM,
+    Math.max(limits.lateralMinM, rawLateralPositionM),
+  );
+
+  const movedNozzle = [
+    lateralPositionM + rotatedNozzle[0],
+    rotatedNozzle[1],
+  ];
+  const toTarget = [
+    target.center[0] - movedNozzle[0],
+    target.center[1] - movedNozzle[1],
+  ];
+  const residualSignedMissM = cross2(
+    rotatedOutlet,
+    toTarget,
+  );
+  const forwardDistanceM = dot2(
+    rotatedOutlet,
+    toTarget,
+  );
+
+  const maxRayDistanceM = target.maxRayDistanceM
+    ?? target.referenceDistanceM
+    ?? Infinity;
+  const backwardPenalty = forwardDistanceM <= 0
+    ? 10 + Math.abs(forwardDistanceM)
+    : 0;
+  const rangePenalty = Number.isFinite(maxRayDistanceM)
+    && forwardDistanceM > maxRayDistanceM
+    ? 4 * (forwardDistanceM - maxRayDistanceM)
+    : 0;
+
+  // Miss distance dominates. A tiny pose regularizer makes centered targets
+  // select the neutral hand pose when several solutions are equivalent.
+  const xRange = Math.max(
+    1e-9,
+    limits.lateralMaxM - limits.lateralMinM,
+  );
+  const angleRange = Math.max(
+    1e-9,
+    limits.angleMaxRad - limits.angleMinRad,
+  );
+  const poseRegularizer = 1e-5 * (
+    Math.abs(lateralPositionM) / xRange
+    + Math.abs(angleRad) / angleRange
+  );
+
+  return {
+    angleRad,
+    lateralPositionM,
+    rawLateralPositionM,
+    outletDirection: rotatedOutlet,
+    residualSignedMissM,
+    forwardDistanceM,
+    cost:
+      Math.abs(residualSignedMissM)
+      + backwardPenalty
+      + rangePenalty
+      + poseRegularizer,
+  };
+}
+
+function searchAimingReference({
+  nozzle0,
+  outlet0,
+  target,
+  limits,
+}) {
+  let lower = limits.angleMinRad;
+  let upper = limits.angleMaxRad;
+  let best = null;
+
+  // Coarse search followed by two deterministic local refinements. This is
+  // cheap enough to run each physics step and, unlike "angle first, x second",
+  // respects both hand travel constraints jointly.
+  for (let pass = 0; pass < 3; pass += 1) {
+    const samples = pass === 0 ? 41 : 17;
+    const spacing = (upper - lower) / (samples - 1);
+
+    for (let i = 0; i < samples; i += 1) {
+      const angleRad = lower + i * spacing;
+      const candidate = aimingReferenceCandidate({
+        nozzle0,
+        outlet0,
+        target,
+        angleRad,
+        limits,
+      });
+      if (
+        best === null
+        || candidate.cost < best.cost
+      ) {
+        best = candidate;
+      }
+    }
+
+    if (pass < 2) {
+      lower = Math.max(
+        limits.angleMinRad,
+        best.angleRad - spacing,
+      );
+      upper = Math.min(
+        limits.angleMaxRad,
+        best.angleRad + spacing,
+      );
+    }
+  }
+
+  return best;
+}
+
 export function aimingHandReference({
   equilibriumKinematics,
   equilibriumReaction,
@@ -103,6 +239,7 @@ export function aimingHandReference({
         ...equilibriumReaction.outletDirection,
       ],
       residualSignedMissM: 0,
+      forwardDistanceM: 0,
     };
   }
 
@@ -113,80 +250,25 @@ export function aimingHandReference({
   const outlet0 = normalize2(
     equilibriumReaction.outletDirection,
   );
-  const targetVector = [
-    target.center[0] - nozzle0[0],
-    target.center[1] - nozzle0[1],
-  ];
-  const desiredOutletDirection = normalize2(targetVector);
-
-  // Adding a positive rod angle uses the [cos sin; -sin cos] convention,
-  // hence the minus sign relative to the usual atan2(cross, dot).
-  const rawAngleRad = -Math.atan2(
-    cross2(outlet0, desiredOutletDirection),
-    dot2(outlet0, desiredOutletDirection),
-  );
-  const angleRad = clampHandTarget(
-    {
-      lateralPositionM: 0,
-      angleRad: rawAngleRad,
-    },
-    limits,
-  ).angleRad;
-
-  const rotatedNozzle = rotateRodVector(nozzle0, angleRad);
-  const rotatedOutlet = normalize2(
-    rotateRodVector(outlet0, angleRad),
-  );
-
-  const targetFromRotatedNozzle = [
-    target.center[0] - rotatedNozzle[0],
-    target.center[1] - rotatedNozzle[1],
-  ];
-  const baseSignedMiss = cross2(
-    rotatedOutlet,
-    targetFromRotatedNozzle,
-  );
-
-  // A lateral base shift changes signed ray miss by d_y * x_hand.
-  // Solve that scalar exactly when the outlet is not horizontal.
-  const rawLateralPositionM = Math.abs(rotatedOutlet[1]) > 1e-6
-    ? -baseSignedMiss / rotatedOutlet[1]
-    : 0;
-
-  const referenceTarget = clampHandTarget(
-    {
-      lateralPositionM: rawLateralPositionM,
-      angleRad,
-    },
-    limits,
-  );
-
-  const movedNozzle = transformRodPoint(
+  const best = searchAimingReference({
     nozzle0,
-    referenceTarget,
-  );
-  const movedOutlet = normalize2(
-    rotateRodVector(
-      outlet0,
-      referenceTarget.angleRad,
-    ),
-  );
-  const targetFromMovedNozzle = [
-    target.center[0] - movedNozzle[0],
-    target.center[1] - movedNozzle[1],
-  ];
+    outlet0,
+    target,
+    limits,
+  });
 
   return {
-    target: referenceTarget,
-    rawTarget: {
-      lateralPositionM: rawLateralPositionM,
-      angleRad: rawAngleRad,
+    target: {
+      lateralPositionM: best.lateralPositionM,
+      angleRad: best.angleRad,
     },
-    desiredOutletDirection,
-    residualSignedMissM: cross2(
-      movedOutlet,
-      targetFromMovedNozzle,
-    ),
+    rawTarget: {
+      lateralPositionM: best.rawLateralPositionM,
+      angleRad: best.angleRad,
+    },
+    desiredOutletDirection: [...best.outletDirection],
+    residualSignedMissM: best.residualSignedMissM,
+    forwardDistanceM: best.forwardDistanceM,
   };
 }
 
