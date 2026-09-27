@@ -52,8 +52,6 @@ function normalizedState(system, stateInput) {
   ) {
     throw new RangeError("flow state must match segmentCount");
   }
-  anglesRad[0] = system.params.baseAngleRad;
-  angularRatesRadS[0] = 0;
   return { anglesRad, angularRatesRadS };
 }
 
@@ -162,6 +160,78 @@ export function generalizedConveyingFlowForce(
 
 export function createConveyingFlowGeneralizedForce(options) {
   return ({ system, state }) => generalizedConveyingFlowForce(
+    system,
+    state,
+    options,
+  );
+}
+
+
+export function conveyingFlowCartesianForces(
+  system,
+  stateInput,
+  {
+    flowSpeedMps,
+    fluidMassPerM = system.params.fluidMassPerM,
+  },
+) {
+  if (!Number.isFinite(flowSpeedMps)) {
+    throw new RangeError("flowSpeedMps must be finite");
+  }
+  if (!(fluidMassPerM >= 0)) {
+    throw new RangeError("fluidMassPerM must be non-negative");
+  }
+
+  const state = normalizedState(system, stateInput);
+  const forces = [];
+  const l = system.segmentLengthM;
+  const u2 = flowSpeedMps * flowSpeedMps;
+
+  for (let i = 0; i < system.params.segmentCount; i += 1) {
+    const n = normalDerivative(state.anglesRad[i]);
+    const scalar = -2
+      * fluidMassPerM
+      * flowSpeedMps
+      * l
+      * state.angularRatesRadS[i];
+    forces.push([
+      scalar * n[0],
+      scalar * n[1],
+    ]);
+  }
+
+  for (let i = 1; i < system.params.segmentCount; i += 1) {
+    const before = tangent(state.anglesRad[i - 1]);
+    const after = tangent(state.anglesRad[i]);
+    forces.push([
+      -fluidMassPerM * u2 * (after[0] - before[0]),
+      -fluidMassPerM * u2 * (after[1] - before[1]),
+    ]);
+  }
+
+  return forces;
+}
+
+export function conveyingFlowCartesianResultant(
+  system,
+  stateInput,
+  options,
+) {
+  return conveyingFlowCartesianForces(
+    system,
+    stateInput,
+    options,
+  ).reduce(
+    (sum, force) => [
+      sum[0] + force[0],
+      sum[1] + force[1],
+    ],
+    [0, 0],
+  );
+}
+
+export function createConveyingFlowCartesianResultant(options) {
+  return ({ system, state }) => conveyingFlowCartesianResultant(
     system,
     state,
     options,
