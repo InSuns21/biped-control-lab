@@ -53,8 +53,13 @@ for (const marker of [
   'id="nlControlCommandMetric"',
   'id="nlLqrStateMetric"',
   'id="nlLqrDesignMetric"',
-  '<option value="state">State FB (0.55×K)</option>',
-  '<option value="lqr">LQR full-state stabilizer</option>',
+  '<option value="state">Auto: State FB — 自動プレイ</option>',
+  '<option value="lqr">Auto: LQR — 自動プレイ</option>',
+  'id="nlGameStart"',
+  'id="nlControlModeHelp"',
+  'id="nlPlayInstruction"',
+  'class="advanced-lab-panel"',
+  'class="advanced-analysis-panel"',
   'id="nlComparisonDifficulty"',
   'id="nlComparisonBody"',
   'id="nlComparisonReset"',
@@ -148,6 +153,32 @@ assert.equal(
   nonlinearUi.split('controlModeSelect.addEventListener("change"').length - 1,
   1,
   "feedback mode change handler must be registered exactly once",
+);
+
+assert.ok(
+  nonlinearUi.includes('gameStartButton.addEventListener("click"'),
+  "game must have an explicit START action",
+);
+assert.ok(
+  nonlinearUi.includes("await startGame(selectedDifficultyId)"),
+  "START must launch the selected difficulty",
+);
+assert.ok(
+  nonlinearUi.includes("selectDifficulty(button.dataset.gameDifficulty)"),
+  "difficulty buttons must select without immediately starting",
+);
+assert.ok(
+  !nonlinearUi.includes("await startGame(button.dataset.gameDifficulty)"),
+  "difficulty selection must not immediately start the game",
+);
+assert.ok(
+  nonlinearUi.includes('paused = true;\n      pauseButton.textContent = "再開";'),
+  "pre-game nonlinear physics should remain paused until START",
+);
+assert.ok(
+  html.includes("Auto: PD — 自動プレイ")
+    && html.includes("START を押すまでゲームは始まりません"),
+  "auto-play and explicit-start guidance must be visible",
 );
 
 const restartStart = nonlinearUi.indexOf("function restartGame()");
