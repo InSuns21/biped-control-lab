@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650" role="img" aria-labelledby="t d">
+<title id="t">Euler–Bernoulli 梁で4階微分が現れるまで</title>
+<desc id="d">梁の変位、傾き、曲率と、微小区間の曲げモーメント、せん断力、分布荷重を対応付ける図。</desc>
+<defs>
+<marker id="a" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#155eef"/></marker>
+<marker id="g" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#18794e"/></marker>
+<marker id="r" markerUnits="userSpaceOnUse" viewBox="0 0 10 10" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c92a2a"/></marker>
+</defs>
+<rect width="1000" height="650" rx="18" fill="#fff"/>
+<text x="500" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="24" font-weight="700" fill="#1b2430">Euler–Bernoulli 梁：曲げ復元が4階微分になるまで</text>
+
+<rect x="35" y="70" width="445" height="300" rx="14" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="58" y="102" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">形状側：変位 → 傾き → 曲率</text>
+<line x1="75" y1="292" x2="440" y2="292" stroke="#98a2ad" stroke-width="2" stroke-dasharray="6 6"/>
+<text x="438" y="317" text-anchor="end" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">基準直線 y = 0</text>
+<path d="M75 292C155 289 191 250 250 203C315 151 368 155 440 195" fill="none" stroke="#155eef" stroke-width="6" stroke-linecap="round"/>
+<circle cx="250" cy="203" r="7" fill="#155eef"/>
+<line x1="250" y1="203" x2="335" y2="163" stroke="#18794e" stroke-width="4" marker-end="url(#g)"/>
+<text x="343" y="166" font-family="system-ui,sans-serif" font-size="16" fill="#18794e">θ ≈ yₛ</text>
+<line x1="250" y1="292" x2="250" y2="208" stroke="#c92a2a" stroke-width="3" stroke-dasharray="5 5" marker-end="url(#r)"/>
+<text x="264" y="258" font-family="system-ui,sans-serif" font-size="16" fill="#c92a2a">y(s)</text>
+<text x="85" y="145" font-family="system-ui,sans-serif" font-size="16" fill="#1b2430">傾きが場所で変わる</text>
+<text x="85" y="171" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#155eef">曲率 κ ≈ yₛₛ</text>
+<text x="85" y="345" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">yₛ：傾き　　yₛₛ：曲がり具合</text>
+
+<rect x="520" y="70" width="445" height="300" rx="14" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="542" y="102" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">力学側：モーメント → せん断力 → 分布荷重</text>
+<rect x="652" y="190" width="180" height="58" rx="8" fill="#eef4ff" stroke="#155eef" stroke-width="3"/>
+<text x="742" y="215" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="#1b2430">短い梁区間</text>
+<text x="742" y="237" text-anchor="middle" font-family="system-ui,sans-serif" font-size="14" fill="#5e6b78">[s, s + Δs]</text>
+<g stroke="#c92a2a" stroke-width="3" marker-end="url(#r)">
+<line x1="675" y1="125" x2="675" y2="177"/><line x1="720" y1="125" x2="720" y2="177"/><line x1="765" y1="125" x2="765" y2="177"/><line x1="810" y1="125" x2="810" y2="177"/>
+</g>
+<text x="742" y="119" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#c92a2a">分布荷重 q_load(s)</text>
+<line x1="625" y1="258" x2="625" y2="196" stroke="#18794e" stroke-width="4" marker-end="url(#g)"/>
+<line x1="860" y1="193" x2="860" y2="255" stroke="#18794e" stroke-width="4" marker-end="url(#g)"/>
+<text x="598" y="227" font-family="system-ui,sans-serif" font-size="15" fill="#18794e">V(s)</text>
+<text x="872" y="227" font-family="system-ui,sans-serif" font-size="15" fill="#18794e">V(s+Δs)</text>
+<path d="M640 286C602 278 593 246 610 221" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<path d="M845 286C883 278 892 246 875 221" fill="none" stroke="#155eef" stroke-width="4" marker-end="url(#a)"/>
+<text x="584" y="307" font-family="system-ui,sans-serif" font-size="15" fill="#155eef">M_b(s)</text>
+<text x="847" y="307" font-family="system-ui,sans-serif" font-size="15" fill="#155eef">M_b(s+Δs)</text>
+<text x="742" y="338" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" fill="#1b2430">M_b の場所変化が V、V の場所変化が q_load を生む</text>
+
+<text x="40" y="414" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#1b2430">微分を一本道でたどる</text>
+<g font-family="system-ui,sans-serif">
+<rect x="35" y="440" width="120" height="86" rx="11" fill="#eef4ff" stroke="#155eef" stroke-width="2"/>
+<text x="95" y="472" text-anchor="middle" font-size="20" font-weight="700" fill="#155eef">y</text><text x="95" y="499" text-anchor="middle" font-size="15" fill="#1b2430">変位</text>
+<rect x="175" y="440" width="120" height="86" rx="11" fill="#f3fbf7" stroke="#18794e" stroke-width="2"/>
+<text x="235" y="472" text-anchor="middle" font-size="20" font-weight="700" fill="#18794e">yₛ</text><text x="235" y="499" text-anchor="middle" font-size="15" fill="#1b2430">傾き</text>
+<rect x="315" y="440" width="135" height="86" rx="11" fill="#fff8ea" stroke="#b78103" stroke-width="2"/>
+<text x="382" y="472" text-anchor="middle" font-size="19" font-weight="700" fill="#9a6700">yₛₛ ≈ κ</text><text x="382" y="499" text-anchor="middle" font-size="15" fill="#1b2430">曲率</text>
+<rect x="470" y="440" width="145" height="86" rx="11" fill="#eef4ff" stroke="#155eef" stroke-width="2"/>
+<text x="542" y="472" text-anchor="middle" font-size="17" font-weight="700" fill="#155eef">M_b ≈ EI yₛₛ</text><text x="542" y="499" text-anchor="middle" font-size="15" fill="#1b2430">曲げモーメント</text>
+<rect x="635" y="440" width="145" height="86" rx="11" fill="#f3fbf7" stroke="#18794e" stroke-width="2"/>
+<text x="707" y="472" text-anchor="middle" font-size="17" font-weight="700" fill="#18794e">V ~ ∂M_b/∂s</text><text x="707" y="499" text-anchor="middle" font-size="15" fill="#1b2430">せん断力</text>
+<rect x="800" y="440" width="165" height="86" rx="11" fill="#fff1f1" stroke="#c92a2a" stroke-width="2"/>
+<text x="882" y="471" text-anchor="middle" font-size="17" font-weight="700" fill="#c92a2a">q_load ~ EI yₛₛₛₛ</text><text x="882" y="499" text-anchor="middle" font-size="15" fill="#1b2430">分布力</text>
+</g>
+<g stroke="#5e6b78" stroke-width="3" marker-end="url(#a)">
+<line x1="155" y1="483" x2="170" y2="483"/><line x1="295" y1="483" x2="310" y2="483"/><line x1="450" y1="483" x2="465" y2="483"/><line x1="615" y1="483" x2="630" y2="483"/><line x1="780" y1="483" x2="795" y2="483"/>
+</g>
+<rect x="90" y="558" width="820" height="62" rx="13" fill="#f7f8fb" stroke="#d9dee7" stroke-width="2"/>
+<text x="500" y="584" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="#1b2430">曲率 yₛₛ は「曲がり具合」。各微小区間に働く横力まで求めるには、さらに2回空間微分する。</text>
+<text x="500" y="608" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#5e6b78">そのため曲げ復元項は EI yₛₛₛₛ になる。</text>
+</svg>
