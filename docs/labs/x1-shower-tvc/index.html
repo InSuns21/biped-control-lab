@@ -13,8 +13,8 @@
   <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-4 Phase 1 可視化</strong><br>
-    Phase 1 の2D flexible-hose表示は公開監査対象です。ホース形状、シャワーヘッド、水流・反力、履歴グラフ、低流量／臨界／flutter の見え方、PC / タブレット表示は未承認です。
+    <strong>Human Visual Audit 監査中 — H1-4B nonlinear 可視化</strong><br>
+    H1-4B の finite-rotation flexible-hose表示を公開監査します。ホース形状、非線形静的平衡、シャワーヘッド、水流・反力、1〜3秒 onset、履歴グラフ、PC / タブレット表示は未承認です。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -30,6 +30,117 @@
 
   <section id="phase1Panel" class="phase-panel" role="tabpanel"
     aria-labelledby="phase1Tab">
+    <div class="model-switch" role="tablist" aria-label="Phase 1 model fidelity">
+      <button id="nonlinearModelTab" class="phase-tab" type="button" role="tab"
+        aria-selected="true" aria-controls="nonlinearModelPanel">
+        H1-4B — nonlinear
+      </button>
+      <button id="linearModelTab" class="phase-tab" type="button" role="tab"
+        aria-selected="false" aria-controls="linearModelPanel" tabindex="-1">
+        H1-4 — linear reference
+      </button>
+    </div>
+
+    <section id="nonlinearModelPanel" role="tabpanel"
+      aria-labelledby="nonlinearModelTab">
+      <div class="phase-note">
+        <strong>H1-4B 本命:</strong>
+        inextensible planar rod + finite rotation + bent shower-head momentum +
+        nonlinear conveying-flow coupling。small-angle guardで止めず、大回転の平衡と
+        自励成長を直接追います。
+      </div>
+      <div class="callout" role="note">
+        <strong>感度ケースであり実製品同定ではありません。</strong>
+        Fast 22 L/min は CI で onset ≈ 1.58 s を得た教育用組合せ
+        （EI=0.25 N·m², L=1.5 m, 低めの減衰）です。
+        ねとらぼ動画の実ホース値へフィットしたものではありません。
+      </div>
+
+      <div class="lab-layout shower-layout">
+        <section>
+          <div class="flexible-viewport">
+            <canvas id="nlCanvas" width="760" height="640"
+              data-css-height="640"
+              aria-label="Geometrically nonlinear flexible shower hose simulation"></canvas>
+          </div>
+          <div class="vector-legend" aria-label="H1-4B legend">
+            <span><i class="swatch swatch-hose"></i>非線形ホース</span>
+            <span><i class="swatch swatch-water"></i>出口水流</span>
+            <span><i class="swatch swatch-reaction"></i>曲がりヘッド反力</span>
+            <span><i class="swatch swatch-equilibrium"></i>非線形静的平衡</span>
+            <span><i class="swatch swatch-node"></i>rod node</span>
+          </div>
+        </section>
+
+        <aside class="controls">
+          <div class="control">
+            <span class="control-title">H1-4B 監査プリセット</span>
+            <div class="button-row">
+              <button type="button" data-nl-preset="baseline18">基準 18</button>
+              <button type="button" data-nl-preset="fast22">Fast 22</button>
+              <button type="button" data-nl-preset="high30">High-flow 30</button>
+            </div>
+            <small id="nlPresetNote"></small>
+          </div>
+
+          <div class="control">
+            <label for="nlFlow">流量 Q <output id="nlFlowOut">22.0 L/min</output></label>
+            <input id="nlFlow" type="range" min="0" max="30" value="22" step="0.5">
+            <small>流量変更時は非線形静的平衡を continuation で再計算します。</small>
+          </div>
+
+          <div class="control">
+            <label for="nlPlayback">物理時刻の再生速度</label>
+            <select id="nlPlayback">
+              <option value="0.5">×0.5</option>
+              <option value="1" selected>×1</option>
+              <option value="2">×2</option>
+            </select>
+          </div>
+
+          <label class="check-row">
+            <input id="nlShowNodes" type="checkbox" checked>
+            rod nodes を表示
+          </label>
+
+          <div class="button-row">
+            <button id="nlPause" type="button">一時停止</button>
+            <button id="nlReset" type="button">同じ条件で Reset</button>
+          </div>
+
+          <div class="metrics shower-metrics">
+            <div class="metric"><span>preset</span><strong id="nlPresetMetric">-</strong></div>
+            <div class="metric"><span>Q</span><strong id="nlFlowMetric">-</strong></div>
+            <div class="metric"><span>内部流速 U</span><strong id="nlSpeedMetric">-</strong></div>
+            <div class="metric"><span>EI / L</span><strong id="nlMaterialMetric">-</strong></div>
+            <div class="metric"><span>非線形平衡 tip</span><strong id="nlEquilibriumMetric">-</strong></div>
+            <div class="metric"><span>現在 tip angle</span><strong id="nlAngleMetric">-</strong></div>
+            <div class="metric"><span>dynamic RMS</span><strong id="nlRmsMetric">-</strong></div>
+            <div class="metric"><span>観測 onset</span><strong id="nlOnsetMetric">-</strong></div>
+            <div class="metric"><span>CI onset reference</span><strong id="nlCiMetric">-</strong></div>
+            <div class="metric"><span>sim time</span><strong id="nlTimeMetric">-</strong></div>
+            <div class="metric"><span>status</span><strong id="nlStatusMetric">-</strong></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="history-grid">
+        <canvas id="nlRmsChart" width="700" height="190" data-css-height="190"
+          aria-label="Nonlinear hose RMS history"></canvas>
+        <canvas id="nlTipChart" width="700" height="190" data-css-height="190"
+          aria-label="Nonlinear shower tip displacement history"></canvas>
+      </div>
+
+      <section class="panel">
+        <h2>H1-4Bで変わったこと</h2>
+        <p>ホースを横変位 y(s) の小変形としてではなく、各segmentの有限角度から中心線を再構成します。segment長は一定なので、大きく回転しても人工的な伸びや「98°だから即モデル外」という扱いにはなりません。</p>
+        <p>破線はその流量・材質で解いた<strong>非線形静的平衡</strong>です。そこへ小さな摂動を一度だけ与え、内部流れとの連成だけでRMSが20 mmまたは初期値の3倍へ達した時刻を onset と表示します。継続的な見た目用正弦波はありません。</p>
+        <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。ただしパラメータは実物同定値ではなく、動画の「すぐ暴れる」時間スケールが非線形モデル内で成立可能かを見る感度ケースです。</p>
+      </section>
+    </section>
+
+    <section id="linearModelPanel" role="tabpanel"
+      aria-labelledby="linearModelTab" hidden>
     <div class="phase-note">
       <strong>本命モデル:</strong>
       8要素 Euler–Bernoulli FEM + internal-flow coupling + 曲がりシャワーヘッド境界。
@@ -137,6 +248,7 @@
       <p>縦方向はホースの基準軸、横方向が小変形横変位です。太線が実際のFEM状態、破線がその流量での静的平衡形状です。初期に8 mmスケールの滑らかな変位と小さなbroadband速度摂動を一度だけ与えます。連続的な見た目用正弦波や外力は加えていません。既定の再生速度は×4で、数十秒の物理時刻を短時間で監査できます。</p>
       <p><strong>低流量</strong>では摂動が減衰し、<strong>臨界付近</strong>では減衰が遅くなり、<strong>Flutter</strong>では内部流れとの連成によって振幅が成長します。線形 small-deflection の妥当範囲を超えた場合は、描画を飽和させず停止して明示します。</p>
       <p>このH1-4では手元境界は固定です。次のH1-5で、手元位置・角度をPointer操作して暴れるホースを人間が抑えるゲームへ進めます。</p>
+    </section>
     </section>
   </section>
 
