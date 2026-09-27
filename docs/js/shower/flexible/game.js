@@ -536,6 +536,7 @@ export function gameHudSnapshot(state) {
       scoreLabel: "-",
       targetLabel: "-",
       hitLabel: "-",
+      rmsLabel: "-",
       effortLabel: "-",
     };
   }
@@ -554,6 +555,7 @@ export function gameHudSnapshot(state) {
     targetLabel:
       `${(100 * state.insideFraction).toFixed(0)}% / ${(100 * state.stage.minInsideFraction).toFixed(0)}%`,
     hitLabel,
+    rmsLabel: `${(1000 * state.rmsMeanM).toFixed(1)} mm`,
     effortLabel:
       `${state.effortJ.toFixed(2)} / ${state.stage.effortBudgetJ.toFixed(2)} J`,
   };
