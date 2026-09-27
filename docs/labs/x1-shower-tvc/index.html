@@ -13,8 +13,8 @@
   <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-5-0 moving hand boundary</strong><br>
-    finite-rotation hose に手元境界入力を加え、境界反力・仕事率・累積仕事を公開監査します。PC / タブレット表示は未承認です。
+    <strong>Human Visual Audit 監査中 — H1-5-1 Direct Pointer Control</strong><br>
+    キャンバスをマウス／指でdragして手元境界を直接操作します。横dragが横位置target、縦dragが角度targetです。速度・加速度制限、境界反力、仕事率、PC / タブレット操作を公開監査します。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -82,8 +82,15 @@
             <small>流量変更時は非線形静的平衡を continuation で再計算します。</small>
           </div>
 
+          <div class="control pointer-help">
+            <span class="control-title">Direct Pointer Control</span>
+            <p><strong>キャンバスをdrag</strong></p>
+            <small>← → : 手元横位置 target<br>↑ ↓ : 手元角度 target<br>指を離す: target保持</small>
+            <button id="nlCenterHand" type="button">手元targetを中央へ戻す</button>
+          </div>
+
           <div class="control">
-            <span class="control-title">手元 pulse</span>
+            <span class="control-title">H1-5-0 pulse（比較用）</span>
             <div class="button-row hand-pulse-grid">
               <button type="button" data-hand-pulse="left">← 12 mm</button>
               <button type="button" data-hand-pulse="right">12 mm →</button>
@@ -130,10 +137,13 @@
             <div class="metric"><span>dynamic RMS</span><strong id="nlRmsMetric">-</strong></div>
             <div class="metric"><span>観測 onset</span><strong id="nlOnsetMetric">-</strong></div>
             <div class="metric"><span>CI onset reference</span><strong id="nlCiMetric">-</strong></div>
-            <div class="metric"><span>手元 x / θ</span><strong id="nlHandMetric">-</strong></div>
+            <div class="metric"><span>手元 actual x / θ</span><strong id="nlHandMetric">-</strong></div>
+            <div class="metric"><span>手元 target x* / θ*</span><strong id="nlHandTargetMetric">-</strong></div>
             <div class="metric"><span>手元反力 F / M</span><strong id="nlHandReactionMetric">-</strong></div>
             <div class="metric"><span>手元仕事率</span><strong id="nlHandPowerMetric">-</strong></div>
             <div class="metric"><span>累積境界仕事</span><strong id="nlHandWorkMetric">-</strong></div>
+            <div class="metric"><span>actuator limit</span><strong id="nlActuatorMetric">-</strong></div>
+            <div class="metric"><span>Pointer</span><strong id="nlPointerMetric">-</strong></div>
             <div class="metric"><span>sim time</span><strong id="nlTimeMetric">-</strong></div>
             <div class="metric"><span>status</span><strong id="nlStatusMetric">-</strong></div>
           </div>
@@ -145,6 +155,10 @@
           aria-label="Nonlinear hose RMS history"></canvas>
         <canvas id="nlTipChart" width="700" height="190" data-css-height="190"
           aria-label="Nonlinear shower tip displacement history"></canvas>
+        <canvas id="nlHandXChart" width="700" height="190" data-css-height="190"
+          aria-label="Hand lateral actual and target history"></canvas>
+        <canvas id="nlHandAngleChart" width="700" height="190" data-css-height="190"
+          aria-label="Hand angle actual and target history"></canvas>
       </div>
 
       <section class="panel">
@@ -153,6 +167,7 @@
         <p>破線はその流量・材質で解いた<strong>非線形静的平衡</strong>です。そこへ小さな摂動を一度だけ与え、内部流れとの連成だけでRMSが20 mmまたは初期値の3倍へ達した時刻を onset と表示します。継続的な見た目用正弦波はありません。</p>
         <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。</p>
         <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
+        <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
       </section>
     </section>
 
