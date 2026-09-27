@@ -1371,7 +1371,7 @@ Human Visual Auditでは、
 
 という当初のゲーム体験を第一版完成とする。
 
-#### H1-5-4A — playability calibration
+#### H1-5-4A — playability calibration ✅（Human Visual Audit 継続中）
 
 Human Visual Audit で次の2点を確認した。
 
@@ -1458,7 +1458,69 @@ simple feedback / skilled human -> success possible
 - ideal / assisted aim traceでは各difficultyがSUCCESS可能
 - Insaneのrequired hit fractionとfailure envelopeを回帰固定
 
-H1-5-4A 完了後に H1-6 へ進む。
+H1-5-4A 最終設定:
+
+```text
+Easy
+  target: center -> +200 mm
+  move:   2.5--3.7 s
+  radius: 150 mm
+  min hit: 45%
+  authority: 1.25x
+
+Normal
+  target: +160 -> -160 mm
+  radius: 120 mm
+  min hit: 50%
+  authority: 1.12x
+
+Expert
+  target: +130 -> -140 -> +160 -> -120 mm
+  radius: 90 mm
+  min hit: 55%
+  authority: 1.00x
+
+Insane
+  Fast 22
+  target: +160 -> -160 mm
+  radius: 130 mm
+  min hit: 32%
+  stability dwell: 25%
+  fail RMS: 0.55 m
+  fail hold: 0.90 s
+  authority: 1.18x
+```
+
+zero-input pure game-rule regression:
+
+```text
+Easy   -> FAILED aim ratio, hit ~= 33.1%
+Normal -> FAILED aim ratio, hit ~=  6.1%
+Expert -> FAILED aim ratio, hit ~=  9.2%
+Insane -> FAILED aim ratio, hit ~=  8.3%
+```
+
+actual nonlinear zero-input regression:
+
+```text
+Easy   -> FAILED aim ratio, hit ~= 32.8%, stable ~= 100%
+Normal -> FAILED aim ratio, hit ~=  6.1%, stable ~= 100%
+Expert -> FAILED aim ratio, hit ~=  9.3%, stable ~= 100%
+Insane -> FAILED aim ratio, hit ~=  7.4%, stable ~= 26.8%
+```
+
+assisted reachable trace は4難易度すべて SUCCESS / score ~= 919。
+
+したがって、
+
+- 無操作SUCCESSは禁止
+- Easyも途中から操作必須
+- Normal / Expertは追従操作が必須
+- InsaneはFast 22を維持しつつ、無操作即死ではなく照準不足で失敗
+
+まで自動回帰で固定した。
+
+H1-5-4A 完了後は H1-6 へ進む。
 
 ### H2-0 — true 3D flexible hose（長期拡張）
 
