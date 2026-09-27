@@ -179,26 +179,27 @@ const fastSolved = solveContinuation(optionsFor("fast22"));
 const openBaseline = simulate(baselineSolved, null, 3);
 const openFast = simulate(fastSolved, null, 3);
 
-const positionGains = [-0.15, -0.35];
-const angleGains = [-0.15, -0.35];
-const velocityGains = [-0.03, -0.08];
-const angularRateGains = [-0.03, -0.08];
-
-const candidates = [];
-for (const lateralPositionGain of positionGains) {
-  for (const angleGain of angleGains) {
-    for (const lateralVelocityGainS of velocityGains) {
-      for (const angularRateGainS of angularRateGains) {
-        candidates.push({
-          lateralPositionGain,
-          lateralVelocityGainS,
-          angleGain,
-          angularRateGainS,
-        });
-      }
-    }
-  }
-}
+const candidates = [
+  { k: -0.02, d: 0 },
+  { k: -0.04, d: 0 },
+  { k: -0.06, d: 0 },
+  { k: -0.08, d: 0 },
+  { k: -0.10, d: 0 },
+  { k: -0.12, d: 0 },
+  { k: -0.15, d: 0 },
+  { k: -0.02, d: -0.005 },
+  { k: -0.04, d: -0.008 },
+  { k: -0.06, d: -0.010 },
+  { k: -0.08, d: -0.015 },
+  { k: -0.10, d: -0.020 },
+  { k: -0.12, d: -0.025 },
+  { k: -0.15, d: -0.030 },
+].map(({ k, d }) => ({
+  lateralPositionGain: k,
+  lateralVelocityGainS: d,
+  angleGain: k,
+  angularRateGainS: d,
+}));
 
 const results = candidates.map((gains) => {
   const baseline = simulate(baselineSolved, gains, 3);
