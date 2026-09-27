@@ -31,7 +31,8 @@
     "check:hand-actuator": "node scripts/check-hand-actuator.mjs",
     "check:pointer-control": "node scripts/check-pointer-control.mjs",
     "check:shower-game": "node scripts/check-shower-game.mjs",
-    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:flexible-view && npm run check:fast-onset && npm run check:nonlinear-rod && npm run check:nonlinear-head && npm run check:nonlinear-flow && npm run check:nonlinear-scenario && npm run check:nonlinear-calibration && npm run check:nonlinear-combinations && npm run check:nonlinear-refinement && npm run check:nonlinear-view && npm run check:nonlinear-boundary && npm run check:hand-actuator && npm run check:pointer-control && npm run check:shower-game && npm run check:math && npm run check:md && npm run check:links"
+    "check:3d-game": "node scripts/check-3d-game-view.mjs",
+    "test": "npm run prepare:web && npm run check:web && npm run check:routing && npm run check:js && npm run check:svg && npm run check:models && npm run check:shower && npm run check:flexible && npm run check:conveying && npm run check:shower-head && npm run check:flexible-view && npm run check:fast-onset && npm run check:nonlinear-rod && npm run check:nonlinear-head && npm run check:nonlinear-flow && npm run check:nonlinear-scenario && npm run check:nonlinear-calibration && npm run check:nonlinear-combinations && npm run check:nonlinear-refinement && npm run check:nonlinear-view && npm run check:nonlinear-boundary && npm run check:hand-actuator && npm run check:pointer-control && npm run check:shower-game && npm run check:3d-game && npm run check:math && npm run check:md && npm run check:links"
   },
   "devDependencies": {
     "katex": "0.16.38",
