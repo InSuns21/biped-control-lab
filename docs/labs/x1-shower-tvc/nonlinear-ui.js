@@ -21,12 +21,15 @@ import {
   DEFAULT_HAND_ACTUATOR_LIMITS,
   handActuatorLimitsLabel,
   pointerDeltaToHandTarget,
+  scaleHandActuatorLimits,
   stepHandActuator,
 } from "../../js/shower/flexible/hand-actuator.js";
 import {
-  createGameState,
+  createAimTarget,
+  createDifficultyGameState,
+  evaluateWaterAim,
+  gameDifficultyById,
   gameHudSnapshot,
-  gameStageById,
   updateGameState,
 } from "../../js/shower/flexible/game.js";
 import {
@@ -176,16 +179,23 @@ export function mountNonlinearPhase(root) {
   const handPulseButtons = [
     ...root.querySelectorAll("[data-hand-pulse]"),
   ];
-  const gameStageButtons = [
-    ...root.querySelectorAll("[data-game-stage]"),
+  const gameDifficultyButtons = [
+    ...root.querySelectorAll("[data-game-difficulty]"),
   ];
   const gameRestartButton = root.querySelector("#nlGameRestart");
+  const resultRestartButton = root.querySelector("#nlResultRestart");
+  const gameOverlay = root.querySelector("#nlGameOverlay");
+  const gameOverlayKicker = root.querySelector("#nlGameOverlayKicker");
+  const gameOverlayTitle = root.querySelector("#nlGameOverlayTitle");
+  const gameOverlayBody = root.querySelector("#nlGameOverlayBody");
+  const gameOverlayScore = root.querySelector("#nlGameOverlayScore");
 
   const gameStageMetric = root.querySelector("#nlGameStage");
   const gameStatusMetric = root.querySelector("#nlGameStatus");
   const gameTimeMetric = root.querySelector("#nlGameTime");
   const gameScoreMetric = root.querySelector("#nlGameScore");
   const gameInsideMetric = root.querySelector("#nlGameInside");
+  const gameHitMetric = root.querySelector("#nlGameHit");
   const gameEffortMetric = root.querySelector("#nlGameEffort");
   const gameTargetsMetric = root.querySelector("#nlGameTargets");
 
@@ -220,8 +230,8 @@ export function mountNonlinearPhase(root) {
   });
   const game3dView = createGame3DView(game3dCanvas);
 
-  const actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
-  const actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
+  let actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
+  let actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
 
   let presetId = "fast22";
   let preset = PRESETS[presetId];
@@ -252,6 +262,8 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
   let gameState = null;
+  let aimTarget = null;
+  let aimSample = null;
   let activeVisualMode = "3d";
   let initializationBusy = false;
   const solutionCache = new Map();
@@ -280,10 +292,10 @@ export function mountNonlinearPhase(root) {
       : { ...ZERO_HAND_BOUNDARY };
   }
 
-  function reactionForState() {
+  function reactionForAngles(anglesRad) {
     return nonlinearShowerHeadReaction(
       scenario.system,
-      state.anglesRad,
+      anglesRad,
       {
         flowRateM3s: scenario.flowRateM3s,
         waterDensityKgM3: scenario.params.waterDensityKgM3,
@@ -291,6 +303,46 @@ export function mountNonlinearPhase(root) {
         head: scenario.head,
       },
     );
+  }
+
+  function reactionForState() {
+    return reactionForAngles(state.anglesRad);
+  }
+
+  function nozzleOriginFor(current, reaction) {
+    return [
+      current.tip[0] + reaction.nozzleOffsetWorldM[0],
+      current.tip[1] + reaction.nozzleOffsetWorldM[1],
+    ];
+  }
+
+  function buildAimTarget(difficulty) {
+    const equilibriumReaction = reactionForAngles(
+      equilibrium.anglesRad,
+    );
+    return createAimTarget({
+      nozzleOrigin: nozzleOriginFor(
+        equilibrium.kinematics,
+        equilibriumReaction,
+      ),
+      outletDirection: equilibriumReaction.outletDirection,
+      distanceM: difficulty.aimDistanceM,
+      normalOffsetM: difficulty.aimNormalOffsetM,
+      radiusM: difficulty.aimRadiusM,
+    });
+  }
+
+  function updateAimSample(current, reaction) {
+    if (!aimTarget) {
+      aimSample = null;
+      return null;
+    }
+    aimSample = evaluateWaterAim({
+      nozzleOrigin: nozzleOriginFor(current, reaction),
+      outletDirection: reaction.outletDirection,
+      target: aimTarget,
+    });
+    return aimSample;
   }
 
   function currentGeometry() {
@@ -381,7 +433,7 @@ export function mountNonlinearPhase(root) {
     const gameLocked = gameState?.status === "running";
     setGameControlLock(next || gameLocked);
 
-    gameStageButtons.forEach((button) => {
+    gameDifficultyButtons.forEach((button) => {
       button.disabled = next;
       button.setAttribute("aria-busy", String(next));
     });
@@ -404,7 +456,7 @@ export function mountNonlinearPhase(root) {
   function showInitializationError(error) {
     initializationBusy = false;
     setGameControlLock(false);
-    gameStageButtons.forEach((button) => {
+    gameDifficultyButtons.forEach((button) => {
       button.disabled = false;
       button.setAttribute("aria-busy", "false");
     });
@@ -472,6 +524,58 @@ export function mountNonlinearPhase(root) {
     render();
   }
 
+  function hideGameOverlay() {
+    gameOverlay.hidden = true;
+  }
+
+  function showGameOverlay({
+    kicker,
+    title,
+    body,
+    score = "",
+    showRestart = false,
+  }) {
+    gameOverlayKicker.textContent = kicker;
+    gameOverlayTitle.textContent = title;
+    gameOverlayBody.textContent = body;
+    gameOverlayScore.textContent = score;
+    resultRestartButton.hidden = !showRestart;
+    gameOverlay.hidden = false;
+  }
+
+  function showDifficultyIntro(difficulty) {
+    showGameOverlay({
+      kicker: `${difficulty.title} · ${difficulty.subtitle}`,
+      title: "STABILIZE + AIM",
+      body:
+        `RMSを抑えながら照準へ水を当てる。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
+      score: "",
+      showRestart: false,
+    });
+  }
+
+  function showGameResult() {
+    if (!gameState || gameState.status === "running") return;
+    const success = gameState.status === "success";
+    const reason = gameState.failureReason === "aim ratio"
+      ? "命中率不足"
+      : (gameState.failureReason === "target ratio"
+        ? "安定化滞在率不足"
+        : (gameState.failureReason === "failure envelope"
+          ? "failure envelope超過"
+          : ""));
+    pauseButton.disabled = true;
+    showGameOverlay({
+      kicker: gameState.stage.title,
+      title: success ? "SUCCESS" : "FAILED",
+      body: success
+        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`
+        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`,
+      score: `SCORE ${gameState.score}`,
+      showRestart: true,
+    });
+  }
+
   function updateGameHud() {
     if (initializationBusy) {
       gameStatusMetric.textContent = "LOADING…";
@@ -488,6 +592,7 @@ export function mountNonlinearPhase(root) {
       gameTimeMetric.textContent = hud.timeLabel;
       gameScoreMetric.textContent = hud.scoreLabel;
       gameInsideMetric.textContent = hud.targetLabel;
+      gameHitMetric.textContent = hud.hitLabel;
       gameEffortMetric.textContent = hud.effortLabel;
       gameTargetsMetric.textContent = "-";
       gameRestartButton.disabled = true;
@@ -503,36 +608,67 @@ export function mountNonlinearPhase(root) {
     gameTimeMetric.textContent = hud.timeLabel;
     gameScoreMetric.textContent = hud.scoreLabel;
     gameInsideMetric.textContent = hud.targetLabel;
+    gameHitMetric.textContent = hud.hitLabel;
     gameEffortMetric.textContent = hud.effortLabel;
     gameTargetsMetric.textContent =
-      `RMS ≤ ${(1000 * stage.targetRmsM).toFixed(0)} mm / Δθ ≤ ${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}°`;
+      `RMS≤${(1000 * stage.targetRmsM).toFixed(0)}mm / Δθ≤${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}° / aim R=${(1000 * (stage.aimRadiusM ?? 0)).toFixed(0)}mm`;
     gameRestartButton.disabled = false;
   }
 
   function cancelGame() {
     gameState = null;
+    aimTarget = null;
+    aimSample = null;
+    actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
+    actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
+    hideGameOverlay();
+    pauseButton.disabled = false;
     setGameControlLock(false);
     updateGameHud();
   }
 
-  async function startGame(stageId) {
+  async function startGame(difficultyId) {
     if (initializationBusy) return;
-    const stage = gameStageById(stageId);
+    const difficulty = gameDifficultyById(difficultyId);
     gameState = null;
-    presetId = stage.presetId;
+    aimTarget = null;
+    aimSample = null;
+    presetId = difficulty.presetId;
     playback.value = "1";
+    actuatorLimits = scaleHandActuatorLimits(
+      DEFAULT_HAND_ACTUATOR_LIMITS,
+      difficulty.authorityScale,
+    );
+    actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
+    showDifficultyIntro(difficulty);
 
     const ready = await configureResponsive({
       preserveFlow: false,
     });
     if (!ready) return;
 
-    gameState = createGameState(stageId);
-    paused = false;
+    aimTarget = buildAimTarget(difficulty);
+    const current = currentGeometry();
+    const reaction = reactionForState();
+    updateAimSample(current, reaction);
+    gameState = createDifficultyGameState(difficultyId);
+    paused = true;
+    pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
     updateGameHud();
     render();
+
+    window.setTimeout(() => {
+      if (
+        gameState?.difficultyId === difficultyId
+        && gameState.status === "running"
+      ) {
+        hideGameOverlay();
+        paused = false;
+        lastFrameMs = performance.now();
+      }
+    }, 650);
   }
 
   function flashRestartFeedback() {
@@ -544,12 +680,17 @@ export function mountNonlinearPhase(root) {
 
   function restartGame() {
     if (!gameState || initializationBusy) return;
-    const stageId = gameState.stageId;
+    const difficultyId = gameState.difficultyId;
+    const difficulty = gameDifficultyById(difficultyId);
     resetSimulationState();
-    gameState = createGameState(stageId);
+    aimTarget = buildAimTarget(difficulty);
+    updateAimSample(currentGeometry(), reactionForState());
+    gameState = createDifficultyGameState(difficultyId);
     paused = false;
+    pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
+    hideGameOverlay();
     updateGameHud();
     render();
     flashRestartFeedback();
@@ -645,6 +786,8 @@ export function mountNonlinearPhase(root) {
       handBoundary: currentBoundary,
       handTarget,
       handReaction: lastBoundaryDiagnostics,
+      aimTarget,
+      aimSample,
       showNodes: showNodes.checked,
       stoppedReason,
     };
@@ -732,6 +875,9 @@ export function mountNonlinearPhase(root) {
       observedOnsetS = simTime;
     }
 
+    const reaction = reactionForState();
+    updateAimSample(current, reaction);
+
     if (gameState?.status === "running") {
       gameState = updateGameState(
         gameState,
@@ -741,6 +887,10 @@ export function mountNonlinearPhase(root) {
             current.tipAngleRad - equilibrium.kinematics.tipAngleRad,
           handPowerW: lastBoundaryDiagnostics.handPowerW,
           actuatorSaturated: anySaturation(lastActuatorSaturation),
+          waterHit: Boolean(aimSample?.hit),
+          waterMissDistanceM:
+            aimSample?.missDistanceM ?? Infinity,
+          aimQuality: aimSample?.aimQuality ?? 0,
         },
         DT,
       );
@@ -749,6 +899,7 @@ export function mountNonlinearPhase(root) {
         paused = true;
         pauseButton.textContent = "再開";
         setGameControlLock(false);
+        showGameResult();
       }
     }
 
@@ -891,13 +1042,16 @@ export function mountNonlinearPhase(root) {
     });
   });
 
-  gameStageButtons.forEach((button) => {
+  gameDifficultyButtons.forEach((button) => {
     button.addEventListener("click", async () => {
-      await startGame(button.dataset.gameStage);
+      await startGame(button.dataset.gameDifficulty);
     });
   });
 
   gameRestartButton.addEventListener("click", () => {
+    restartGame();
+  });
+  resultRestartButton.addEventListener("click", () => {
     restartGame();
   });
 

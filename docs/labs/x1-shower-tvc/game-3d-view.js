@@ -292,6 +292,44 @@ export function createGame3DView(
   waterImpactMarker.visible = false;
   scene.add(waterImpactMarker);
 
+  const aimTargetGroup = new THREE.Group();
+  const aimTargetFill = new THREE.Mesh(
+    new THREE.CircleGeometry(1, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0x2f8f83,
+      transparent: true,
+      opacity: 0.14,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  const aimTargetRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.76, 1, 48),
+    new THREE.MeshBasicMaterial({
+      color: 0x2f8f83,
+      transparent: true,
+      opacity: 0.92,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  aimTargetGroup.add(aimTargetFill);
+  aimTargetGroup.add(aimTargetRing);
+  aimTargetGroup.visible = false;
+  scene.add(aimTargetGroup);
+
+  const aimClosestMarker = new THREE.Mesh(
+    new THREE.CircleGeometry(0.018, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xd95c5c,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    }),
+  );
+  aimClosestMarker.position.z = 0.012;
+  aimClosestMarker.visible = false;
+  scene.add(aimClosestMarker);
+
   const reactionArrow = new THREE.ArrowHelper(
     new THREE.Vector3(1, 0, 0),
     new THREE.Vector3(),
@@ -442,33 +480,51 @@ export function createGame3DView(
     targetRing.position.set(target.x, target.y, -0.02);
   }
 
-  function updateImpact(waterEnd) {
-    const wallZ = -0.70;
-    const nozzle = waterLine.geometry.getAttribute("position");
-    if (!nozzle || nozzle.count < 2) {
-      waterImpactMarker.visible = false;
+  function updateAimTarget(aimTarget, aimSample) {
+    if (!aimTarget?.center || !(aimTarget.radiusM > 0)) {
+      aimTargetGroup.visible = false;
+      aimClosestMarker.visible = false;
       return;
     }
-    const a = new THREE.Vector3(
-      nozzle.getX(0),
-      nozzle.getY(0),
-      nozzle.getZ(0),
+
+    const targetPosition = vec3(
+      mapRodPointToGame3D(aimTarget.center, layout),
     );
-    const b = waterEnd;
-    const dz = b.z - a.z;
-    if (Math.abs(dz) < 1e-8) {
-      waterImpactMarker.visible = false;
-      return;
+    aimTargetGroup.position.copy(targetPosition);
+    aimTargetGroup.position.z += 0.006;
+    aimTargetGroup.scale.set(
+      aimTarget.radiusM,
+      aimTarget.radiusM,
+      aimTarget.radiusM,
+    );
+    aimTargetGroup.visible = true;
+
+    const hit = Boolean(aimSample?.hit);
+    const color = hit ? 0x3ca56b : 0x2f8f83;
+    waterLine.material.color.setHex(hit ? 0x3ca56b : 0x4db7e5);
+    waterLine.material.opacity = hit ? 1 : 0.92;
+    aimTargetFill.material.color.setHex(color);
+    aimTargetFill.material.opacity = hit ? 0.28 : 0.14;
+    aimTargetRing.material.color.setHex(color);
+    aimTargetRing.material.opacity = hit ? 1 : 0.92;
+
+    if (aimSample?.closestPoint) {
+      aimClosestMarker.position.copy(
+        vec3(
+          mapRodPointToGame3D(
+            aimSample.closestPoint,
+            layout,
+          ),
+        ),
+      );
+      aimClosestMarker.position.z += 0.014;
+      aimClosestMarker.material.color.setHex(
+        hit ? 0x3ca56b : 0xd95c5c,
+      );
+      aimClosestMarker.visible = true;
+    } else {
+      aimClosestMarker.visible = false;
     }
-    const t = (wallZ - a.z) / dz;
-    if (t <= 0 || t >= 1) {
-      waterImpactMarker.visible = false;
-      return;
-    }
-    const hit = a.clone().lerp(b, t);
-    waterImpactMarker.position.copy(hit);
-    waterImpactMarker.rotation.set(0, 0, 0);
-    waterImpactMarker.visible = true;
   }
 
   function render({
@@ -477,6 +533,8 @@ export function createGame3DView(
     reaction,
     handBoundary,
     handTarget,
+    aimTarget = null,
+    aimSample = null,
   }) {
     resizeRenderer(renderer, camera, canvas);
     updateRod(currentKinematics.nodes);
@@ -487,9 +545,9 @@ export function createGame3DView(
     }, {
       opacity: 0.42,
     });
-    const head = updateHead(currentKinematics, reaction);
+    updateHead(currentKinematics, reaction);
     updateEquilibrium(equilibriumKinematics);
-    updateImpact(head.waterEnd);
+    updateAimTarget(aimTarget, aimSample);
     renderer.render(scene, camera);
   }
 

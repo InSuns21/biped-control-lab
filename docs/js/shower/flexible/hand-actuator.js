@@ -240,3 +240,30 @@ export function pointerDeltaToHandTarget(
     limits,
   );
 }
+
+
+export function scaleHandActuatorLimits(
+  limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  authorityScale = 1,
+) {
+  if (!(authorityScale > 0)) {
+    throw new RangeError("authorityScale must be positive");
+  }
+  return {
+    ...limits,
+    lateralMaxSpeedMps:
+      limits.lateralMaxSpeedMps * authorityScale,
+    lateralMaxAccelerationMps2:
+      limits.lateralMaxAccelerationMps2 * authorityScale,
+    angularMaxSpeedRadS:
+      limits.angularMaxSpeedRadS * authorityScale,
+    angularMaxAccelerationRadS2:
+      limits.angularMaxAccelerationRadS2 * authorityScale,
+    lateralNaturalRatePerS:
+      limits.lateralNaturalRatePerS
+      * Math.sqrt(authorityScale),
+    angularNaturalRatePerS:
+      limits.angularNaturalRatePerS
+      * Math.sqrt(authorityScale),
+  };
+}

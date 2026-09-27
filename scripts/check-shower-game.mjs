@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import {
+  createAimTarget,
+  createDifficultyGameState,
   createGameState,
+  evaluateWaterAim,
+  gameDifficultyById,
   gameHudSnapshot,
   gameStageById,
   scoreGameState,
+  SHOWER_GAME_DIFFICULTIES,
   SHOWER_GAME_STAGES,
   updateGameState,
   wrapAngleRad,
@@ -13,6 +18,79 @@ assert.equal(Object.keys(SHOWER_GAME_STAGES).length, 3);
 assert.equal(gameStageById("low").scenario.flowLpm, 12);
 assert.equal(gameStageById("near").scenario.flowLpm, 18);
 assert.equal(gameStageById("flutter").scenario.flowLpm, 22);
+
+assert.equal(Object.keys(SHOWER_GAME_DIFFICULTIES).length, 4);
+assert.equal(gameDifficultyById("easy").presetId, "low12");
+assert.equal(gameDifficultyById("normal").presetId, "baseline18");
+assert.equal(gameDifficultyById("expert").presetId, "baseline18");
+assert.equal(gameDifficultyById("insane").presetId, "fast22");
+assert.ok(
+  gameDifficultyById("easy").authorityScale
+    > gameDifficultyById("expert").authorityScale,
+);
+assert.ok(
+  gameDifficultyById("easy").aimRadiusM
+    > gameDifficultyById("insane").aimRadiusM,
+);
+
+for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
+  const target = createAimTarget({
+    nozzleOrigin: [0, 0],
+    outletDirection: [1, 0],
+    distanceM: difficulty.aimDistanceM,
+    normalOffsetM: difficulty.aimNormalOffsetM,
+    radiusM: difficulty.aimRadiusM,
+  });
+  const referenceAim = evaluateWaterAim({
+    nozzleOrigin: [0, 0],
+    outletDirection: [1, 0],
+    target,
+  });
+  assert.equal(
+    referenceAim.hit,
+    true,
+    `${difficulty.id} reference water ray must intersect its initial bullseye`,
+  );
+}
+
+// Physics-plane water ray / circular target geometry.
+const aimTarget = createAimTarget({
+  nozzleOrigin: [0, 0],
+  outletDirection: [1, 0],
+  distanceM: 0.5,
+  radiusM: 0.10,
+});
+const directHit = evaluateWaterAim({
+  nozzleOrigin: [0, 0],
+  outletDirection: [1, 0],
+  target: aimTarget,
+});
+assert.equal(directHit.hit, true);
+assert.ok(directHit.missDistanceM < 1e-12);
+assert.ok(directHit.aimQuality > 0.999);
+
+const nearHit = evaluateWaterAim({
+  nozzleOrigin: [0, 0.08],
+  outletDirection: [1, 0],
+  target: aimTarget,
+});
+assert.equal(nearHit.hit, true);
+assert.ok(Math.abs(nearHit.missDistanceM - 0.08) < 1e-12);
+
+const miss = evaluateWaterAim({
+  nozzleOrigin: [0, 0.16],
+  outletDirection: [1, 0],
+  target: aimTarget,
+});
+assert.equal(miss.hit, false);
+assert.ok(miss.missDistanceM > aimTarget.radiusM);
+
+const behind = evaluateWaterAim({
+  nozzleOrigin: [0.7, 0],
+  outletDirection: [1, 0],
+  target: aimTarget,
+});
+assert.equal(behind.hit, false);
 
 assert.ok(Math.abs(wrapAngleRad(3 * Math.PI) - Math.PI) < 1e-12);
 assert.ok(Math.abs(wrapAngleRad(-3 * Math.PI) + Math.PI) < 1e-12);
@@ -113,6 +191,49 @@ assert.ok(Math.abs(wasteful.netWorkJ) < 1e-9);
 assert.ok(wasteful.effortJ > 7.9);
 assert.ok(scoreGameState(wasteful) < scoreGameState(efficient));
 
+// H1-5-4: stability alone is not enough when aiming is enabled.
+let aimFailure = createDifficultyGameState("easy");
+while (aimFailure.status === "running") {
+  aimFailure = updateGameState(
+    aimFailure,
+    {
+      rmsM: 0,
+      tipAngleErrorRad: 0,
+      handPowerW: 0,
+      actuatorSaturated: false,
+      waterHit: false,
+      waterMissDistanceM: 0.20,
+      aimQuality: 0,
+    },
+    dt,
+  );
+}
+assert.equal(aimFailure.status, "failed");
+assert.equal(aimFailure.failureReason, "aim ratio");
+assert.ok(aimFailure.insideFraction > 0.999);
+assert.ok(aimFailure.aimHitFraction < 1e-9);
+
+let fullSuccess = createDifficultyGameState("normal");
+while (fullSuccess.status === "running") {
+  fullSuccess = updateGameState(
+    fullSuccess,
+    {
+      rmsM: 0.010,
+      tipAngleErrorRad: 0.02,
+      handPowerW: 0.01,
+      actuatorSaturated: false,
+      waterHit: true,
+      waterMissDistanceM: 0.01,
+      aimQuality: 0.95,
+    },
+    dt,
+  );
+}
+assert.equal(fullSuccess.status, "success");
+assert.ok(fullSuccess.aimHitFraction > 0.999);
+assert.ok(fullSuccess.insideFraction > 0.999);
+assert.ok(fullSuccess.score > 800);
+
 // HUD snapshot should remain finite and readable.
 const hud = gameHudSnapshot(efficient);
 for (const value of Object.values(hud)) {
@@ -121,7 +242,7 @@ for (const value of Object.values(hud)) {
 }
 
 console.log(
-  "H1-5-2 game-rule checks OK:",
+  "H1-5-4 game-rule checks OK:",
   JSON.stringify({
     lowScore: success.score,
     heldFailureAtS: failure.elapsedS,
@@ -129,5 +250,7 @@ console.log(
     efficientScore: scoreGameState(efficient),
     wastefulScore: scoreGameState(wasteful),
     wastefulEffortJ: wasteful.effortJ,
+    easyAimFailure: aimFailure.failureReason,
+    normalScore: fullSuccess.score,
   }),
 );

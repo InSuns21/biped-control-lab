@@ -10,11 +10,11 @@
 <main class="lab-shell shower-lab">
   <a class="back-link" href="../../#03">← 理論: PID / PDへ</a>
   <h1>Side Lab X1 — Flexible Hose Control</h1>
-  <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
+  <p class="lead">流水で暴れる柔軟ホースを手元境界から制御し、安定化しながら3D照準へ水を当てるゲームと、その背後の物理を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-5-3 3D Game View</strong><br>
-    H1-5-2 の同じ nonlinear physics / game state を Three.js の3D浴室空間へ表示します。3Dホース、ヘッド、水流、Pointer操作、PC / タブレット表示を公開監査します。
+    <strong>Human Visual Audit 監査中 — H1-5-4 3D Gameplay</strong><br>
+    Easy / Normal / Expert / Insane の難易度、3D bullseye、水命中判定、結果overlay、Pointer操作、PC / タブレット表示を公開監査します。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -52,22 +52,24 @@
       <section class="game-panel" aria-labelledby="nlGameHeading">
         <div class="game-panel-head">
           <div>
-            <h2 id="nlGameHeading">Stabilization Game</h2>
-            <p>ステージ開始後は流量・プリセット・pulse入力を固定し、キャンバスのPointer操作だけでホースを抑えます。</p>
+            <h2 id="nlGameHeading">Stabilize + Aim</h2>
+            <p>難易度を選び、Pointer操作だけでホースを抑えながら3D照準へ水を当て続けます。</p>
           </div>
           <div class="button-row game-stage-buttons">
-            <button type="button" data-game-stage="low">F2 Low</button>
-            <button type="button" data-game-stage="near">F3 Near</button>
-            <button type="button" data-game-stage="flutter">F4/F5 Flutter</button>
+            <button type="button" data-game-difficulty="easy">Easy</button>
+            <button type="button" data-game-difficulty="normal">Normal</button>
+            <button type="button" data-game-difficulty="expert">Expert</button>
+            <button type="button" data-game-difficulty="insane">Insane</button>
             <button id="nlGameRestart" type="button" disabled>Restart</button>
           </div>
         </div>
         <div class="game-metrics" aria-live="polite">
-          <div><span>Stage</span><strong id="nlGameStage">未開始</strong></div>
+          <div><span>Difficulty</span><strong id="nlGameStage">未開始</strong></div>
           <div><span>Status</span><strong id="nlGameStatus">READY</strong></div>
           <div><span>Time left</span><strong id="nlGameTime">-</strong></div>
           <div><span>Score</span><strong id="nlGameScore">-</strong></div>
-          <div><span>Target stay</span><strong id="nlGameInside">-</strong></div>
+          <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
+          <div><span>Aim hit</span><strong id="nlGameHit">-</strong></div>
           <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
           <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
         </div>
@@ -89,7 +91,16 @@
           <div id="nl3dViewPanel" role="tabpanel" aria-labelledby="nl3dViewTab">
             <div class="three-viewport game-3d-viewport">
               <canvas id="nl3dCanvas" width="900" height="640"
-                aria-label="3D flexible shower stabilization game"></canvas>
+                aria-label="3D flexible shower stabilization and aiming game"></canvas>
+              <div id="nlGameOverlay" class="game-result-overlay" hidden>
+                <div class="game-result-card">
+                  <span id="nlGameOverlayKicker" class="game-result-kicker"></span>
+                  <strong id="nlGameOverlayTitle" class="game-result-title"></strong>
+                  <p id="nlGameOverlayBody"></p>
+                  <strong id="nlGameOverlayScore" class="game-result-score"></strong>
+                  <button id="nlResultRestart" type="button" hidden>Restart</button>
+                </div>
+              </div>
             </div>
             <div class="game-3d-toolbar">
               <label for="nl3dCamera">Camera</label>
@@ -107,6 +118,7 @@
               <span><i class="swatch swatch-equilibrium"></i>equilibrium</span>
               <span><i class="swatch swatch-hand"></i>actual hand</span>
               <span><i class="swatch swatch-target"></i>hand target</span>
+              <span><i class="swatch swatch-aim"></i>aim bullseye</span>
             </div>
           </div>
 
@@ -232,6 +244,7 @@
         <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
         <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
         <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
+        <p><strong>H1-5-4:</strong> Easy / Normal / Expert / Insane で流量・安定化target・照準半径・必要命中率・手元authorityが変わります。水の命中はノズル位置とphysics outlet rayから計算し、安定化と命中率の両方を満たしたときだけ成功です。</p>
       </section>
     </section>
 
