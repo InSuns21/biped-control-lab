@@ -443,7 +443,7 @@ export function mountNonlinearPhase(root) {
   function invalidateActiveLqrDesign() {
     activeLqrDesign = null;
     lastLqrStateNorm = null;
-    if (controlMode === "lqr") {
+    if (controlMode === "state" || controlMode === "lqr") {
       controlMode = "human";
       controlModeSelect.value = "human";
     }
@@ -689,6 +689,101 @@ export function mountNonlinearPhase(root) {
     return true;
   }
 
+  function controlModeLabel(mode) {
+    if (mode === "human") return "Human";
+    if (mode === "p") return "P";
+    if (mode === "pd") return "PD";
+    if (mode === "state") return "State FB";
+    if (mode === "lqr") return "LQR";
+    return mode;
+  }
+
+  function comparisonKey(difficultyId, mode) {
+    return `${difficultyId}:${mode}`;
+  }
+
+  function recordComparisonResult() {
+    if (!gameState || gameState.status === "running") return;
+    const mode = gameState.controlMode ?? controlMode;
+    const key = comparisonKey(gameState.difficultyId, mode);
+    const previous = comparisonStats.get(key) ?? {
+      attempts: 0,
+      successes: 0,
+      bestScore: 0,
+      lastScore: 0,
+      lastHitFraction: 0,
+      lastInsideFraction: 0,
+      lastRmsMeanM: 0,
+      lastEffortJ: 0,
+      lastSaturationS: 0,
+      lastStatus: "-",
+    };
+    const next = {
+      attempts: previous.attempts + 1,
+      successes:
+        previous.successes
+        + (gameState.status === "success" ? 1 : 0),
+      bestScore: Math.max(previous.bestScore, gameState.score),
+      lastScore: gameState.score,
+      lastHitFraction: gameState.aimHitFraction,
+      lastInsideFraction: gameState.insideFraction,
+      lastRmsMeanM: gameState.rmsMeanM,
+      lastEffortJ: gameState.effortJ,
+      lastSaturationS: gameState.saturationS,
+      lastStatus: gameState.status,
+    };
+    comparisonStats.set(key, next);
+    comparisonDifficultyId = gameState.difficultyId;
+    updateComparisonTable();
+  }
+
+  function updateComparisonTable() {
+    if (!comparisonBody || !comparisonDifficultyMetric) return;
+    const difficultyId = comparisonDifficultyId;
+    comparisonDifficultyMetric.textContent = difficultyId
+      ? gameDifficultyById(difficultyId).title
+      : "未選択";
+
+    const modes = ["human", "p", "pd", "state", "lqr"];
+    comparisonBody.replaceChildren();
+
+    for (const mode of modes) {
+      const stats = difficultyId
+        ? comparisonStats.get(
+          comparisonKey(difficultyId, mode),
+        )
+        : null;
+      const row = document.createElement("tr");
+      const values = stats
+        ? [
+            controlModeLabel(mode),
+            `${stats.successes}/${stats.attempts} (${Math.round(100 * stats.successes / stats.attempts)}%)`,
+            String(stats.lastScore),
+            String(stats.bestScore),
+            `${(100 * stats.lastHitFraction).toFixed(0)}%`,
+            `${(1000 * stats.lastRmsMeanM).toFixed(1)} mm`,
+            `${stats.lastEffortJ.toFixed(2)} J`,
+            `${stats.lastSaturationS.toFixed(2)} s`,
+          ]
+        : [
+            controlModeLabel(mode),
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+          ];
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.appendChild(cell);
+      }
+      comparisonBody.appendChild(row);
+    }
+  }
+
   function setVisualMode(mode) {
     activeVisualMode = mode;
     const is3d = mode === "3d";
@@ -720,9 +815,9 @@ export function mountNonlinearPhase(root) {
     gameOverlay.hidden = false;
   }
 
-  function showDifficultyIntro(difficulty) {
+  function showDifficultyIntro(difficulty, mode = controlMode) {
     showGameOverlay({
-      kicker: `${difficulty.title} · ${difficulty.subtitle}`,
+      kicker: `${difficulty.title} · ${difficulty.subtitle} · ${controlModeLabel(mode)}`,
       title: "STABILIZE + AIM",
       body:
         `RMSを抑えながら照準へ水を当てる。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
@@ -742,12 +837,14 @@ export function mountNonlinearPhase(root) {
           ? "failure envelope超過"
           : ""));
     pauseButton.disabled = true;
+    recordComparisonResult();
+    const runMode = gameState.controlMode ?? controlMode;
     showGameOverlay({
-      kicker: gameState.stage.title,
+      kicker: `${gameState.stage.title} · ${controlModeLabel(runMode)}`,
       title: success ? "SUCCESS" : "FAILED",
       body: success
-        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`
-        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`,
+        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`
+        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`,
       score: `SCORE ${gameState.score}`,
       showRestart: true,
     });
