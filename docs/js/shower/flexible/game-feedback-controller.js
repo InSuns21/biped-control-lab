@@ -11,6 +11,14 @@ import {
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
+export const FULL_STATE_AIM_LOOKAHEAD_S = 0.12;
+
+export function automaticGameAimLookaheadS(mode) {
+  return mode === "state" || mode === "lqr"
+    ? FULL_STATE_AIM_LOOKAHEAD_S
+    : 0;
+}
+
 
 function normalize2(vector) {
   const norm = Math.hypot(vector[0], vector[1]);
