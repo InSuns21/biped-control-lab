@@ -1867,7 +1867,7 @@ UI:
 **rod stateは22/22 full rank**であるため、1次元の弱いaugmented方向を
 「ホースを制御不能」と解釈しない。effective controllable subspaceを表示して保持する。
 
-#### H1-6-3 — Human vs Controller
+#### H1-6-3 — Human vs Controller ✅（Human Visual Audit 継続中）
 
 同じ H1-5-4A game condition へ
 
@@ -1879,53 +1879,56 @@ UI:
 
 を投入する。
 
-ここで初めて aiming outer loop を追加する。
-
-##### H1-6-3A — common aiming reference
+##### H1-6-3A — common aiming outer loop
 
 自動制御器も Human と同じ moving bullseye を観測する。
 
-bullseye target から、平衡ホース全体を剛体的に
+bullseye と equilibrium nozzle / outlet ray から、既存 hand travel 制約内で
+ray miss が最小になる hand reference `[x_ref, theta_ref]` を求める。
 
-- hand lateral shift
-- hand angle shift
-
-した reference pose を作る。
-
-```text
-bullseye
-  -> desired water ray
-  -> hand reference [x_ref, theta_ref]
-  -> reference equilibrium pose
-```
-
-P / PD は reference tip position / angle に対する局所誤差を使う。
-
-full-state / LQR は
+角度を先に決めてから横位置を補正すると hand travel clamp に当たるケースがあったため、
+最終実装では **hand angle と lateral shift を同時に制約内探索**する。
 
 ```text
-u = u_ref - K (x - x_ref)
+moving bullseye
+  -> constrained geometric aiming reference u_aim
+  -> inner stabilizer
+  -> existing hand actuator
+  -> nonlinear hose
 ```
 
-とし、元の平衡点0へ戻そうとしてaiming outer loopと喧嘩しないようにする。
+P / PD は aim reference から作るrigid reference tipに対する局所誤差を使う。
+
+full-state / LQR は nonlinear calibration の結果、
+
+```text
+u = u_aim - alpha K x
+```
+
+という二重ループを採用した。
+
+`u_ref - K(x-x_ref)` をそのまま使うと、非ゼロreferenceに対する `+K x_ref` が大きくなり、
+元の平衡点まわりで設計したLQRを遠い姿勢へ移植して不安定化したため不採用。
+
+したがって H1-6-2 のLQRは **元のnonlinear equilibriumまわりのinner stabilizer**、
+aimingは outer feedforward と役割分担する。
 
 ##### H1-6-3B — fixed full-state baseline
 
-LQR だけを「state feedback」と呼ばず、比較用に
+比較用 State FB はLQRと同じfull-state gain方向を使うが、
 
 ```text
-K_state = alpha K_LQR
+alpha_state = 0.55
+alpha_LQR   = 1.00
 ```
 
-という固定gain full-state controllerを追加する。
+とする。
 
-第一版 `alpha = 0.55`。
+State FBは最適制御を名乗らず、
 
-これは最適制御を名乗らず、
+> LQR由来のfull-state gainを弱めた固定gain baseline
 
-> 同じ full-state 情報を使うが、LQR最適weightのgainを弱めた固定状態フィードバック
-
-として比較する。
+として扱う。
 
 Human / P / PD / State FB / LQR は全て
 
@@ -1935,7 +1938,7 @@ Human / P / PD / State FB / LQR は全て
 
 を通る。
 
-##### H1-6-3C — game comparison metrics
+##### H1-6-3C — game comparison metrics / UI
 
 各runで保存する。
 
@@ -1947,30 +1950,67 @@ Human / P / PD / State FB / LQR は全て
 - boundary effort `integral |P_hand| dt`
 - actuator saturation time
 
-同一difficultyについて session 内の
+同一difficultyについてsession内の
 
 - attempts
-- successes
-- success rate
-- last / best score
+- successes / success rate
+- last score
+- best score
+- last Hit / mean RMS / Effort / Saturation
 
-も表示する。
+を比較表へ蓄積する。
 
-Humanは実ユーザーrunを記録し、自動controllerは同じ画面から実行できるようにする。
+UI:
 
-##### H1-6-3D — regression
+- ✅ game開始前に Human / P / PD / State FB / LQR を選択
+- ✅ moving bullseyeは全mode共通
+- ✅ controller runも同じdifficulty buttonから開始
+- ✅ State FB / LQR のaim feedforwardをHUD表示
+- ✅ session comparison table
+- ✅ Humanは従来Pointerを維持
 
-最低限:
+##### H1-6-3D — nonlinear game regression
 
-- automatic modeでもmoving bullseyeが有効
-- aiming reference = center のとき従来 stabilizer と一致
-- reference hand targetは既存clampを超えない
-- P / PD / State FB / LQR 全て existing actuator を通る
-- zero-input baselineより automatic controller の hit fraction / score が改善
-- Normal は少なくとも PD / LQR がSUCCESS可能
-- Fast 22 / Insane で数値発散しない
-- saturation timeを必ず記録
-- Human modeは従来Pointerと完全互換
+8-segment / dt=0.002 s / 同一初期摂動での代表結果:
+
+```text
+Normal
+  Open     FAILED  score 649  hit  6.1%  mean RMS  0.93 mm
+  P        SUCCESS score 662  hit 58.8%  mean RMS 42.68 mm
+  PD       SUCCESS score 765  hit 81.3%  mean RMS 34.22 mm
+  State FB FAILED  score 705  hit 87.4%  mean RMS 71.55 mm
+  LQR      SUCCESS score 728  hit 81.1%  mean RMS 43.16 mm
+
+Insane / Fast 22
+  Open     FAILED  score 239  hit  6.7%  mean RMS 227.42 mm
+  P        FAILED  score  37  hit  8.9%  mean RMS 239.08 mm
+  PD       FAILED  score   0  hit 17.3%  mean RMS 155.97 mm
+  State FB SUCCESS score 790  hit 86.6%  mean RMS  63.42 mm
+  LQR      SUCCESS score 795  hit 82.7%  mean RMS  34.45 mm
+```
+
+Insane の State FB / LQR は saturation time 0 s。
+LQR effortも約0.039 Jで、強いactuatorを使って勝っているわけではない。
+
+ここから、
+
+- Normalでは局所PDでも十分
+- Fast 22では局所tip情報だけのP/PDでは不足
+- full-state feedbackがflutter抑制とaimingを両立
+- LQRはFast 22で最小mean RMSを達成
+
+という教材上の差をそのまま保持する。
+
+自動回帰:
+
+- ✅ centered aim reference -> neutral hand reference
+- ✅ constrained aim referenceはhand clamp内
+- ✅ P / PD / State FB / LQR 全てexisting actuatorを通る
+- ✅ 全automatic modeでopenよりhit fraction改善
+- ✅ Normal P / PD / LQR SUCCESS
+- ✅ Insane State FB / LQR SUCCESS
+- ✅ Insane full-state系は持続saturationなし
+- ✅ Human Pointer pathを維持
 
 H1-6-3 では controller専用の強い actuator を禁止する。
 
