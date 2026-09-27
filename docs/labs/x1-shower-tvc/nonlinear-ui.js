@@ -223,6 +223,9 @@ export function mountNonlinearPhase(root) {
   const comparisonResetButton = root.querySelector(
     "#nlComparisonReset",
   );
+  const analysisDetails = [
+    ...root.querySelectorAll(".advanced-analysis-panel"),
+  ];
 
   const presetMetric = root.querySelector("#nlPresetMetric");
   const flowMetric = root.querySelector("#nlFlowMetric");
@@ -679,6 +682,7 @@ export function mountNonlinearPhase(root) {
         controlMode = "human";
         controlModeSelect.value = "human";
         centerHandButton.disabled = initializationBusy;
+        updateControlModeHelp("human");
         render();
         return false;
       }
@@ -701,6 +705,7 @@ export function mountNonlinearPhase(root) {
 
     centerHandButton.disabled = mode !== "human"
       || initializationBusy;
+    updateControlModeHelp(mode);
     render();
     return true;
   }
@@ -1579,6 +1584,14 @@ export function mountNonlinearPhase(root) {
     comparisonStats.clear();
     comparisonDifficultyId = gameState?.difficultyId ?? null;
     updateComparisonTable();
+  });
+
+  analysisDetails.forEach((details) => {
+    details.addEventListener("toggle", () => {
+      if (!details.open) return;
+      historyDirty = true;
+      render();
+    });
   });
 
   presetButtons.forEach((button) => {
