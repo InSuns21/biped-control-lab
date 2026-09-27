@@ -189,6 +189,8 @@ export function createNonlinearView({
     currentKinematics,
     equilibriumKinematics,
     reaction,
+    handBoundary,
+    handReaction,
     showNodes,
     stoppedReason,
   }) {
@@ -198,6 +200,11 @@ export function createNonlinearView({
     const current = currentKinematics.nodes;
     const equilibrium = equilibriumKinematics.nodes;
     const tip = currentKinematics.tip;
+    const currentBase = currentKinematics.base ?? [0, 0];
+    const handDirectionEnd = [
+      currentBase[0] + Math.sin(handBoundary?.angleRad ?? 0) * 0.14,
+      currentBase[1] + Math.cos(handBoundary?.angleRad ?? 0) * 0.14,
+    ];
     const nozzle = [
       tip[0] + reaction.nozzleOffsetWorldM[0],
       tip[1] + reaction.nozzleOffsetWorldM[1],
@@ -213,6 +220,8 @@ export function createNonlinearView({
         ...equilibrium,
         nozzle,
         waterEnd,
+        currentBase,
+        handDirectionEnd,
         [0, 0],
       ],
       width,
@@ -220,12 +229,35 @@ export function createNonlinearView({
     );
     const map = fit.map;
 
-    const base = map([0, 0]);
-    ctx.fillStyle = colors.head;
-    ctx.fillRect(base[0] - 22, base[1] - 6, 44, 12);
+    const base = map(currentBase);
+    const handEnd = map(handDirectionEnd);
+    ctx.strokeStyle = "#49a078";
+    ctx.lineWidth = 7;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(base[0], base[1]);
+    ctx.lineTo(handEnd[0], handEnd[1]);
+    ctx.stroke();
+    ctx.fillStyle = "#49a078";
+    ctx.beginPath();
+    ctx.arc(base[0], base[1], 7, 0, 2 * Math.PI);
+    ctx.fill();
     ctx.fillStyle = colors.equilibrium;
     ctx.font = "12px system-ui, sans-serif";
-    ctx.fillText("手元固定境界", base[0] + 10, base[1] - 10);
+    ctx.fillText("手元境界", base[0] + 10, base[1] - 10);
+
+    if (handReaction) {
+      drawArrow(
+        ctx,
+        base,
+        [handReaction.reactionForceXN, 0],
+        Math.min(
+          46,
+          18 + 9 * Math.abs(handReaction.reactionForceXN),
+        ),
+        "#49a078",
+      );
+    }
 
     ctx.strokeStyle = colors.equilibrium;
     ctx.lineWidth = 2;
