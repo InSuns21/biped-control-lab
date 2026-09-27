@@ -880,10 +880,6 @@ N=12, dt=.002 -> 1.584 s
 
 について、**有限回転モデルでは YES** となった。
 
-ただし Fast 22 / High-flow 30 は実物製品への同定値ではない。
-「動画の時間スケールがこの機構で成立可能」という sensitivity result であり、
-実ホースの `EI`, damping, `Q` を推定したとは扱わない。
-
 H1-4B の自動回帰:
 
 - ✅ rigid-body rotation で人工的な曲げエネルギー0
@@ -911,13 +907,83 @@ Human Visual Audit では、
 
 を確認する。
 
-### H1-5 — manual game
+### H1-5 — manual boundary control
 
-- hand position / angle control
+#### H1-5-0 — nonlinear movable hand boundary ✅（Human Visual Audit 継続中）
+
+H1-4B の有限回転 rod に prescribed hand boundary
+
+```text
+q_b(t) = [x_h(t), theta_h(t)]
+```
+
+を導入した。自由rod側は境界加速度との質量結合を保持して
+
+```text
+M_ff qdd_f
+  = Q_f - b_f - M_fb qdd_b
+```
+
+を各時刻で解く。
+
+同時に境界拘束反力を
+
+```text
+R_b = M_b* qdd + b_b - Q_b
+```
+
+から復元し、
+
+```text
+P_hand = F_hand * v_hand + M_hand * omega_hand
+W_hand = integral(P_hand dt)
+```
+
+を診断する。
+
+実装:
+
+- ✅ 手元横位置 prescribed boundary
+- ✅ 手元角度 prescribed boundary
+- ✅ hand acceleration -> free rod の inertial coupling
+- ✅ hand reaction force / reaction moment
+- ✅ instantaneous hand power
+- ✅ cumulative boundary work
+- ✅ single smooth pulse input
+- ✅ fixed-hand limit が H1-4B と一致
+- ✅ flow 中に hand pulse が nonlinear state を実際に変える
+- ✅ browser HUD / hand reaction visualization
+
+保存系の回帰では、
+
+```text
+boundary work      = 0.04959504442 J
+mechanical Δenergy = 0.04959504440 J
+relative error     ~= 4.4e-10
+```
+
+となり、境界仕事の符号・反力復元を数値的に固定した。
+
+公開画面では左右 12 mm、角度 ±5 deg、複合 pulse を任意時刻に入力できる。
+pulse は smooth bump で元の手元位置・角度へ戻る。
+
+#### H1-5-1 — direct pointer control
+
+次工程。
+
+- Pointer drag -> hand lateral target
+- second axis / modifier -> hand angle target
+- actuator velocity / acceleration limit
+- tablet Pointer Events
+- hand trajectory history
+
+#### H1-5-2 — stabilization game
+
 - low-flow / near-critical / flutter stages
 - success / failure
 - scoring
-- tablet controls
+- RMS / tip-angle target
+- boundary-work penalty / efficiency metric
 
 ### H1-6 — feedback control
 
@@ -949,7 +1015,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] 臨界超過で自励振動が再現される
 - [x] mesh / dt 変更に対し主要結果が収束する
 - [x] H1-4A で fast-onset の時間スケール差を切り分ける
-- [ ] 手元境界入力で振動を変えられる
+- [x] 手元境界入力で振動を変えられる
 - [x] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
 - [ ] 物理量とUI表示が一致する

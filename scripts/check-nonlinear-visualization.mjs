@@ -20,9 +20,27 @@ for (const marker of [
   'data-nl-preset="high30"',
   'id="nlRmsChart"',
   'id="nlTipChart"',
+  'id="nlPulseDuration"',
+  'data-hand-pulse="left"',
+  'data-hand-pulse="right"',
+  'data-hand-pulse="ccw"',
+  'data-hand-pulse="cw"',
+  'id="nlHandMetric"',
+  'id="nlHandReactionMetric"',
+  'id="nlHandPowerMetric"',
+  'id="nlHandWorkMetric"',
 ]) {
   assert.ok(html.includes(marker), `missing H1-4B UI marker: ${marker}`);
 }
+
+assert.ok(
+  !html.includes("ねとらぼ動画の実ホース値へフィット"),
+  "redundant fit disclaimer must not be shown in the lab UI",
+);
+assert.ok(
+  !html.includes("実製品同定ではありません"),
+  "redundant identification disclaimer must not be shown in the lab UI",
+);
 
 assert.ok(
   !/id="nonlinearModelPanel"[^>]*hidden/.test(html),
@@ -52,5 +70,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-4B visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-5-0 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );

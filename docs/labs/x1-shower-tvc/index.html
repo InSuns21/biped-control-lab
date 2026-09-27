@@ -13,8 +13,8 @@
   <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-4B nonlinear 可視化</strong><br>
-    H1-4B の finite-rotation flexible-hose表示を公開監査します。ホース形状、非線形静的平衡、シャワーヘッド、水流・反力、1〜3秒 onset、履歴グラフ、PC / タブレット表示は未承認です。
+    <strong>Human Visual Audit 監査中 — H1-5-0 moving hand boundary</strong><br>
+    finite-rotation hose に手元境界入力を加え、境界反力・仕事率・累積仕事を公開監査します。PC / タブレット表示は未承認です。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -49,13 +49,6 @@
         nonlinear conveying-flow coupling。small-angle guardで止めず、大回転の平衡と
         自励成長を直接追います。
       </div>
-      <div class="callout" role="note">
-        <strong>感度ケースであり実製品同定ではありません。</strong>
-        Fast 22 L/min は CI で onset ≈ 1.58 s を得た教育用組合せ
-        （EI=0.25 N·m², L=1.5 m, 低めの減衰）です。
-        ねとらぼ動画の実ホース値へフィットしたものではありません。
-      </div>
-
       <div class="lab-layout shower-layout">
         <section>
           <div class="flexible-viewport">
@@ -90,6 +83,25 @@
           </div>
 
           <div class="control">
+            <span class="control-title">手元 pulse</span>
+            <div class="button-row hand-pulse-grid">
+              <button type="button" data-hand-pulse="left">← 12 mm</button>
+              <button type="button" data-hand-pulse="right">12 mm →</button>
+              <button type="button" data-hand-pulse="ccw">↺ 5°</button>
+              <button type="button" data-hand-pulse="cw">5° ↻</button>
+              <button type="button" data-hand-pulse="combo-left">← + ↺</button>
+              <button type="button" data-hand-pulse="combo-right">→ + ↻</button>
+            </div>
+            <label for="nlPulseDuration">pulse時間</label>
+            <select id="nlPulseDuration">
+              <option value="0.20">0.20 s</option>
+              <option value="0.35" selected>0.35 s</option>
+              <option value="0.50">0.50 s</option>
+            </select>
+            <small>一度だけ滑らかに動いて元の手元位置・角度へ戻ります。連打するとpulseが重なります。</small>
+          </div>
+
+          <div class="control">
             <label for="nlPlayback">物理時刻の再生速度</label>
             <select id="nlPlayback">
               <option value="0.5">×0.5</option>
@@ -118,6 +130,10 @@
             <div class="metric"><span>dynamic RMS</span><strong id="nlRmsMetric">-</strong></div>
             <div class="metric"><span>観測 onset</span><strong id="nlOnsetMetric">-</strong></div>
             <div class="metric"><span>CI onset reference</span><strong id="nlCiMetric">-</strong></div>
+            <div class="metric"><span>手元 x / θ</span><strong id="nlHandMetric">-</strong></div>
+            <div class="metric"><span>手元反力 F / M</span><strong id="nlHandReactionMetric">-</strong></div>
+            <div class="metric"><span>手元仕事率</span><strong id="nlHandPowerMetric">-</strong></div>
+            <div class="metric"><span>累積境界仕事</span><strong id="nlHandWorkMetric">-</strong></div>
             <div class="metric"><span>sim time</span><strong id="nlTimeMetric">-</strong></div>
             <div class="metric"><span>status</span><strong id="nlStatusMetric">-</strong></div>
           </div>
@@ -135,7 +151,8 @@
         <h2>H1-4Bで変わったこと</h2>
         <p>ホースを横変位 y(s) の小変形としてではなく、各segmentの有限角度から中心線を再構成します。segment長は一定なので、大きく回転しても人工的な伸びや「98°だから即モデル外」という扱いにはなりません。</p>
         <p>破線はその流量・材質で解いた<strong>非線形静的平衡</strong>です。そこへ小さな摂動を一度だけ与え、内部流れとの連成だけでRMSが20 mmまたは初期値の3倍へ達した時刻を onset と表示します。継続的な見た目用正弦波はありません。</p>
-        <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。ただしパラメータは実物同定値ではなく、動画の「すぐ暴れる」時間スケールが非線形モデル内で成立可能かを見る感度ケースです。</p>
+        <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。</p>
+        <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
       </section>
     </section>
 

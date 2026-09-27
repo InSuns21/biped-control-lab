@@ -122,11 +122,6 @@ H1-4B removes that particular geometric inconsistency. Large rotations are
 part of the model rather than an immediate validity failure, and a 1--3 s
 self-excited onset is obtained in finite-rotation sensitivity cases.
 
-This does **not** identify the real hose in the reference video.
-
-The fast cases are evidence that the mechanism can produce the observed time
-scale, not measurements of the real product parameters.
-
 ## Browser visualization
 
 The Phase 1 default view is now H1-4B nonlinear.
@@ -153,18 +148,3 @@ The next control step is H1-5.
 The nonlinear rod still uses a fixed hand boundary. H1-5-0 should introduce a
 prescribed moving hand boundary and a work/energy diagnostic before turning it
 into a manual-control game.
-
-## Non-claims
-
-H1-4B does not establish:
-
-- the real video's exact flow rate
-- the real hose EI or damping
-- an identified onset time from the video
-- 3D torsion
-- self-contact
-- hose-wall deformation
-- detailed turbulent or transient hydraulic pressure
-
-Those are later fidelity layers, not prerequisites for the current control
-lesson.

@@ -307,5 +307,13 @@ Phase 1 adds another important lesson:
 - Phase 1 browser default is now H1-4B nonlinear; H1-4 linear remains as a
   comparison tab
 - detailed H1-4B report: `flexible/H1_4B_NONLINEAR.md`
-- next implementation step after Human Visual Audit: **H1-5-0 nonlinear movable hand boundary**
+- Phase 1 H1-5-0 nonlinear movable hand boundary: implemented
+- hand input coordinates: lateral position + boundary angle
+- boundary reaction force / moment are recovered from the constrained equations
+- hand power: `P = F_h v_h + M_h omega_h`
+- conservative regression locks cumulative hand work to mechanical-energy change
+  (relative error about `4.4e-10` in the current test)
+- browser UI provides one-shot lateral / angular / combined hand pulses and
+  live reaction / power / cumulative-work diagnostics
+- next implementation step: **H1-5-1 direct Pointer control**
 - Phase 1 Human Visual Audit is still pending

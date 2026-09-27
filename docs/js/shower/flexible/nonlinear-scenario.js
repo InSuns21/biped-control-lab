@@ -6,6 +6,7 @@ import {
   stepNonlinearRodRK4,
 } from "./nonlinear-rod.js";
 import {
+  createConveyingFlowCartesianResultant,
   createConveyingFlowGeneralizedForce,
 } from "./nonlinear-flow.js";
 import {
@@ -62,10 +63,16 @@ export function createNonlinearShowerScenario(overrides = {}) {
     ...(params.head ?? {}),
   };
 
-  const flowForce = createConveyingFlowGeneralizedForce({
+  const flowForceOptions = {
     flowSpeedMps,
     fluidMassPerM,
-  });
+  };
+  const flowForce = createConveyingFlowGeneralizedForce(
+    flowForceOptions,
+  );
+  const flowResultant = createConveyingFlowCartesianResultant(
+    flowForceOptions,
+  );
   const tipLoad = ({ state }) => nonlinearShowerHeadTipLoad(
     system,
     state.anglesRad,
@@ -86,6 +93,7 @@ export function createNonlinearShowerScenario(overrides = {}) {
     flowRateM3s,
     flowSpeedMps,
     flowForce,
+    flowResultant,
     tipLoad,
   };
 }
