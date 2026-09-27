@@ -176,24 +176,22 @@ function simulate(solved, gains, durationS) {
 const baselineSolved = solveContinuation(optionsFor("baseline18"));
 const fastSolved = solveContinuation(optionsFor("fast22"));
 
-const openBaseline = simulate(baselineSolved, null, 3);
-const openFast = simulate(fastSolved, null, 3);
+const openBaseline = simulate(baselineSolved, null, 5);
+const openFast = simulate(fastSolved, null, 3.5);
 
 const candidates = [
-  { k: -0.02, d: 0 },
+  { k: -0.03, d: 0 },
   { k: -0.04, d: 0 },
+  { k: -0.05, d: 0 },
   { k: -0.06, d: 0 },
   { k: -0.08, d: 0 },
   { k: -0.10, d: 0 },
-  { k: -0.12, d: 0 },
-  { k: -0.15, d: 0 },
-  { k: -0.02, d: -0.005 },
+  { k: -0.03, d: -0.006 },
   { k: -0.04, d: -0.008 },
-  { k: -0.06, d: -0.010 },
+  { k: -0.05, d: -0.010 },
+  { k: -0.06, d: -0.012 },
   { k: -0.08, d: -0.015 },
   { k: -0.10, d: -0.020 },
-  { k: -0.12, d: -0.025 },
-  { k: -0.15, d: -0.030 },
 ].map(({ k, d }) => ({
   lateralPositionGain: k,
   lateralVelocityGainS: d,
@@ -202,14 +200,14 @@ const candidates = [
 }));
 
 const results = candidates.map((gains) => {
-  const baseline = simulate(baselineSolved, gains, 3);
-  const fast = simulate(fastSolved, gains, 3);
+  const baseline = simulate(baselineSolved, gains, 5);
+  const fast = simulate(fastSolved, gains, 3.5);
   const score =
     baseline.integral / openBaseline.integral
     + fast.integral / openFast.integral
     + 0.05 * (
-      baseline.saturationS / 3
-      + fast.saturationS / 3
+      baseline.saturationS / 5
+      + fast.saturationS / 3.5
     );
   return { gains, baseline, fast, score };
 });
