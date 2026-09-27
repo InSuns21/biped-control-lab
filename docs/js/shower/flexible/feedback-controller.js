@@ -146,6 +146,84 @@ export function pdHandTarget(
   );
 }
 
+export function pHandTargetAroundReference(
+  sensing,
+  referenceTarget,
+  gains = DEFAULT_P_GAINS,
+  limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+) {
+  return clampHandTarget(
+    {
+      lateralPositionM:
+        referenceTarget.lateralPositionM
+        - gains.lateralPositionGain
+        * sensing.tipLateralErrorM,
+      angleRad:
+        referenceTarget.angleRad
+        - gains.angleGain
+        * sensing.tipAngleErrorRad,
+    },
+    limits,
+  );
+}
+
+export function pdHandTargetAroundReference(
+  sensing,
+  referenceTarget,
+  gains = DEFAULT_PD_GAINS,
+  limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+) {
+  return clampHandTarget(
+    {
+      lateralPositionM:
+        referenceTarget.lateralPositionM
+        - gains.lateralPositionGain
+        * sensing.tipLateralErrorM
+        - gains.lateralVelocityGainS
+        * sensing.tipLateralVelocityMps,
+      angleRad:
+        referenceTarget.angleRad
+        - gains.angleGain
+        * sensing.tipAngleErrorRad
+        - gains.angularRateGainS
+        * sensing.tipAngularRateRadS,
+    },
+    limits,
+  );
+}
+
+export function controllerHandTargetAroundReference(
+  mode,
+  sensing,
+  referenceTarget,
+  {
+    pGains = DEFAULT_P_GAINS,
+    pdGains = DEFAULT_PD_GAINS,
+    limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  } = {},
+) {
+  if (mode === "p") {
+    return pHandTargetAroundReference(
+      sensing,
+      referenceTarget,
+      pGains,
+      limits,
+    );
+  }
+  if (mode === "pd") {
+    return pdHandTargetAroundReference(
+      sensing,
+      referenceTarget,
+      pdGains,
+      limits,
+    );
+  }
+  if (mode === "human" || mode === "off") {
+    return null;
+  }
+  throw new RangeError(`unknown reference-tracking control mode: ${mode}`);
+}
+
 export function controllerHandTarget(
   mode,
   sensing,
