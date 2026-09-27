@@ -1371,6 +1371,157 @@ Human Visual Auditでは、
 
 という当初のゲーム体験を第一版完成とする。
 
+#### H1-5-4A — playability calibration ✅（Human Visual Audit 継続中）
+
+Human Visual Audit で次の2点を確認した。
+
+1. Easy / Normal / Expert は **無操作がほぼ最適**になっている
+2. Insane は他難易度から急激に難しくなりすぎる
+
+これはphysicsの問題ではなくgame objective / difficulty curveの問題として扱う。
+
+##### Design invariant
+
+H1-5-4A 以降、少なくとも Normal / Expert / Insane では
+
+```text
+zero-input baseline
+  -> SUCCESSしてはいけない
+  -> または gameplay score ceilingを超えてはいけない
+```
+
+を自動回帰にする。
+
+「何もしない」が最適になる設計を禁止する。
+
+Easy も入門操作を必須にするが、最初の数秒は照準を静止させ、
+Pointer操作を理解する猶予を残す。
+
+##### Moving bullseye schedule
+
+静的平衡ray上へbullseyeを固定するのをやめ、
+difficultyごとに **平衡ray法線方向の deterministic target schedule** を持つ。
+
+```text
+Easy:
+  0--2.5 s   : center
+  2.5 s--    : small offset
+
+Normal:
+  start      : off-center
+  mid-game   : opposite offset
+
+Expert:
+  3回以上 target move
+  alternating offsets
+
+Insane:
+  Fast 22は維持
+  target motionはExpertより少なくする
+  代わりにflutter stabilizationを主難度とする
+```
+
+targetの移動はstep jumpではなく、smooth transitionを使う。
+
+##### Insane calibration
+
+InsaneはFast 22 nonlinear plantを維持する。
+
+ただし Human Visual Audit を受け、
+
+- aim radius
+- required hit fraction
+- stability dwell
+- failure envelope
+- authority scale
+
+を成功可能側へ緩和する。
+
+狙いは
+
+```text
+zero input -> fail
+simple feedback / skilled human -> success possible
+```
+
+であり、単なる罰ゲームにはしない。
+
+##### Automated playability regressions
+
+最低限:
+
+- zero-input baseline のtarget schedule追跡
+- Easyも最終的には無操作で満点にならない
+- Normal / Expert / Insane は無操作SUCCESS禁止
+- moving targetがphysical hand travelから到達可能
+- target移動速度がactuator authorityから見て不可能でない
+- ideal / assisted aim traceでは各difficultyがSUCCESS可能
+- Insaneのrequired hit fractionとfailure envelopeを回帰固定
+
+H1-5-4A 最終設定:
+
+```text
+Easy
+  target: center -> +200 mm
+  move:   2.5--3.7 s
+  radius: 150 mm
+  min hit: 45%
+  authority: 1.25x
+
+Normal
+  target: +160 -> -160 mm
+  radius: 120 mm
+  min hit: 50%
+  authority: 1.12x
+
+Expert
+  target: +130 -> -140 -> +160 -> -120 mm
+  radius: 90 mm
+  min hit: 55%
+  authority: 1.00x
+
+Insane
+  Fast 22
+  target: +160 -> -160 mm
+  radius: 130 mm
+  min hit: 32%
+  stability dwell: 25%
+  fail RMS: 0.55 m
+  fail hold: 0.90 s
+  authority: 1.18x
+```
+
+zero-input pure game-rule regression:
+
+```text
+Easy   -> FAILED aim ratio, hit ~= 33.1%
+Normal -> FAILED aim ratio, hit ~=  6.1%
+Expert -> FAILED aim ratio, hit ~=  9.2%
+Insane -> FAILED aim ratio, hit ~=  8.3%
+```
+
+actual nonlinear zero-input regression:
+
+```text
+Easy   -> FAILED aim ratio, hit ~= 32.8%, stable ~= 100%
+Normal -> FAILED aim ratio, hit ~=  6.1%, stable ~= 100%
+Expert -> FAILED aim ratio, hit ~=  9.3%, stable ~= 100%
+Insane -> FAILED aim ratio, hit ~=  7.4%, stable ~= 26.8%
+```
+
+assisted reachable trace は4難易度すべて SUCCESS / score ~= 919。
+
+したがって、
+
+- 無操作SUCCESSは禁止
+- Easyも途中から操作必須
+- Normal / Expertは追従操作が必須
+- InsaneはFast 22を維持しつつ、無操作即死ではなく照準不足で失敗
+
+まで自動回帰で固定した。
+
+H1-5-4A 完了後は H1-6 へ進む。
+
 ### H2-0 — true 3D flexible hose（長期拡張）
 
 ゲーム成立の必須条件にはしない。

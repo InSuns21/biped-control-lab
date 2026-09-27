@@ -71,8 +71,8 @@ export const SHOWER_GAME_DIFFICULTIES = Object.freeze({
     id: "easy",
     stageId: "low",
     title: "Easy",
-    subtitle: "Low Flow / wide aim",
-    description: "低流量・広い安定領域・大きい照準・強めの手元操作。",
+    subtitle: "Low Flow / moving target",
+    description: "2.5秒の猶予後、広い照準がゆっくり移動する入門。",
     presetId: "low12",
     durationS: 10,
     targetRmsM: 0.060,
@@ -83,17 +83,22 @@ export const SHOWER_GAME_DIFFICULTIES = Object.freeze({
     minInsideFraction: 0.60,
     effortBudgetJ: 1.00,
     aimDistanceM: 0.48,
-    aimNormalOffsetM: 0,
     aimRadiusM: 0.15,
     minHitFraction: 0.45,
     authorityScale: 1.25,
+    aimSchedule: Object.freeze([
+      Object.freeze({ timeS: 0, normalOffsetM: 0 }),
+      Object.freeze({ timeS: 2.5, normalOffsetM: 0 }),
+      Object.freeze({ timeS: 3.7, normalOffsetM: 0.20 }),
+      Object.freeze({ timeS: 10, normalOffsetM: 0.20 }),
+    ]),
   }),
   normal: Object.freeze({
     id: "normal",
     stageId: "near",
     title: "Normal",
-    subtitle: "18 L/min / forgiving",
-    description: "18 L/min。Expertより広い安定領域と照準。",
+    subtitle: "18 L/min / tracking",
+    description: "開始時から照準が外れ、中盤で反対側へ移動する標準。",
     presetId: "baseline18",
     durationS: 11,
     targetRmsM: 0.065,
@@ -102,19 +107,24 @@ export const SHOWER_GAME_DIFFICULTIES = Object.freeze({
     failTipAngleErrorRad: degToRad(72),
     failHoldS: 0.60,
     minInsideFraction: 0.60,
-    effortBudgetJ: 1.05,
+    effortBudgetJ: 1.10,
     aimDistanceM: 0.50,
-    aimNormalOffsetM: 0,
     aimRadiusM: 0.12,
     minHitFraction: 0.50,
     authorityScale: 1.12,
+    aimSchedule: Object.freeze([
+      Object.freeze({ timeS: 0, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 4.5, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 5.7, normalOffsetM: -0.16 }),
+      Object.freeze({ timeS: 11, normalOffsetM: -0.16 }),
+    ]),
   }),
   expert: Object.freeze({
     id: "expert",
     stageId: "near",
     title: "Expert",
-    subtitle: "18 L/min / precise",
-    description: "H1-5-2 near相当の安定化に、小さい照準を追加。",
+    subtitle: "18 L/min / multi-target",
+    description: "安定化しながら複数回移動する小照準を追う。",
     presetId: "baseline18",
     durationS: 12,
     targetRmsM: 0.050,
@@ -123,33 +133,47 @@ export const SHOWER_GAME_DIFFICULTIES = Object.freeze({
     failTipAngleErrorRad: degToRad(65),
     failHoldS: 0.50,
     minInsideFraction: 0.70,
-    effortBudgetJ: 0.80,
+    effortBudgetJ: 0.90,
     aimDistanceM: 0.50,
-    aimNormalOffsetM: 0.025,
     aimRadiusM: 0.090,
-    minHitFraction: 0.58,
+    minHitFraction: 0.55,
     authorityScale: 1.00,
+    aimSchedule: Object.freeze([
+      Object.freeze({ timeS: 0, normalOffsetM: 0.13 }),
+      Object.freeze({ timeS: 2.3, normalOffsetM: 0.13 }),
+      Object.freeze({ timeS: 3.1, normalOffsetM: -0.14 }),
+      Object.freeze({ timeS: 5.4, normalOffsetM: -0.14 }),
+      Object.freeze({ timeS: 6.2, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 8.6, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 9.4, normalOffsetM: -0.12 }),
+      Object.freeze({ timeS: 12, normalOffsetM: -0.12 }),
+    ]),
   }),
   insane: Object.freeze({
     id: "insane",
     stageId: "flutter",
     title: "Insane",
-    subtitle: "Fast 22 / flutter",
-    description: "Fast 22の自励成長を抑えながら小照準へ当て続ける。",
+    subtitle: "Fast 22 / controlled chaos",
+    description: "Fast 22は維持。即死より追従制御を主難度にする。",
     presetId: "fast22",
     durationS: 12,
-    targetRmsM: 0.070,
-    targetTipAngleErrorRad: degToRad(18),
-    failRmsM: 0.30,
-    failTipAngleErrorRad: degToRad(80),
-    failHoldS: 0.45,
-    minInsideFraction: 0.55,
-    effortBudgetJ: 1.20,
+    targetRmsM: 0.110,
+    targetTipAngleErrorRad: degToRad(28),
+    failRmsM: 0.55,
+    failTipAngleErrorRad: degToRad(125),
+    failHoldS: 0.90,
+    minInsideFraction: 0.25,
+    effortBudgetJ: 2.00,
     aimDistanceM: 0.52,
-    aimNormalOffsetM: -0.040,
-    aimRadiusM: 0.070,
-    minHitFraction: 0.50,
-    authorityScale: 1.00,
+    aimRadiusM: 0.13,
+    minHitFraction: 0.32,
+    authorityScale: 1.18,
+    aimSchedule: Object.freeze([
+      Object.freeze({ timeS: 0, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 5.0, normalOffsetM: 0.16 }),
+      Object.freeze({ timeS: 6.6, normalOffsetM: -0.16 }),
+      Object.freeze({ timeS: 12, normalOffsetM: -0.16 }),
+    ]),
   }),
 });
 
@@ -184,6 +208,75 @@ function normalizedDirection2(direction) {
     throw new RangeError("direction must be non-zero");
   }
   return [direction[0] / norm, direction[1] / norm];
+}
+
+function smoothstep01(value) {
+  const x = clamp01(value);
+  return x * x * (3 - 2 * x);
+}
+
+export function difficultyAimOffsetM(
+  difficultyInput,
+  timeS,
+) {
+  const difficulty = typeof difficultyInput === "string"
+    ? gameDifficultyById(difficultyInput)
+    : difficultyInput;
+  const schedule = difficulty?.aimSchedule;
+  if (!Array.isArray(schedule) || schedule.length === 0) {
+    return difficulty?.aimNormalOffsetM ?? 0;
+  }
+  if (timeS <= schedule[0].timeS) {
+    return schedule[0].normalOffsetM;
+  }
+
+  for (let i = 1; i < schedule.length; i += 1) {
+    const next = schedule[i];
+    const previous = schedule[i - 1];
+    if (timeS <= next.timeS) {
+      const duration = Math.max(
+        1e-9,
+        next.timeS - previous.timeS,
+      );
+      const ratio = (timeS - previous.timeS) / duration;
+      const blend = smoothstep01(ratio);
+      return previous.normalOffsetM
+        + blend * (
+          next.normalOffsetM - previous.normalOffsetM
+        );
+    }
+  }
+
+  return schedule.at(-1).normalOffsetM;
+}
+
+export function difficultyAimMaxSpeedMps(difficultyInput) {
+  const difficulty = typeof difficultyInput === "string"
+    ? gameDifficultyById(difficultyInput)
+    : difficultyInput;
+  const schedule = difficulty?.aimSchedule;
+  if (!Array.isArray(schedule) || schedule.length < 2) {
+    return 0;
+  }
+  let maxSpeed = 0;
+  for (let i = 1; i < schedule.length; i += 1) {
+    const previous = schedule[i - 1];
+    const next = schedule[i];
+    const duration = next.timeS - previous.timeS;
+    if (!(duration > 0)) {
+      throw new RangeError(
+        "aimSchedule times must be strictly increasing",
+      );
+    }
+    // smoothstep derivative max is 1.5 at t=0.5.
+    maxSpeed = Math.max(
+      maxSpeed,
+      1.5 * Math.abs(
+        next.normalOffsetM - previous.normalOffsetM,
+      ) / duration,
+    );
+  }
+  return maxSpeed;
 }
 
 export function createAimTarget({

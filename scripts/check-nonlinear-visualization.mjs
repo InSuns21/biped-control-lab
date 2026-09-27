@@ -79,8 +79,10 @@ for (const marker of [
   "stepHandActuator",
   "actuatorBoundaryTrajectory",
   "createDifficultyGameState",
+  "difficultyAimOffsetM",
   "evaluateWaterAim",
   "updateGameState",
+  "updateScheduledAimTarget",
   "setGameControlLock",
   "startGame",
   "restartGame",
@@ -187,5 +189,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-5-4 interaction visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-5-4A playability visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );

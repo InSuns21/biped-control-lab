@@ -13,8 +13,8 @@
   <p class="lead">流水で暴れる柔軟ホースを手元境界から制御し、安定化しながら3D照準へ水を当てるゲームと、その背後の物理を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-5-4 3D Gameplay</strong><br>
-    Easy / Normal / Expert / Insane の難易度、3D bullseye、水命中判定、結果overlay、Pointer操作、PC / タブレット表示を公開監査します。
+    <strong>Human Visual Audit 監査中 — H1-5-4A Playability Calibration</strong><br>
+    無操作最適を禁止するmoving bullseye、再調整したInsane、難易度曲線、Pointer操作、PC / タブレット表示を公開監査します。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -245,6 +245,7 @@
         <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
         <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
         <p><strong>H1-5-4:</strong> Easy / Normal / Expert / Insane で流量・安定化target・照準半径・必要命中率・手元authorityが変わります。水の命中はノズル位置とphysics outlet rayから計算し、安定化と命中率の両方を満たしたときだけ成功です。</p>
+        <p><strong>H1-5-4A:</strong> bullseyeは難易度ごとのphysics-time scheduleで移動します。Easyも2.5秒後には操作が必要になり、Normal / Expert / Insaneは無操作ではクリアできないことをCIで固定しています。InsaneはFast 22を保ったまま成功可能側へ緩和しています。</p>
       </section>
     </section>
 

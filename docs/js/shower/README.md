@@ -350,6 +350,16 @@ Phase 1 adds another important lesson:
 - result overlay reports SUCCESS / FAILED + score and supports instant Restart
 - tablet HUD is compacted for the 3D game surface
 - H1-5 3D manual-control game first version is now functionally complete
+- Phase 1 H1-5-4A playability calibration: implemented
+- Easy keeps the bullseye centered for 2.5 s, then moves it smoothly so the
+  player must eventually act
+- Normal starts off-center and moves to the opposite side mid-game
+- Expert uses three smooth target transitions
+- Insane keeps the Fast 22 nonlinear plant but relaxes aim radius, required hit
+  fraction, stability dwell / failure envelope and raises authority slightly
+- moving bullseyes are deterministic and advance on physics time, not render fps
+- CI forbids zero-input wins for every difficulty and verifies an assisted
+  reachable trace can still succeed
 - next major control phase: **H1-6 feedback control / human-vs-controller**
 - true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending

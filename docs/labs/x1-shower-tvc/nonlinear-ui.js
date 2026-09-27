@@ -27,6 +27,7 @@ import {
 import {
   createAimTarget,
   createDifficultyGameState,
+  difficultyAimOffsetM,
   evaluateWaterAim,
   gameDifficultyById,
   gameHudSnapshot,
@@ -262,6 +263,7 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
   let gameState = null;
+  let aimReference = null;
   let aimTarget = null;
   let aimSample = null;
   let activeVisualMode = "3d";
@@ -316,20 +318,44 @@ export function mountNonlinearPhase(root) {
     ];
   }
 
-  function buildAimTarget(difficulty) {
+  function buildAimReference() {
     const equilibriumReaction = reactionForAngles(
       equilibrium.anglesRad,
     );
-    return createAimTarget({
+    return {
       nozzleOrigin: nozzleOriginFor(
         equilibrium.kinematics,
         equilibriumReaction,
       ),
       outletDirection: equilibriumReaction.outletDirection,
+    };
+  }
+
+  function buildAimTarget(difficulty, elapsedS = 0) {
+    if (!aimReference) {
+      aimReference = buildAimReference();
+    }
+    return createAimTarget({
+      nozzleOrigin: aimReference.nozzleOrigin,
+      outletDirection: aimReference.outletDirection,
       distanceM: difficulty.aimDistanceM,
-      normalOffsetM: difficulty.aimNormalOffsetM,
+      normalOffsetM: difficultyAimOffsetM(
+        difficulty,
+        elapsedS,
+      ),
       radiusM: difficulty.aimRadiusM,
     });
+  }
+
+  function updateScheduledAimTarget() {
+    if (!gameState?.difficultyId) return;
+    const difficulty = gameDifficultyById(
+      gameState.difficultyId,
+    );
+    aimTarget = buildAimTarget(
+      difficulty,
+      gameState.elapsedS,
+    );
   }
 
   function updateAimSample(current, reaction) {
@@ -410,6 +436,7 @@ export function mountNonlinearPhase(root) {
   function applySolvedScenario(solved) {
     scenario = solved.scenario;
     equilibrium = solved.equilibrium;
+    aimReference = null;
     resetSimulationState();
   }
 
@@ -610,8 +637,14 @@ export function mountNonlinearPhase(root) {
     gameInsideMetric.textContent = hud.targetLabel;
     gameHitMetric.textContent = hud.hitLabel;
     gameEffortMetric.textContent = hud.effortLabel;
+    const aimOffsetMm = gameState.difficultyId
+      ? 1000 * difficultyAimOffsetM(
+        stage,
+        gameState.elapsedS,
+      )
+      : 0;
     gameTargetsMetric.textContent =
-      `RMS≤${(1000 * stage.targetRmsM).toFixed(0)}mm / Δθ≤${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}° / aim R=${(1000 * (stage.aimRadiusM ?? 0)).toFixed(0)}mm`;
+      `RMS≤${(1000 * stage.targetRmsM).toFixed(0)}mm / Δθ≤${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}° / aim offset ${aimOffsetMm.toFixed(0)}mm / R=${(1000 * (stage.aimRadiusM ?? 0)).toFixed(0)}mm`;
     gameRestartButton.disabled = false;
   }
 
@@ -647,7 +680,8 @@ export function mountNonlinearPhase(root) {
     });
     if (!ready) return;
 
-    aimTarget = buildAimTarget(difficulty);
+    aimReference = buildAimReference();
+    aimTarget = buildAimTarget(difficulty, 0);
     const current = currentGeometry();
     const reaction = reactionForState();
     updateAimSample(current, reaction);
@@ -683,7 +717,8 @@ export function mountNonlinearPhase(root) {
     const difficultyId = gameState.difficultyId;
     const difficulty = gameDifficultyById(difficultyId);
     resetSimulationState();
-    aimTarget = buildAimTarget(difficulty);
+    aimReference = buildAimReference();
+    aimTarget = buildAimTarget(difficulty, 0);
     updateAimSample(currentGeometry(), reactionForState());
     gameState = createDifficultyGameState(difficultyId);
     paused = false;
@@ -876,6 +911,9 @@ export function mountNonlinearPhase(root) {
     }
 
     const reaction = reactionForState();
+    if (gameState?.status === "running") {
+      updateScheduledAimTarget();
+    }
     updateAimSample(current, reaction);
 
     if (gameState?.status === "running") {
