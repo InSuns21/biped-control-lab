@@ -224,6 +224,11 @@ for (const id of ["easy", "normal", "expert", "insane"]) {
     "failed",
     `${id}: real nonlinear zero-input run must not succeed`,
   );
+  assert.equal(
+    game.failureReason,
+    "aim ratio",
+    `${id}: calibrated zero-input run should survive stability but fail aiming`,
+  );
 }
 
 console.log(
