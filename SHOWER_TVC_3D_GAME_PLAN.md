@@ -1114,44 +1114,56 @@ score は
 
 この工程でゲームの数理仕様を固定した。**次は直ちにH1-5-3へ進む。**
 
-#### H1-5-3 — 3D Game View
+#### H1-5-3 — 3D Game View ✅（Human Visual Audit 継続中）
 
-ここで初めて、当初構想の **3Dシャワー制御ゲーム** として見せる。
+当初構想の **3Dシャワー制御ゲーム** の第一版。
 
 第一版は **2D nonlinear rod physics を3D空間の1平面へ埋め込む**。
-したがって見た目とカメラは3Dだが、plantを見た目だけの別物に差し替えない。
+見た目とカメラは3Dだが、plantをrenderer側の別アニメへ差し替えない。
 
-Three.js:
-
-- bathroom / shower-area floor and wall
-- 3D hand / hose root
-- hose centerline -> 3D tube
-- shower head mesh
-- water stream
-- target zone / hit marker
-- perspective camera
-- orbit / fixed gameplay camera
-- existing Pointer hand control
-- H1-5-2 stage / score HUD
-
-座標写像:
+座標写像を
 
 ```text
 2D nonlinear rod [x, y]
-    -> 3D gameplay plane [X, Y, Z_fixed]
+    -> 3D gameplay [X=x, Y=handHeight-y, Z=Z_fixed]
 ```
 
-を最初に固定する。
+として固定した。
 
-3D renderer は physics state の consumer とし、独自のホース運動を持たない。
+実装済み:
+
+- ✅ Three.js をローカルvendorから読み込み
+- ✅ bathroom floor / wall / grid
+- ✅ nonlinear rod nodesから3D hose segmentを毎frame更新
+- ✅ 3D shower-head neck / head / nozzle
+- ✅ outlet water stream
+- ✅ bent-head reaction arrow
+- ✅ actual hand boundary
+- ✅ hand target
+- ✅ nonlinear equilibrium target marker
+- ✅ perspective camera
+- ✅ Game / Front / Close の固定camera preset
+- ✅ H1-5-2 stage / score HUDを共用
+- ✅ 3D canvasでもH1-5-1 Pointer操作
+- ✅ 3D Gameを既定表示
+- ✅ 2D Debugを比較sub-tabとして保持
+- ✅ rendererはphysics stateのconsumerのみ
+- ✅ 2D -> 3D point / vector mapping回帰
+- ✅ 3D / 2D default visibility回帰
+- ✅ 両canvasのPointer wiring回帰
+
+H1-5-3では aiming / wall hit 判定まではゲームルールへ入れない。
+これは H1-5-4 で追加する。
 
 Human Visual Audit:
 
 - ホースが3D空間で自然な太さ・長さに見える
 - shower head と water の向きがphysicsと一致
-- Pointer操作とカメラ操作が衝突しない
+- hand actual / target が操作と一致
+- Pointer操作とcamera UIが衝突しない
 - tabletでもゲーム領域が画面から溢れない
-- 2D debug viewと3D viewで同じphysics stateを確認できる
+- 2D Debugと3D Gameが同じphysics stateを示す
+- Game / Front / Close cameraで重要部分が見切れない
 
 #### H1-5-4 — 3D gameplay polish
 
