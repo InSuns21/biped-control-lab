@@ -793,7 +793,7 @@ export function mountNonlinearPhase(root) {
 
   async function startGame(difficultyId) {
     if (initializationBusy) return;
-    setControlMode("human");
+    await setControlMode("human");
     const difficulty = gameDifficultyById(difficultyId);
     gameState = null;
     aimTarget = null;
