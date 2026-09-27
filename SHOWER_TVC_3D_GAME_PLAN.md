@@ -1220,20 +1220,134 @@ Human Visual Audit:
 
 #### H1-5-4 — 3D gameplay polish
 
-H1-5-3 の成立後。
+H1-5-3 の3D表示を、**遊べる第一版**として完結させる工程。
 
-- aiming target
-- water-hit判定
-- stage intro / result
-- camera tuning
-- sound / small visual effects（必要なら）
-- game HUD compact化
-- tablet control polish
-- difficulty curve
+この工程では plant physics は変更しない。
+難易度・照準・命中率・結果表示・HUD・tablet操作を game layer に追加する。
+
+##### Difficulty
+
+4段階を固定する。
+
+```text
+Easy
+  physics      : low-flow 12 L/min
+  stability    : 広いtarget / failure envelope
+  aiming       : 大きいtarget
+  authority    : 1.25x
+
+Normal
+  physics      : 18 L/min baseline
+  stability    : Expertより広い
+  aiming       : 中target
+  authority    : 1.12x
+
+Expert
+  physics      : 18 L/min baseline
+  stability    : H1-5-2 near相当
+  aiming       : 小target
+  authority    : 1.00x
+
+Insane
+  physics      : Fast 22 nonlinear case
+  stability    : H1-5-2 flutter相当
+  aiming       : 最小target
+  authority    : 1.00x
+```
+
+難易度ごとに以下を1つのconfigへまとめる。
+
+- scenario / preset
+- duration
+- RMS target / fail
+- tip-angle target / fail
+- min stability dwell
+- aim target radius
+- min water-hit fraction
+- aim offset
+- effort budget
+- actuator authority scale
+
+##### Aiming / water hit
+
+現在の authoritative physics は2D nonlinear rodなので、
+水命中判定も同じphysics planeで行う。
+
+```text
+nozzle origin r_n
+outlet unit direction d
+target center r_t
+target radius R
+
+s = dot(r_t-r_n, d)
+
+s > 0 かつ
+distance(r_t, r_n + s d) <= R
+なら hit
+```
+
+renderer側の見た目だけで別判定を作らない。
+
+target は各difficultyの静的平衡water-rayを基準に
+一定距離先へ置き、必要なら法線方向offsetを加える。
+
+計測:
+
+- instantaneous hit
+- hit fraction
+- mean miss distance
+- stability dwell
+- boundary effort
+- actuator saturation
+
+##### Success / score
+
+success:
+
+```text
+time limitまで failure envelope を継続超過しない
+AND stability dwell >= minimum
+AND water-hit fraction >= minimum
+```
+
+score 0--1000:
+
+- stability tracking quality
+- aiming quality / hit fraction
+- boundary effort
+- actuator saturation
+
+を用いる。
+
+##### 3D presentation
+
+- aiming bullseye
+- water hit / miss の色フィードバック
+- stage intro
+- result overlay
+- difficulty / score / hit ratio のcompact HUD
+- Game / Front / Close camera tuning
+- tabletでcanvasとHUDが画面から溢れないこと
+
+sound は必須にしない。
+
+##### Completion gate
+
+H1-5-4 完了条件:
+
+- Easy / Normal / Expert / Insane が開始できる
+- targetが3D画面に見える
+- water hit がphysics rayと一致する
+- hit fractionがgame stateへ入る
+- stability + aimingの両方を満たしてsuccess
+- result overlayから即Restartできる
+- Pointer操作のauthorityがdifficultyへ反映される
+- PC / tabletで主要操作が1画面内へ収まる
 
 ここまでで
 
-> 3D空間で、流水によって暴れるシャワーホースを手元操作で安定化・誘導する
+> 3D空間で、流水によって暴れるシャワーホースを手元操作で安定化し、
+> 狙った場所へ水を当てる
 
 という当初のゲーム体験を第一版完成とする。
 
