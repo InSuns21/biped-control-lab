@@ -273,7 +273,6 @@ export function generalizedRayleighDampingForce(
   angularRatesInput,
 ) {
   const rates = [...angularRatesInput];
-  rates[0] = 0;
   const force = Array(rates.length).fill(0);
 
   // Stiffness-proportional part: beta_K K(q) qdot. The discrete bending
@@ -319,7 +318,6 @@ export function massMatrixAndBias(
   const angles = [...anglesInput];
   const rates = [...angularRatesInput];
   angles[0] = params.baseAngleRad;
-  rates[0] = 0;
 
   const mass = zeros(count);
   const bias = Array(count).fill(0);
