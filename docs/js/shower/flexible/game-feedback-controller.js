@@ -7,7 +7,7 @@ import {
   senseTipFeedback,
 } from "./feedback-controller.js";
 import {
-  fullStateServoHandTarget,
+  fullStateFeedbackHandTarget,
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
@@ -367,12 +367,22 @@ export function automaticGameHandTarget(
     );
   }
 
-  const stateFeedback = fullStateServoHandTarget(
+  // Track the moving rigid-body reference itself.
+  //
+  // The previous implementation used
+  //   u = u_ref - K x
+  // which stabilizes around the original equilibrium and therefore
+  // fights the non-zero hand pose required to aim at an offset target.
+  // For game tracking the correct structure is
+  //   u = u_ref - K (x - x_ref).
+  // fullStateReferenceVector() represents the rigid translation/rotation
+  // reference in the same equilibrium-deviation coordinates as x.
+  const stateFeedback = fullStateFeedbackHandTarget(
     lqrDesign,
     rodState,
     actuatorState,
     {
-      feedforwardTarget: aiming.target,
+      referenceTarget: aiming.target,
       gainScale: mode === "state"
         ? stateGainScale
         : 1,
