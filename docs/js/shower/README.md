@@ -329,7 +329,15 @@ Phase 1 adds another important lesson:
 - score combines tracking quality, boundary effort `integral |P_hand| dt`,
   and actuator-saturation time
 - game stepping is tied to physics dt rather than render fps
-- next implementation step: **H1-5-3 3D Game View**
-- H1-5-3 will embed the existing 2D nonlinear physics in a Three.js 3D scene;
-  true 3D Cosserat physics remains a later H2 phase
+- Phase 1 H1-5-3 Three.js 3D Game View: implemented
+- 3D Game is now the default nonlinear view; 2D Debug remains available
+- the authoritative H1-4B/H1-5 nonlinear rod state is mapped into the 3D plane
+  as `[x,y] -> [X=x, Y=handHeight-y, Z=fixed]`
+- 3D scene includes bathroom floor/wall, segmented hose, shower head, water
+  stream, head reaction, actual/target hand, equilibrium marker, and camera presets
+- the same H1-5-1 Pointer control works on both 3D Game and 2D Debug canvases
+- next implementation step: **H1-5-4 3D gameplay polish**
+- H1-5-4 adds aiming target / water-hit gameplay, result presentation, camera
+  tuning, compact HUD and tablet polish
+- true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending
