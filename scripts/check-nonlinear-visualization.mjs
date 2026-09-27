@@ -56,6 +56,7 @@ for (const marker of [
   '<option value="state">Auto: State FB — 自動プレイ</option>',
   '<option value="lqr">Auto: LQR — 自動プレイ</option>',
   'id="nlGameStart"',
+  'id="nlBeginHuman"',
   'id="nlControlModeHelp"',
   'id="nlPlayInstruction"',
   'class="advanced-lab-panel"',
@@ -181,6 +182,75 @@ assert.ok(
   "auto-play and explicit-start guidance must be visible",
 );
 
+const launcherIndex = html.indexOf(
+  'class="game-panel game-launch-panel"',
+);
+const canvasIndex = html.indexOf('id="nl3dCanvas"');
+const hudIndex = html.indexOf(
+  'class="game-metrics game-primary-metrics game-below-canvas-hud"',
+);
+const comparisonIndex = html.indexOf(
+  'class="controller-comparison-panel game-secondary-details"',
+);
+assert.ok(
+  launcherIndex >= 0
+    && canvasIndex > launcherIndex
+    && hudIndex > canvasIndex
+    && comparisonIndex > hudIndex,
+  "tablet flow must be setup -> 3D canvas -> HUD -> comparison history",
+);
+
+for (const marker of [
+  'gameLaunchPhase = "armed-human"',
+  'function beginGameRun(',
+  'function runAutomaticCountdown(',
+  'for (const count of [3, 2, 1])',
+  'focusGameplayView()',
+  'beginHumanButton.addEventListener("click"',
+  '"READY — TAP TO PLAY"',
+]) {
+  assert.ok(
+    nonlinearUi.includes(marker),
+    `missing H1-8A ready/countdown marker: ${marker}`,
+  );
+}
+
+const startGameStart = nonlinearUi.indexOf(
+  "async function startGame(difficultyId)",
+);
+const flashRestartStart = nonlinearUi.indexOf(
+  "function flashRestartFeedback()",
+  startGameStart,
+);
+assert.ok(startGameStart >= 0 && flashRestartStart > startGameStart);
+const startGameBody = nonlinearUi.slice(
+  startGameStart,
+  flashRestartStart,
+);
+assert.ok(
+  !startGameBody.includes("paused = false"),
+  "START must not immediately advance physics",
+);
+assert.ok(
+  startGameBody.includes("armPreparedGame("),
+  "START must arm a prepared run rather than play immediately",
+);
+
+const beginRunStart = nonlinearUi.indexOf(
+  "function beginGameRun(",
+);
+const countdownStart = nonlinearUi.indexOf(
+  "async function runAutomaticCountdown(",
+  beginRunStart,
+);
+assert.ok(beginRunStart >= 0 && countdownStart > beginRunStart);
+const beginRunBody = nonlinearUi.slice(beginRunStart, countdownStart);
+assert.ok(
+  beginRunBody.includes('gameLaunchPhase = "running"')
+    && beginRunBody.includes("paused = false"),
+  "physics may resume only from the explicit begin transition",
+);
+
 const restartStart = nonlinearUi.indexOf("function restartGame()");
 const recordStart = nonlinearUi.indexOf(
   "function recordHistory()",
@@ -201,8 +271,8 @@ assert.ok(
   "Restart must not enter the heavy configure path",
 );
 assert.ok(
-  nonlinearUi.includes('gameRestartButton.textContent = "Restarted ✓"'),
-  "Restart needs immediate visible feedback",
+  nonlinearUi.includes('gameRestartButton.textContent = "Ready ✓"'),
+  "Restart needs immediate ready-state feedback",
 );
 assert.ok(
   nonlinearUi.includes("void configureResponsive({ preserveFlow: false })"),
