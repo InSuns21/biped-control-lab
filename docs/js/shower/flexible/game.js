@@ -213,7 +213,7 @@ export function createAimTarget({
     radiusM,
     referenceDistanceM: distanceM,
     normalOffsetM,
-    maxRayDistanceM: distanceM + 0.35,
+    maxRayDistanceM: distanceM + 0.08,
   };
 }
 
@@ -236,7 +236,11 @@ export function evaluateWaterAim({
   const dx = target.center[0] - nozzleOrigin[0];
   const dy = target.center[1] - nozzleOrigin[1];
   const forwardDistanceM = dx * direction[0] + dy * direction[1];
-  const clampedForward = Math.max(0, forwardDistanceM);
+  const maxRayDistanceM = target.maxRayDistanceM ?? Infinity;
+  const clampedForward = Math.min(
+    maxRayDistanceM,
+    Math.max(0, forwardDistanceM),
+  );
   const closestPoint = [
     nozzleOrigin[0] + clampedForward * direction[0],
     nozzleOrigin[1] + clampedForward * direction[1],
@@ -246,9 +250,7 @@ export function evaluateWaterAim({
     target.center[1] - closestPoint[1],
   );
   const inFront = forwardDistanceM > 0;
-  const inRange = forwardDistanceM <= (
-    target.maxRayDistanceM ?? Infinity
-  );
+  const inRange = forwardDistanceM <= maxRayDistanceM;
   const hit = inFront
     && inRange
     && missDistanceM <= target.radiusM;
