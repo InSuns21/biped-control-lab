@@ -216,6 +216,7 @@ export function mountNonlinearPhase(root) {
   const gameTimeMetric = root.querySelector("#nlGameTime");
   const gameScoreMetric = root.querySelector("#nlGameScore");
   const gameInsideMetric = root.querySelector("#nlGameInside");
+  const gameRmsMetric = root.querySelector("#nlGameRms");
   const gameHitMetric = root.querySelector("#nlGameHit");
   const gameEffortMetric = root.querySelector("#nlGameEffort");
   const gameTargetsMetric = root.querySelector("#nlGameTargets");
@@ -996,6 +997,7 @@ export function mountNonlinearPhase(root) {
       gameTimeMetric.textContent = "-";
       gameScoreMetric.textContent = "-";
       gameInsideMetric.textContent = "-";
+      gameRmsMetric.textContent = "-";
       gameHitMetric.textContent = "-";
       gameEffortMetric.textContent = "-";
       gameTargetsMetric.textContent = "-";
@@ -1025,6 +1027,7 @@ export function mountNonlinearPhase(root) {
       gameTimeMetric.textContent = "0.0 s";
       gameScoreMetric.textContent = "-";
       gameInsideMetric.textContent = "-";
+      gameRmsMetric.textContent = "-";
       gameHitMetric.textContent = "-";
       gameEffortMetric.textContent = "-";
       gameTargetsMetric.textContent = "-";
@@ -1039,6 +1042,7 @@ export function mountNonlinearPhase(root) {
     gameTimeMetric.textContent = hud.timeLabel;
     gameScoreMetric.textContent = hud.scoreLabel;
     gameInsideMetric.textContent = hud.targetLabel;
+    gameRmsMetric.textContent = hud.rmsLabel;
     gameHitMetric.textContent = hud.hitLabel;
     gameEffortMetric.textContent = hud.effortLabel;
     const aimOffsetMm = gameState.difficultyId
@@ -1048,7 +1052,7 @@ export function mountNonlinearPhase(root) {
       )
       : 0;
     gameTargetsMetric.textContent =
-      `RMS≤${(1000 * stage.targetRmsM).toFixed(0)}mm / Δθ≤${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}° / aim offset ${aimOffsetMm.toFixed(0)}mm / R=${(1000 * (stage.aimRadiusM ?? 0)).toFixed(0)}mm`;
+      `moving-hand ref: RMS≤${(1000 * stage.targetRmsM).toFixed(0)}mm / Δθ≤${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}° / aim offset ${aimOffsetMm.toFixed(0)}mm / R=${(1000 * (stage.aimRadiusM ?? 0)).toFixed(0)}mm`;
     gameRestartButton.disabled = false;
   }
 

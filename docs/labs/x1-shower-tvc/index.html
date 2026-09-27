@@ -173,7 +173,8 @@
           <details class="game-run-details">
             <summary>判定の詳細</summary>
             <div class="game-metrics">
-              <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
+              <div><span>Stable（moving-hand基準）</span><strong id="nlGameInside">-</strong></div>
+              <div><span>Mean flex RMS（moving-hand基準）</span><strong id="nlGameRms">-</strong></div>
               <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
               <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
             </div>
@@ -285,7 +286,7 @@
             <div class="metric"><span>EI / L</span><strong id="nlMaterialMetric">-</strong></div>
             <div class="metric"><span>非線形平衡 tip</span><strong id="nlEquilibriumMetric">-</strong></div>
             <div class="metric"><span>現在 tip angle</span><strong id="nlAngleMetric">-</strong></div>
-            <div class="metric"><span>dynamic RMS</span><strong id="nlRmsMetric">-</strong></div>
+            <div class="metric"><span>dynamic RMS（static equilibrium基準）</span><strong id="nlRmsMetric">-</strong></div>
             <div class="metric"><span>観測 onset</span><strong id="nlOnsetMetric">-</strong></div>
             <div class="metric"><span>CI onset reference</span><strong id="nlCiMetric">-</strong></div>
             <div class="metric"><span>手元 actual x / θ</span><strong id="nlHandMetric">-</strong></div>
