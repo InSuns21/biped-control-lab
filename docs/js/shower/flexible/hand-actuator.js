@@ -1,14 +1,14 @@
 export const DEFAULT_HAND_ACTUATOR_LIMITS = Object.freeze({
-  lateralMinM: -0.08,
-  lateralMaxM: 0.08,
-  lateralMaxSpeedMps: 0.45,
-  lateralMaxAccelerationMps2: 4.0,
-  angleMinRad: -30 * Math.PI / 180,
-  angleMaxRad: 30 * Math.PI / 180,
-  angularMaxSpeedRadS: 2.8,
-  angularMaxAccelerationRadS2: 20,
-  lateralNaturalRatePerS: 12,
-  angularNaturalRatePerS: 14,
+  lateralMinM: -0.12,
+  lateralMaxM: 0.12,
+  lateralMaxSpeedMps: 0.75,
+  lateralMaxAccelerationMps2: 8.0,
+  angleMinRad: -45 * Math.PI / 180,
+  angleMaxRad: 45 * Math.PI / 180,
+  angularMaxSpeedRadS: 4.5,
+  angularMaxAccelerationRadS2: 36,
+  lateralNaturalRatePerS: 20,
+  angularNaturalRatePerS: 22,
 });
 
 export function clamp(value, lower, upper) {
@@ -207,8 +207,10 @@ export function handActuatorLimitsLabel(
 
 
 export const DEFAULT_POINTER_CONTROL_MAPPING = Object.freeze({
-  fullWidthLateralSpanM: 0.16,
-  fullHeightAngularSpanRad: 60 * Math.PI / 180,
+  // Gameplay tuning: a short drag must have visible control authority.
+  // Clamping still limits the physical hand boundary itself.
+  fullWidthLateralSpanM: 0.48,
+  fullHeightAngularSpanRad: 180 * Math.PI / 180,
 });
 
 export function pointerDeltaToHandTarget(
