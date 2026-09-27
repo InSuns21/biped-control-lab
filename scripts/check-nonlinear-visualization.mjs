@@ -51,6 +51,9 @@ for (const marker of [
   'id="nlControlMode"',
   'id="nlControlSenseMetric"',
   'id="nlControlCommandMetric"',
+  'id="nlLqrStateMetric"',
+  'id="nlLqrDesignMetric"',
+  '<option value="lqr">LQR full-state stabilizer</option>',
   'data-game-difficulty="easy"',
   'data-game-difficulty="normal"',
   'data-game-difficulty="expert"',
@@ -91,6 +94,10 @@ for (const marker of [
   "setControlMode",
   "senseTipFeedback",
   "controllerHandTarget",
+  "designFullStateLqr",
+  "lqrHandTarget",
+  "ensureLqrDesign",
+  "lqrDesignCache",
   "restartGame",
   "configureResponsive",
   "solutionCache",
@@ -201,5 +208,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-6-1 feedback visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-6-2 state-feedback visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );
