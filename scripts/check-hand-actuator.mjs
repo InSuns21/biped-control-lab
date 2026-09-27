@@ -28,13 +28,54 @@ const pointerMoved = pointerDeltaToHandTarget(
   limits,
 );
 assert.ok(
-  Math.abs(pointerMoved.lateralPositionM - 0.08) < 1e-12,
-  "half-width drag should reach +80 mm lateral target",
+  Math.abs(pointerMoved.lateralPositionM - limits.lateralMaxM) < 1e-12,
+  "half-width drag should reach the positive lateral travel limit",
 );
 assert.ok(
-  Math.abs(pointerMoved.angleRad - Math.PI / 6) < 1e-12,
-  "half-height upward drag should reach +30 deg target",
+  Math.abs(pointerMoved.angleRad - limits.angleMaxRad) < 1e-12,
+  "half-height upward drag should reach the positive angle limit",
 );
+
+// A short gameplay drag must create a visibly strong target and the physical
+// hand actuator must follow most of it within a fraction of a second.
+const shortDragTarget = pointerDeltaToHandTarget(
+  pointerStart,
+  {
+    deltaXPx: 60,
+    deltaYPx: -60,
+    widthPx: 900,
+    heightPx: 640,
+  },
+  limits,
+);
+assert.ok(
+  shortDragTarget.lateralPositionM >= 0.03,
+  "60 px drag on desktop should command at least 30 mm lateral target",
+);
+assert.ok(
+  shortDragTarget.angleRad >= 15 * Math.PI / 180,
+  "60 px upward drag should command at least 15 deg angle target",
+);
+
+let shortDragState = createHandActuatorState();
+for (let i = 0; i < Math.round(0.20 / dt); i += 1) {
+  shortDragState = stepHandActuator(
+    shortDragState,
+    shortDragTarget,
+    dt,
+    limits,
+  ).state;
+}
+assert.ok(
+  shortDragState.lateralPositionM
+    >= 0.70 * shortDragTarget.lateralPositionM,
+  "lateral actuator should follow at least 70% of a short-drag target in 0.20 s",
+);
+assert.ok(
+  shortDragState.angleRad >= 0.70 * shortDragTarget.angleRad,
+  "angular actuator should follow at least 70% of a short-drag target in 0.20 s",
+);
+
 const pointerClamped = pointerDeltaToHandTarget(
   pointerMoved,
   {
