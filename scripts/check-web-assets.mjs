@@ -32,6 +32,7 @@ await requireFile("docs/js/shower/flexible/nonlinear-scenario.js");
 await requireFile("docs/js/shower/flexible/nonlinear-boundary.js");
 await requireFile("docs/js/shower/flexible/hand-actuator.js");
 await requireFile("docs/js/shower/flexible/game.js");
+await requireFile("docs/js/shower/flexible/feedback-controller.js");
 for (const [, , filename] of chapters) await requireFile(`docs/theory/${filename}`);
 
 const code = await readFile("docs/vendor/marked.umd.js", "utf8");
