@@ -156,6 +156,19 @@
             <small>流量変更時は非線形静的平衡を continuation で再計算します。</small>
           </div>
 
+          <div class="control feedback-control-panel">
+            <label for="nlControlMode">H1-6-1 Control mode</label>
+            <select id="nlControlMode">
+              <option value="human" selected>Human Pointer</option>
+              <option value="p">P boundary stabilizer</option>
+              <option value="pd">PD boundary stabilizer</option>
+            </select>
+            <small>
+              P/PDはtip横変位・tip角度だけ（PDは速度も）を観測し、
+              既存hand actuatorへtargetを出します。ゲーム中はH1-6-3までHuman固定です。
+            </small>
+          </div>
+
           <div class="control pointer-help">
             <span class="control-title">Direct Pointer Control</span>
             <p><strong>キャンバスをdrag</strong></p>
@@ -217,7 +230,9 @@
             <div class="metric"><span>手元仕事率</span><strong id="nlHandPowerMetric">-</strong></div>
             <div class="metric"><span>累積境界仕事</span><strong id="nlHandWorkMetric">-</strong></div>
             <div class="metric"><span>actuator limit</span><strong id="nlActuatorMetric">-</strong></div>
-            <div class="metric"><span>Pointer</span><strong id="nlPointerMetric">-</strong></div>
+            <div class="metric"><span>Pointer / controller</span><strong id="nlPointerMetric">-</strong></div>
+            <div class="metric"><span>feedback sensing</span><strong id="nlControlSenseMetric">-</strong></div>
+            <div class="metric"><span>feedback command</span><strong id="nlControlCommandMetric">-</strong></div>
             <div class="metric"><span>sim time</span><strong id="nlTimeMetric">-</strong></div>
             <div class="metric"><span>status</span><strong id="nlStatusMetric">-</strong></div>
           </div>
@@ -246,6 +261,7 @@
         <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
         <p><strong>H1-5-4:</strong> Easy / Normal / Expert / Insane で流量・安定化target・照準半径・必要命中率・手元authorityが変わります。水の命中はノズル位置とphysics outlet rayから計算し、安定化と命中率の両方を満たしたときだけ成功です。</p>
         <p><strong>H1-5-4A:</strong> bullseyeは難易度ごとのphysics-time scheduleで移動します。Easyも2.5秒後には操作が必要になり、Normal / Expert / Insaneは無操作ではクリアできないことをCIで固定しています。InsaneはFast 22を保ったまま成功可能側へ緩和しています。</p>
+        <p><strong>H1-6-0/1:</strong> Human / P / PD を切り替えられます。P/PDはrender差分ではなくrod角速度から解析的にtip速度を観測し、Humanと同じ速度・加速度制限つきhand actuatorを使います。H1-6-1では安定化器単体を比較するため、ゲーム照準の自動追従はまだ行いません。</p>
       </section>
     </section>
 
