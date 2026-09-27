@@ -1086,13 +1086,13 @@ export function mountNonlinearPhase(root) {
     ) {
       const reference = lastAutomaticGameControl?.referenceTarget;
       controlSenseMetric.textContent = reference
-        ? `full state around aim ref x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}°`
+        ? `full-state stabilizer + aim feedforward x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}°`
         : "full rod + hand actuator state";
       controlCommandMetric.textContent =
         `${controlModeLabel(controlMode)} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
       lqrStateMetric.textContent = lastLqrStateNorm === null
         ? "-"
-        : `||x-xref||₂ = ${lastLqrStateNorm.toExponential(3)}`;
+        : `||x||₂ = ${lastLqrStateNorm.toExponential(3)}`;
       const diag = activeLqrDesign.controllability;
       const gainLabel = controlMode === "state"
         ? `fixed ${FIXED_STATE_FEEDBACK_GAIN_SCALE.toFixed(2)}×K`
@@ -1194,7 +1194,7 @@ export function mountNonlinearPhase(root) {
       lastAutomaticGameControl = automatic;
       lastControlSensing = automatic.sensing;
       lastLqrStateNorm = automatic.stateFeedback
-        ? automatic.stateFeedback.errorNorm
+        ? automatic.stateFeedback.stateNorm
         : null;
     } else if (
       controlMode === "state"
@@ -1220,7 +1220,7 @@ export function mountNonlinearPhase(root) {
       handTarget = automatic.target;
       lastAutomaticGameControl = automatic;
       lastControlSensing = null;
-      lastLqrStateNorm = automatic.stateFeedback.errorNorm;
+      lastLqrStateNorm = automatic.stateFeedback.stateNorm;
     } else if (controlMode === "lqr" && !gameState) {
       const result = lqrHandTarget(
         activeLqrDesign,
