@@ -195,10 +195,9 @@ function aimingReferenceCandidate({
     forwardDistanceM,
     referenceRmsM,
     cost:
-      100 * Math.abs(residualSignedMissM)
+      Math.abs(residualSignedMissM)
       + backwardPenalty
       + rangePenalty
-      + referenceRmsM
       + poseRegularizer,
   };
 }
