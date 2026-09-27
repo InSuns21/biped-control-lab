@@ -1218,7 +1218,7 @@ Human Visual Audit:
 - 2D Debugと3D Gameが同じphysics stateを示す
 - Game / Front / Close cameraで重要部分が見切れない
 
-#### H1-5-4 — 3D gameplay polish
+#### H1-5-4 — 3D gameplay polish ✅（Human Visual Audit 継続中）
 
 H1-5-3 の3D表示を、**遊べる第一版**として完結させる工程。
 
@@ -1333,16 +1333,36 @@ sound は必須にしない。
 
 ##### Completion gate
 
-H1-5-4 完了条件:
+実装済み:
 
-- Easy / Normal / Expert / Insane が開始できる
-- targetが3D画面に見える
-- water hit がphysics rayと一致する
-- hit fractionがgame stateへ入る
-- stability + aimingの両方を満たしてsuccess
-- result overlayから即Restartできる
-- Pointer操作のauthorityがdifficultyへ反映される
-- PC / tabletで主要操作が1画面内へ収まる
+- ✅ Easy / Normal / Expert / Insane
+- ✅ difficultyごとの physics preset / stability target / aim radius
+- ✅ Easy 1.25x / Normal 1.12x authority
+- ✅ physics-plane nozzle ray vs circular bullseye hit test
+- ✅ finite water-ray range
+- ✅ instantaneous hit / hit fraction / aim quality / mean miss distance
+- ✅ stability dwell + hit fraction の両方をsuccess条件化
+- ✅ 0--1000 scoreへaimingを統合
+- ✅ Three.js bullseye
+- ✅ hit中はbullseye + water streamをgreen表示
+- ✅ stage intro overlay
+- ✅ SUCCESS / FAILED result overlay
+- ✅ result overlayから即Restart
+- ✅ compact tablet HUD
+- ✅ 4難易度の基準water rayが初期bullseyeへ届く回帰
+- ✅ game-rule / browser / 3D renderer 回帰
+
+Human Visual Auditでは、
+
+- Easyが入門として実際に簡単か
+- Normalが標準難易度として成立するか
+- Expert / Insaneが理不尽すぎないか
+- bullseyeがカメラ3種で見切れないか
+- hitのgreen feedbackが即座に読めるか
+- result overlay / Restartがtabletで押しやすいか
+- game HUDが1画面内に収まるか
+
+を確認する。
 
 ここまでで
 
