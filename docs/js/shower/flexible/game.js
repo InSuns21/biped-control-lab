@@ -162,7 +162,7 @@ export const SHOWER_GAME_DIFFICULTIES = Object.freeze({
     failRmsM: 0.55,
     failTipAngleErrorRad: degToRad(125),
     failHoldS: 0.90,
-    minInsideFraction: 0.40,
+    minInsideFraction: 0.25,
     effortBudgetJ: 2.00,
     aimDistanceM: 0.52,
     aimRadiusM: 0.13,
