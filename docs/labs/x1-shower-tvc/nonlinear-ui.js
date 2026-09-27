@@ -253,6 +253,9 @@ export function mountNonlinearPhase(root) {
   let stoppedReason = null;
   let gameState = null;
   let activeVisualMode = "3d";
+  let initializationBusy = false;
+  const solutionCache = new Map();
+  let historyDirty = true;
 
   let pointerId = null;
   let pointerSurface = null;
@@ -305,16 +308,11 @@ export function mountNonlinearPhase(root) {
     );
   }
 
-  function configure({ preserveFlow = false } = {}) {
-    preset = PRESETS[presetId];
-    if (!preserveFlow) flow.value = String(preset.flowLpm);
-    const flowLpm = Number(flow.value);
-    flowOut.value = `${flowLpm.toFixed(1)} L/min`;
-    presetNote.textContent = preset.note;
+  function solutionCacheKey(flowLpm) {
+    return `${presetId}:${Number(flowLpm).toFixed(3)}`;
+  }
 
-    const solved = solveContinuation(preset, flowLpm);
-    scenario = solved.scenario;
-    equilibrium = solved.equilibrium;
+  function resetSimulationState() {
     state = perturbEquilibriumState(
       scenario,
       equilibrium.anglesRad,
@@ -346,6 +344,7 @@ export function mountNonlinearPhase(root) {
     onsetThresholdM = Math.max(0.020, 3 * initialRmsM);
     observedOnsetS = null;
     history = [];
+    historyDirty = true;
     simTime = 0;
     lastHistoryTime = -Infinity;
     accumulator = 0;
@@ -354,13 +353,114 @@ export function mountNonlinearPhase(root) {
     pauseButton.textContent = "一時停止";
     lastFrameMs = performance.now();
     recordHistory();
+  }
+
+  function applySolvedScenario(solved) {
+    scenario = solved.scenario;
+    equilibrium = solved.equilibrium;
+    resetSimulationState();
+  }
+
+  function preparePresetInputs({ preserveFlow = false } = {}) {
+    preset = PRESETS[presetId];
+    if (!preserveFlow) flow.value = String(preset.flowLpm);
+    const flowLpm = Number(flow.value);
+    flowOut.value = `${flowLpm.toFixed(1)} L/min`;
+    presetNote.textContent = preset.note;
+    return flowLpm;
+  }
+
+  function nextPaint() {
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  }
+
+  function setInitializationBusy(next) {
+    initializationBusy = next;
+    const gameLocked = gameState?.status === "running";
+    setGameControlLock(next || gameLocked);
+
+    gameStageButtons.forEach((button) => {
+      button.disabled = next;
+      button.setAttribute("aria-busy", String(next));
+    });
+    pauseButton.disabled = next;
+    resetButton.disabled = next;
+    centerHandButton.disabled = next;
+    gameRestartButton.setAttribute("aria-busy", String(next));
+
+    if (next) {
+      gameRestartButton.disabled = true;
+      gameStatusMetric.textContent = "LOADING…";
+      gameStatusMetric.className = "status-warn";
+      statusMetric.textContent = "平衡解を計算中…";
+      statusMetric.className = "status-warn";
+    } else {
+      updateGameHud();
+    }
+  }
+
+  function showInitializationError(error) {
+    initializationBusy = false;
+    setGameControlLock(false);
+    gameStageButtons.forEach((button) => {
+      button.disabled = false;
+      button.setAttribute("aria-busy", "false");
+    });
+    pauseButton.disabled = false;
+    resetButton.disabled = false;
+    centerHandButton.disabled = false;
+    gameRestartButton.disabled = !gameState;
+    gameStatusMetric.textContent = "ERROR";
+    gameStatusMetric.className = "status-danger";
+    statusMetric.textContent = "初期化に失敗";
+    statusMetric.className = "status-danger";
+    console.error("nonlinear shower initialization failed", error);
+  }
+
+  async function configureResponsive({
+    preserveFlow = false,
+  } = {}) {
+    const flowLpm = preparePresetInputs({ preserveFlow });
+    const key = solutionCacheKey(flowLpm);
+    const cached = solutionCache.get(key);
+    if (cached) {
+      applySolvedScenario(cached);
+      render();
+      return true;
+    }
+
+    setInitializationBusy(true);
+    paused = true;
+    await nextPaint();
+
+    try {
+      const solved = solveContinuation(preset, flowLpm);
+      solutionCache.set(key, solved);
+      applySolvedScenario(solved);
+    } catch (error) {
+      showInitializationError(error);
+      return false;
+    }
+
+    setInitializationBusy(false);
     render();
+    return true;
   }
 
   function setGameControlLock(locked) {
     flow.disabled = locked;
     playback.disabled = locked;
-    function setVisualMode(mode) {
+    presetButtons.forEach((button) => {
+      button.disabled = locked;
+    });
+    handPulseButtons.forEach((button) => {
+      button.disabled = locked;
+    });
+  }
+
+  function setVisualMode(mode) {
     activeVisualMode = mode;
     const is3d = mode === "3d";
     game3dViewTab.setAttribute("aria-selected", String(is3d));
@@ -372,50 +472,19 @@ export function mountNonlinearPhase(root) {
     render();
   }
 
-  game3dViewTab.addEventListener(
-    "click",
-    () => setVisualMode("3d"),
-  );
-  debug2dViewTab.addEventListener(
-    "click",
-    () => setVisualMode("2d"),
-  );
-  game3dCamera.addEventListener("change", () => {
-    game3dView.setCameraView(game3dCamera.value);
-    if (activeVisualMode === "3d") render();
-  });
-
-  [game3dViewTab, debug2dViewTab].forEach(
-    (tab, index, tabs) => {
-      tab.addEventListener("keydown", (event) => {
-        if (
-          event.key !== "ArrowLeft"
-          && event.key !== "ArrowRight"
-        ) {
-          return;
-        }
-        event.preventDefault();
-        const delta = event.key === "ArrowRight" ? 1 : -1;
-        const next = tabs[(index + delta + tabs.length) % tabs.length];
-        next.focus();
-        next.click();
-      });
-    },
-  );
-
-  presetButtons.forEach((button) => {
-      button.disabled = locked;
-    });
-    handPulseButtons.forEach((button) => {
-      button.disabled = locked;
-    });
-  }
-
   function updateGameHud() {
+    if (initializationBusy) {
+      gameStatusMetric.textContent = "LOADING…";
+      gameStatusMetric.className = "status-warn";
+      gameRestartButton.disabled = true;
+      return;
+    }
+
     const hud = gameHudSnapshot(gameState);
     if (!gameState) {
       gameStageMetric.textContent = "未開始";
       gameStatusMetric.textContent = hud.status;
+      gameStatusMetric.className = "";
       gameTimeMetric.textContent = hud.timeLabel;
       gameScoreMetric.textContent = hud.scoreLabel;
       gameInsideMetric.textContent = hud.targetLabel;
@@ -446,18 +515,44 @@ export function mountNonlinearPhase(root) {
     updateGameHud();
   }
 
-  function startGame(stageId) {
+  async function startGame(stageId) {
+    if (initializationBusy) return;
     const stage = gameStageById(stageId);
     gameState = null;
     presetId = stage.presetId;
     playback.value = "1";
-    configure({ preserveFlow: false });
+
+    const ready = await configureResponsive({
+      preserveFlow: false,
+    });
+    if (!ready) return;
+
     gameState = createGameState(stageId);
     paused = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
     updateGameHud();
     render();
+  }
+
+  function flashRestartFeedback() {
+    gameRestartButton.textContent = "Restarted ✓";
+    window.setTimeout(() => {
+      gameRestartButton.textContent = "Restart";
+    }, 650);
+  }
+
+  function restartGame() {
+    if (!gameState || initializationBusy) return;
+    const stageId = gameState.stageId;
+    resetSimulationState();
+    gameState = createGameState(stageId);
+    paused = false;
+    pauseButton.textContent = "一時停止";
+    setGameControlLock(true);
+    updateGameHud();
+    render();
+    flashRestartFeedback();
   }
 
   function recordHistory() {
@@ -473,6 +568,7 @@ export function mountNonlinearPhase(root) {
       handAngleDeg: radToDeg(currentBoundary.angleRad),
       handTargetAngleDeg: radToDeg(handTarget.angleRad),
     });
+    historyDirty = true;
     const cutoff = simTime - HISTORY_SECONDS;
     while (history.length > 2 && history[0].t < cutoff) {
       history.shift();
@@ -557,7 +653,10 @@ export function mountNonlinearPhase(root) {
     } else {
       view.render(renderPayload);
     }
-    view.renderHistory(history);
+    if (historyDirty) {
+      view.renderHistory(history);
+      historyDirty = false;
+    }
     updateMetrics(metrics, current);
     updateGameHud();
   }
@@ -708,7 +807,14 @@ export function mountNonlinearPhase(root) {
 
   function installPointerControl(controlCanvas) {
     controlCanvas.addEventListener("pointerdown", (event) => {
-      if (pointerId !== null || stoppedReason) return;
+      if (
+        pointerId !== null
+        || stoppedReason
+        || initializationBusy
+        || !scenario
+      ) {
+        return;
+      }
       pointerId = event.pointerId;
       pointerSurface = controlCanvas;
       pointerLastX = event.clientX;
@@ -732,6 +838,7 @@ export function mountNonlinearPhase(root) {
       pointerLastX = event.clientX;
       pointerLastY = event.clientY;
       setPointerTargetFromDelta(controlCanvas, dx, dy);
+      render();
       event.preventDefault();
     });
 
@@ -742,22 +849,56 @@ export function mountNonlinearPhase(root) {
   installPointerControl(game3dCanvas);
   installPointerControl(canvas);
 
+  game3dViewTab.addEventListener(
+    "click",
+    () => setVisualMode("3d"),
+  );
+  debug2dViewTab.addEventListener(
+    "click",
+    () => setVisualMode("2d"),
+  );
+  game3dCamera.addEventListener("change", () => {
+    game3dView.setCameraView(game3dCamera.value);
+    if (activeVisualMode === "3d") render();
+  });
+
+  [game3dViewTab, debug2dViewTab].forEach(
+    (tab, index, tabs) => {
+      tab.addEventListener("keydown", (event) => {
+        if (
+          event.key !== "ArrowLeft"
+          && event.key !== "ArrowRight"
+        ) {
+          return;
+        }
+        event.preventDefault();
+        const delta = event.key === "ArrowRight" ? 1 : -1;
+        const next = tabs[
+          (index + delta + tabs.length) % tabs.length
+        ];
+        next.focus();
+        next.click();
+      });
+    },
+  );
+
   presetButtons.forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+      if (initializationBusy) return;
       cancelGame();
       presetId = button.dataset.nlPreset;
-      configure({ preserveFlow: false });
+      await configureResponsive({ preserveFlow: false });
     });
   });
 
   gameStageButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      startGame(button.dataset.gameStage);
+    button.addEventListener("click", async () => {
+      await startGame(button.dataset.gameStage);
     });
   });
 
   gameRestartButton.addEventListener("click", () => {
-    if (gameState) startGame(gameState.stageId);
+    restartGame();
   });
 
   handPulseButtons.forEach((button) => {
@@ -797,9 +938,10 @@ export function mountNonlinearPhase(root) {
   flow.addEventListener("input", () => {
     flowOut.value = `${Number(flow.value).toFixed(1)} L/min`;
   });
-  flow.addEventListener("change", () => {
+  flow.addEventListener("change", async () => {
+    if (initializationBusy) return;
     cancelGame();
-    configure({ preserveFlow: true });
+    await configureResponsive({ preserveFlow: true });
   });
 
   playback.addEventListener("change", () => {
@@ -816,9 +958,10 @@ export function mountNonlinearPhase(root) {
 
   resetButton.addEventListener("click", () => {
     if (gameState) {
-      startGame(gameState.stageId);
+      restartGame();
     } else {
-      configure({ preserveFlow: true });
+      resetSimulationState();
+      render();
     }
   });
 
@@ -829,7 +972,13 @@ export function mountNonlinearPhase(root) {
     const elapsed = Math.min((now - lastFrameMs) / 1000, 0.05);
     lastFrameMs = now;
 
-    if (!paused && !stoppedReason) {
+    if (
+      !initializationBusy
+      && scenario
+      && state
+      && !paused
+      && !stoppedReason
+    ) {
       accumulator += elapsed * Number(playback.value);
       let steps = 0;
       while (accumulator >= DT && steps < 40) {
@@ -846,10 +995,10 @@ export function mountNonlinearPhase(root) {
     rafId = requestAnimationFrame(frame);
   }
 
-  configure({ preserveFlow: false });
   setVisualMode("3d");
   setGameControlLock(false);
   updateGameHud();
+  void configureResponsive({ preserveFlow: false });
 
   return {
     setActive(next) {

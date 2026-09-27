@@ -76,12 +76,81 @@ for (const marker of [
   "updateGameState",
   "setGameControlLock",
   "startGame",
+  "restartGame",
+  "configureResponsive",
+  "solutionCache",
+  "LOADING…",
+  "historyDirty",
 ]) {
   assert.ok(
     nonlinearUi.includes(marker),
     `missing H1-5-1 Pointer wiring: ${marker}`,
   );
 }
+
+
+const lockStart = nonlinearUi.indexOf(
+  "function setGameControlLock(locked)",
+);
+const viewStart = nonlinearUi.indexOf(
+  "function setVisualMode(mode)",
+  lockStart,
+);
+assert.ok(lockStart >= 0 && viewStart > lockStart);
+const lockBody = nonlinearUi.slice(lockStart, viewStart);
+assert.ok(
+  !lockBody.includes("addEventListener"),
+  "setGameControlLock must not register event listeners",
+);
+
+assert.equal(
+  nonlinearUi.split('game3dViewTab.addEventListener(').length - 1,
+  1,
+  "3D view-tab click handler must be registered exactly once",
+);
+assert.equal(
+  nonlinearUi.split('debug2dViewTab.addEventListener(').length - 1,
+  1,
+  "2D view-tab click handler must be registered exactly once",
+);
+
+const restartStart = nonlinearUi.indexOf("function restartGame()");
+const recordStart = nonlinearUi.indexOf(
+  "function recordHistory()",
+  restartStart,
+);
+assert.ok(restartStart >= 0 && recordStart > restartStart);
+const restartBody = nonlinearUi.slice(restartStart, recordStart);
+assert.ok(
+  restartBody.includes("resetSimulationState()"),
+  "Restart must reset the current solved scenario directly",
+);
+assert.ok(
+  !restartBody.includes("solveContinuation"),
+  "Restart must not solve static equilibrium again",
+);
+assert.ok(
+  !restartBody.includes("configureResponsive"),
+  "Restart must not enter the heavy configure path",
+);
+assert.ok(
+  nonlinearUi.includes('gameRestartButton.textContent = "Restarted ✓"'),
+  "Restart needs immediate visible feedback",
+);
+assert.ok(
+  nonlinearUi.includes("void configureResponsive({ preserveFlow: false })"),
+  "initial nonlinear solve must be deferred through the responsive path",
+);
+assert.ok(
+  nonlinearUi.includes("!initializationBusy\n      && scenario\n      && state"),
+  "physics stepping must wait until async initialization is ready",
+);
+assert.ok(
+  nonlinearUi.includes(
+    "setPointerTargetFromDelta(controlCanvas, dx, dy);\n      render();",
+  ),
+  "Pointer movement should render target feedback immediately",
+);
 
 assert.ok(
   !/id="nonlinearModelPanel"[^>]*hidden/.test(html),
@@ -111,5 +180,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-5-2 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-5-3 interaction visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );
