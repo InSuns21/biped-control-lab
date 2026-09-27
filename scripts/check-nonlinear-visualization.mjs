@@ -138,6 +138,14 @@ assert.ok(
   "Restart needs immediate visible feedback",
 );
 assert.ok(
+  nonlinearUi.includes("void configureResponsive({ preserveFlow: false })"),
+  "initial nonlinear solve must be deferred through the responsive path",
+);
+assert.ok(
+  nonlinearUi.includes("!initializationBusy\n      && scenario\n      && state"),
+  "physics stepping must wait until async initialization is ready",
+);
+assert.ok(
   nonlinearUi.includes(
     "setPointerTargetFromDelta(controlCanvas, dx, dy);\n      render();",
   ),
