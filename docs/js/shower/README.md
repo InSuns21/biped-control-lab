@@ -339,8 +339,17 @@ Phase 1 adds another important lesson:
 - 3D scene includes bathroom floor/wall, segmented hose, shower head, water
   stream, head reaction, actual/target hand, equilibrium marker, and camera presets
 - the same H1-5-1 Pointer control works on both 3D Game and 2D Debug canvases
-- next implementation step: **H1-5-4 3D gameplay polish**
-- H1-5-4 adds aiming target / water-hit gameplay, result presentation, camera
-  tuning, compact HUD and tablet polish
+- Phase 1 H1-5-4 3D gameplay polish: implemented
+- game difficulties: Easy / Normal / Expert / Insane
+- difficulty config controls scenario, stability envelope, aim radius,
+  hit-fraction requirement, effort budget and hand-authority scale
+- water hit is evaluated from the authoritative 2D physics nozzle ray against
+  a circular bullseye, then rendered in the 3D scene
+- hit feedback turns the bullseye and water stream green
+- success requires both stabilization dwell and water-hit fraction
+- result overlay reports SUCCESS / FAILED + score and supports instant Restart
+- tablet HUD is compacted for the 3D game surface
+- H1-5 3D manual-control game first version is now functionally complete
+- next major control phase: **H1-6 feedback control / human-vs-controller**
 - true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending
