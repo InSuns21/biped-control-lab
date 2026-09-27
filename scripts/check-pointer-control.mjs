@@ -92,13 +92,13 @@ for (let stepIndex = 0; stepIndex < 1800; stepIndex += 1) {
   const timeS = stepIndex * dt;
   const target = timeS < 0.55
     ? {
-        lateralPositionM: 0.055,
-        angleRad: 14 * Math.PI / 180,
+        lateralPositionM: 0.090,
+        angleRad: 28 * Math.PI / 180,
       }
     : timeS < 1.10
       ? {
-          lateralPositionM: -0.040,
-          angleRad: -10 * Math.PI / 180,
+          lateralPositionM: -0.075,
+          angleRad: -24 * Math.PI / 180,
         }
       : {
           lateralPositionM: 0,
@@ -215,20 +215,20 @@ assert.ok(
   "actuator polynomial endpoint must equal the prescribed boundary endpoint",
 );
 assert.ok(
-  maxHandX > 0.025,
-  "direct actuator control must create visible lateral hand motion",
+  maxHandX > 0.060,
+  "direct actuator control must create clearly visible lateral hand motion",
 );
 assert.ok(
-  maxHandAngle > 5 * Math.PI / 180,
-  "direct actuator control must create visible angular hand motion",
+  maxHandAngle > 18 * Math.PI / 180,
+  "direct actuator control must create clearly visible angular hand motion",
 );
 assert.ok(
   accumulatedAbsPowerJ > 1e-3,
   "direct actuator control must exchange measurable boundary energy",
 );
 assert.ok(
-  stateDifference > 0.02,
-  "direct actuator control must materially alter flowing hose dynamics",
+  stateDifference > 0.05,
+  "direct actuator control must strongly alter flowing hose dynamics",
 );
 assert.ok(
   Math.abs(actuator.lateralPositionM) < 0.01,
