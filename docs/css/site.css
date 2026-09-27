@@ -136,3 +136,12 @@ button:hover { border-color: var(--accent); }
 @media (max-width: 760px) {
   .model-switch .phase-tab { flex: 1 1 100%; }
 }
+
+.pointer-help p { margin: .25rem 0 .15rem; }
+.pointer-help button { width: 100%; margin-top: .65rem; }
+#nlCanvas { cursor: grab; }
+#nlCanvas.pointer-active { cursor: grabbing; }
+.hand-pulse-grid button { min-width: 5.4rem; }
+@media (max-width: 760px) {
+  .hand-pulse-grid button { flex: 1 1 30%; min-width: 0; }
+}

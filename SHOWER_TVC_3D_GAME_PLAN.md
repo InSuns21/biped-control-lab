@@ -967,15 +967,80 @@ relative error     ~= 4.4e-10
 公開画面では左右 12 mm、角度 ±5 deg、複合 pulse を任意時刻に入力できる。
 pulse は smooth bump で元の手元位置・角度へ戻る。
 
-#### H1-5-1 — direct pointer control
+#### H1-5-1 — direct pointer control ✅（Human Visual Audit 継続中）
 
-次工程。
+H1-5-0 の prescribed boundary を、Pointer Events から直接 target 指定できる
+interactive boundary control へ拡張した。
 
-- Pointer drag -> hand lateral target
-- second axis / modifier -> hand angle target
-- actuator velocity / acceleration limit
-- tablet Pointer Events
-- hand trajectory history
+操作:
+
+- 横 drag -> hand lateral target
+- 縦 drag -> hand angle target
+- pointer release -> target保持
+- center button -> targetを neutral へ戻す
+- mouse / pen / touch を同じ Pointer Events で処理
+
+Pointer target を物理境界へ瞬間移動させず、
+
+```text
+Pointer target
+  -> rate-limited hand actuator
+  -> prescribed boundary
+  -> nonlinear hose
+```
+
+とする。
+
+アクチュエータ既定制約:
+
+```text
+x_h      : +/- 80 mm
+theta_h  : +/- 30 deg
+|v_h|    : <= 0.45 m/s
+|a_h|    : <= 4.0 m/s^2
+|omega_h|: <= 2.8 rad/s
+|alpha_h|: <= 20 rad/s^2
+```
+
+target tracking は critically-damped 形の acceleration command を作り、
+速度・加速度・travel を個別に clamp する。
+
+実装:
+
+- ✅ Pointer capture
+- ✅ horizontal / vertical drag の2軸 target mapping
+- ✅ target clamp
+- ✅ actuator velocity / acceleration limit
+- ✅ tablet-compatible Pointer Events
+- ✅ actual / target の別描画
+- ✅ hand x actual / target history
+- ✅ hand angle actual / target history
+- ✅ actuator saturation HUD
+- ✅ Pointer status HUD
+- ✅ H1-5-0 pulse input を比較用として残す
+
+自動回帰:
+
+- ✅ half-width drag -> +80 mm target
+- ✅ half-height upward drag -> +30 deg target
+- ✅ target range clamp
+- ✅ position / angle target への収束
+- ✅ speed / acceleration upper bound
+- ✅ target reversal
+- ✅ neutral return
+- ✅ actuator trajectory と prescribed boundary endpoint の一致
+- ✅ Pointer Events wiring の静的確認
+
+Human Visual Audit では特に、
+
+- PC mouse drag
+- tablet touch drag
+- actual / target の追従遅れ
+- 指を離した後の target保持
+- canvas外へdragしても Pointer capture が継続すること
+- 速度・加速度 limit が過剰に操作感を鈍らせないこと
+
+を確認する。
 
 #### H1-5-2 — stabilization game
 

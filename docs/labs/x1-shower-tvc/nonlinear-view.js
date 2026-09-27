@@ -168,10 +168,105 @@ function drawChart(canvas, history, {
   ctx.stroke();
 }
 
+function drawSignedDualChart(canvas, history, {
+  actualKey,
+  targetKey,
+  title,
+  unit,
+  minimumAbs,
+  actualColor,
+  targetColor,
+}) {
+  const { ctx, width, height } = fitCanvas(canvas);
+  const panel = cssColor("--panel", "#fff");
+  const text = cssColor("--text", "#222");
+  const muted = cssColor("--muted", "#666");
+  const line = cssColor("--line", "#ddd");
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = panel;
+  ctx.fillRect(0, 0, width, height);
+
+  const left = 48;
+  const right = 12;
+  const top = 28;
+  const bottom = 28;
+  const w = Math.max(1, width - left - right);
+  const h = Math.max(1, height - top - bottom);
+
+  ctx.fillStyle = text;
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText(title, 10, 17);
+
+  ctx.fillStyle = actualColor;
+  ctx.fillRect(width - 136, 9, 12, 3);
+  ctx.fillStyle = muted;
+  ctx.fillText("actual", width - 119, 14);
+  ctx.fillStyle = targetColor;
+  ctx.fillRect(width - 67, 9, 12, 3);
+  ctx.fillStyle = muted;
+  ctx.fillText("target", width - 50, 14);
+
+  if (history.length < 2) {
+    ctx.fillText("履歴を計測中…", left, top + 22);
+    return;
+  }
+
+  const t0 = history[0].t;
+  const t1 = history.at(-1).t;
+  let maxAbs = minimumAbs;
+  for (const sample of history) {
+    maxAbs = Math.max(
+      maxAbs,
+      Math.abs(sample[actualKey]),
+      Math.abs(sample[targetKey]),
+    );
+  }
+  maxAbs *= 1.08;
+
+  const mapX = (t) => left
+    + (t - t0) / Math.max(1e-9, t1 - t0) * w;
+  const mapY = (value) => top + 0.5 * h
+    - value / Math.max(1e-9, maxAbs) * 0.5 * h;
+
+  ctx.strokeStyle = line;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(left, top, w, h);
+  ctx.beginPath();
+  ctx.moveTo(left, mapY(0));
+  ctx.lineTo(left + w, mapY(0));
+  ctx.stroke();
+
+  ctx.fillStyle = muted;
+  ctx.fillText(`+${maxAbs.toFixed(0)} ${unit}`, 4, top + 4);
+  ctx.fillText(`-${maxAbs.toFixed(0)}`, 9, top + h);
+  ctx.fillText(`${t1.toFixed(1)} s`, width - 55, height - 8);
+
+  const drawSeries = (key, color, dashed) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash(dashed ? [5, 4] : []);
+    ctx.beginPath();
+    history.forEach((sample, i) => {
+      const x = mapX(sample.t);
+      const y = mapY(sample[key]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+
+  drawSeries(actualKey, actualColor, false);
+  drawSeries(targetKey, targetColor, true);
+}
+
 export function createNonlinearView({
   canvas,
   rmsChart,
   tipChart,
+  handXChart = null,
+  handAngleChart = null,
 }) {
   const colors = {
     hose: cssColor("--text", "#eef"),
@@ -183,6 +278,8 @@ export function createNonlinearView({
     head: "#8b949e",
     accent: cssColor("--accent", "#79a8ff"),
     danger: cssColor("--danger", "#ff8787"),
+    hand: "#49a078",
+    target: "#2f8f83",
   };
 
   function render({
@@ -190,6 +287,7 @@ export function createNonlinearView({
     equilibriumKinematics,
     reaction,
     handBoundary,
+    handTarget,
     handReaction,
     showNodes,
     stoppedReason,
@@ -204,6 +302,14 @@ export function createNonlinearView({
     const handDirectionEnd = [
       currentBase[0] + Math.sin(handBoundary?.angleRad ?? 0) * 0.14,
       currentBase[1] + Math.cos(handBoundary?.angleRad ?? 0) * 0.14,
+    ];
+    const targetBase = [
+      handTarget?.lateralPositionM ?? currentBase[0],
+      0,
+    ];
+    const targetDirectionEnd = [
+      targetBase[0] + Math.sin(handTarget?.angleRad ?? 0) * 0.14,
+      targetBase[1] + Math.cos(handTarget?.angleRad ?? 0) * 0.14,
     ];
     const nozzle = [
       tip[0] + reaction.nozzleOffsetWorldM[0],
@@ -222,6 +328,8 @@ export function createNonlinearView({
         waterEnd,
         currentBase,
         handDirectionEnd,
+        targetBase,
+        targetDirectionEnd,
         [0, 0],
       ],
       width,
@@ -231,20 +339,50 @@ export function createNonlinearView({
 
     const base = map(currentBase);
     const handEnd = map(handDirectionEnd);
-    ctx.strokeStyle = "#49a078";
+    ctx.strokeStyle = colors.hand;
     ctx.lineWidth = 7;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(base[0], base[1]);
     ctx.lineTo(handEnd[0], handEnd[1]);
     ctx.stroke();
-    ctx.fillStyle = "#49a078";
+    ctx.fillStyle = colors.hand;
     ctx.beginPath();
     ctx.arc(base[0], base[1], 7, 0, 2 * Math.PI);
     ctx.fill();
     ctx.fillStyle = colors.equilibrium;
     ctx.font = "12px system-ui, sans-serif";
     ctx.fillText("手元境界", base[0] + 10, base[1] - 10);
+
+    if (handTarget) {
+      const targetBasePx = map(targetBase);
+      const targetEndPx = map(targetDirectionEnd);
+      ctx.strokeStyle = colors.target;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(targetBasePx[0], targetBasePx[1]);
+      ctx.lineTo(targetEndPx[0], targetEndPx[1]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = colors.target;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(
+        targetBasePx[0],
+        targetBasePx[1],
+        10,
+        0,
+        2 * Math.PI,
+      );
+      ctx.stroke();
+      ctx.fillStyle = colors.target;
+      ctx.fillText(
+        "target",
+        targetBasePx[0] + 12,
+        targetBasePx[1] + 16,
+      );
+    }
 
     if (handReaction) {
       drawArrow(
@@ -255,7 +393,7 @@ export function createNonlinearView({
           46,
           18 + 9 * Math.abs(handReaction.reactionForceXN),
         ),
-        "#49a078",
+        colors.hand,
       );
     }
 
@@ -354,6 +492,28 @@ export function createNonlinearView({
       minimumMax: 20,
       color: colors.node,
     });
+    if (handXChart) {
+      drawSignedDualChart(handXChart, history, {
+        actualKey: "handXmm",
+        targetKey: "handTargetXmm",
+        title: "手元横位置: actual / target",
+        unit: "mm",
+        minimumAbs: 20,
+        actualColor: colors.hand,
+        targetColor: colors.target,
+      });
+    }
+    if (handAngleChart) {
+      drawSignedDualChart(handAngleChart, history, {
+        actualKey: "handAngleDeg",
+        targetKey: "handTargetAngleDeg",
+        title: "手元角度: actual / target",
+        unit: "deg",
+        minimumAbs: 8,
+        actualColor: colors.hand,
+        targetColor: colors.target,
+      });
+    }
   }
 
   return { render, renderHistory };
