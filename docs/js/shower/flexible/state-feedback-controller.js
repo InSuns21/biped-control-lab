@@ -742,6 +742,33 @@ export function fullStateReferenceVector(
   return vector;
 }
 
+export function fullStateSteadyReferenceVector(
+  design,
+  {
+    lateralPositionM = 0,
+    angleRad = 0,
+  } = {},
+) {
+  const realization = design?.realization;
+  if (!realization?.A || !realization?.B) {
+    throw new RangeError("full-state design with A/B is required");
+  }
+  const n = realization.A.length;
+  const lhs = subtractMatrices(
+    identity(n),
+    realization.A,
+  );
+  const input = [lateralPositionM, angleRad];
+  const rhs = multiplyMatrixVector(
+    realization.B,
+    input,
+  ).map(
+    (value, i) =>
+      value + (realization.affineResidual?.[i] ?? 0),
+  );
+  return solveLinear(lhs, rhs);
+}
+
 export function fullStateFeedbackHandTarget(
   design,
   rodState,
@@ -753,6 +780,7 @@ export function fullStateFeedbackHandTarget(
     },
     gainScale = 1,
     limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+    referenceVectorOverride = null,
   } = {},
 ) {
   if (!(gainScale > 0)) {
@@ -764,10 +792,15 @@ export function fullStateFeedbackHandTarget(
     rodState,
     actuatorState,
   );
-  const referenceVector = fullStateReferenceVector(
-    design.realization.descriptor,
-    referenceTarget,
-  );
+  const referenceVector = referenceVectorOverride
+    ? [...referenceVectorOverride]
+    : fullStateReferenceVector(
+        design.realization.descriptor,
+        referenceTarget,
+      );
+  if (referenceVector.length !== stateVector.length) {
+    throw new RangeError("reference vector dimension mismatch");
+  }
   const errorVector = stateVector.map(
     (value, i) => value - referenceVector[i],
   );
@@ -797,6 +830,36 @@ export function fullStateFeedbackHandTarget(
     errorNorm: vectorNorm(errorVector),
     gainScale,
   };
+}
+
+export function fullStateSteadyServoHandTarget(
+  design,
+  rodState,
+  actuatorState,
+  {
+    referenceTarget = {
+      lateralPositionM: 0,
+      angleRad: 0,
+    },
+    gainScale = 1,
+    limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  } = {},
+) {
+  const referenceVector = fullStateSteadyReferenceVector(
+    design,
+    referenceTarget,
+  );
+  return fullStateFeedbackHandTarget(
+    design,
+    rodState,
+    actuatorState,
+    {
+      referenceTarget,
+      referenceVectorOverride: referenceVector,
+      gainScale,
+      limits,
+    },
+  );
 }
 
 export function fullStateServoHandTarget(

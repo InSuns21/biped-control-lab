@@ -2114,6 +2114,46 @@ START
   -> controller play
 ```
 
+### H1-8B — production auto-control recalibration ✅（Human Visual Audit 継続中）
+
+タブレット実機で Expert / Insane の State FB / LQR が失敗し、
+State FB は照準更新に遅れ、LQR は照準へ十分入らないことを確認。
+P / PD を含め、自動プレイ4方式を production 12-segment 条件で総監査した。
+
+見つかった問題:
+
+1. 旧CIは controller comparison だけ 8-segment surrogate を使っており、
+   実画面の12-segment挙動を保証していなかった
+2. gameの安定化RMS / tip角度判定が「元の静的平衡」基準だったため、
+   照準のための意図的な手元移動まで不安定化として罰していた
+3. full-state追従で、照準hand targetに対する state reference を
+   zero equilibriumまたはrigid-body近似で扱っており、
+   LQRの線形モデルと整合していなかった
+4. Expertの高速なmoving targetではfull-state側に短いtracking lagが残った
+
+修正:
+
+- ✅ game stabilityを現在のactual hand boundaryで変換したmoving frame基準へ変更
+- ✅ aimingのための剛体移動とflexible deformationを分離
+- ✅ 12-segment Easy / Normal / Expert / Insane × P / PD / State / LQR をCIで実走
+- ✅ full-state referenceを
+  `(I - A) x_ss = B u_ref + c`
+  で解くmodel-consistent steady stateへ変更
+- ✅ State / LQRに0.12 sのmoving-target look-aheadを追加
+- ✅ look-ahead sweep 0–0.20 sでExpert / Insaneの追従を確認
+- ✅ 0.12 sでExpert LQRが Hit 53.1% -> 55.45%となり成功側へ入る
+- ✅ Insaneでも State / LQR は Hit 80%超かつstable判定を十分満たす
+- ✅ P / PDも同じproduction条件で再監査
+- ✅ Easy / Normal: P / PD / State / LQR 全成功
+- ✅ Expert: PD / State / LQR 成功、Pは局所P制御の限界を示す比較対象
+- ✅ Insane: State / LQR成功。P / PDはFast 22で局所制御の限界を示す
+- ✅ PDのFast 22でのactuator stressとfull-stateの低effort差をCIで比較
+- ✅ UI説明にも「Autoは制御則比較であり、単純P/PDは高難度で失敗し得る」を反映
+
+ここでdifficultyを緩めて成功させるのではなく、
+同一plant / actuator / game conditionのもとで
+controller capabilityの段階差を見せる。
+
 ---
 
 
@@ -2135,6 +2175,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
 - [x] H1-8 game-first UX で通常プレイと開発UIを分離する
 - [x] H1-8A tablet/mobile UX で setup / play を隣接させ、ready/countdown開始にする
+- [x] H1-8B production 12-segment で全auto controllerを再校正する
 - [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 

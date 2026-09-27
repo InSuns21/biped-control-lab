@@ -7,10 +7,18 @@ import {
   senseTipFeedback,
 } from "./feedback-controller.js";
 import {
-  fullStateServoHandTarget,
+  fullStateSteadyServoHandTarget,
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
+export const FULL_STATE_AIM_LOOKAHEAD_S = 0.12;
+
+export function automaticGameAimLookaheadS(mode) {
+  return mode === "state" || mode === "lqr"
+    ? FULL_STATE_AIM_LOOKAHEAD_S
+    : 0;
+}
+
 
 function normalize2(vector) {
   const norm = Math.hypot(vector[0], vector[1]);
@@ -367,12 +375,17 @@ export function automaticGameHandTarget(
     );
   }
 
-  const stateFeedback = fullStateServoHandTarget(
+  // Track a state that is dynamically consistent with the hand target.
+  // For the discrete linearization x+ = A x + B u + c, the constant
+  // reference state solves (I - A) x_ss = B u_ref + c. This avoids both
+  // stabilizing back toward the original zero-input equilibrium and the
+  // earlier ad-hoc rigid-body x_ref approximation.
+  const stateFeedback = fullStateSteadyServoHandTarget(
     lqrDesign,
     rodState,
     actuatorState,
     {
-      feedforwardTarget: aiming.target,
+      referenceTarget: aiming.target,
       gainScale: mode === "state"
         ? stateGainScale
         : 1,
