@@ -86,7 +86,28 @@ function equilibriumNozzleOrigin(
   ];
 }
 
+function rigidReferenceRmsM(
+  equilibriumKinematics,
+  referenceTarget,
+) {
+  const nodes = equilibriumKinematics?.nodes;
+  if (!Array.isArray(nodes) || nodes.length <= 1) return 0;
+
+  let sumSq = 0;
+  for (let i = 1; i < nodes.length; i += 1) {
+    const moved = transformRodPoint(
+      nodes[i],
+      referenceTarget,
+    );
+    const dx = moved[0] - nodes[i][0];
+    const dy = moved[1] - nodes[i][1];
+    sumSq += dx * dx + dy * dy;
+  }
+  return Math.sqrt(sumSq / (nodes.length - 1));
+}
+
 function aimingReferenceCandidate({
+  equilibriumKinematics,
   nozzle0,
   outlet0,
   target,
@@ -153,7 +174,14 @@ function aimingReferenceCandidate({
     1e-9,
     limits.angleMaxRad - limits.angleMinRad,
   );
-  const poseRegularizer = 1e-5 * (
+  const referenceRmsM = rigidReferenceRmsM(
+    equilibriumKinematics,
+    {
+      lateralPositionM,
+      angleRad,
+    },
+  );
+  const poseRegularizer = 1e-6 * (
     Math.abs(lateralPositionM) / xRange
     + Math.abs(angleRad) / angleRange
   );
@@ -165,15 +193,18 @@ function aimingReferenceCandidate({
     outletDirection: rotatedOutlet,
     residualSignedMissM,
     forwardDistanceM,
+    referenceRmsM,
     cost:
-      Math.abs(residualSignedMissM)
+      100 * Math.abs(residualSignedMissM)
       + backwardPenalty
       + rangePenalty
+      + referenceRmsM
       + poseRegularizer,
   };
 }
 
 function searchAimingReference({
+  equilibriumKinematics,
   nozzle0,
   outlet0,
   target,
@@ -193,6 +224,7 @@ function searchAimingReference({
     for (let i = 0; i < samples; i += 1) {
       const angleRad = lower + i * spacing;
       const candidate = aimingReferenceCandidate({
+        equilibriumKinematics,
         nozzle0,
         outlet0,
         target,
@@ -251,6 +283,7 @@ export function aimingHandReference({
     equilibriumReaction.outletDirection,
   );
   const best = searchAimingReference({
+    equilibriumKinematics,
     nozzle0,
     outlet0,
     target,
@@ -269,6 +302,7 @@ export function aimingHandReference({
     desiredOutletDirection: [...best.outletDirection],
     residualSignedMissM: best.residualSignedMissM,
     forwardDistanceM: best.forwardDistanceM,
+    referenceRmsM: best.referenceRmsM,
   };
 }
 
