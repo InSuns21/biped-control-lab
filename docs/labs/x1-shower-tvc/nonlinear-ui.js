@@ -564,6 +564,7 @@ export function mountNonlinearPhase(root) {
         : (gameState.failureReason === "failure envelope"
           ? "failure envelope超過"
           : ""));
+    pauseButton.disabled = true;
     showGameOverlay({
       kicker: gameState.stage.title,
       title: success ? "SUCCESS" : "FAILED",
@@ -621,6 +622,7 @@ export function mountNonlinearPhase(root) {
     actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
     actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
     hideGameOverlay();
+    pauseButton.disabled = false;
     setGameControlLock(false);
     updateGameHud();
   }
@@ -651,6 +653,7 @@ export function mountNonlinearPhase(root) {
     updateAimSample(current, reaction);
     gameState = createDifficultyGameState(difficultyId);
     paused = true;
+    pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
     updateGameHud();
@@ -684,6 +687,7 @@ export function mountNonlinearPhase(root) {
     updateAimSample(currentGeometry(), reactionForState());
     gameState = createDifficultyGameState(difficultyId);
     paused = false;
+    pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
     hideGameOverlay();
