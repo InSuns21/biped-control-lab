@@ -30,6 +30,9 @@ import {
   updateGameState,
 } from "../../js/shower/flexible/game.js";
 import {
+  createGame3DView,
+} from "./game-3d-view.js";
+import {
   createNonlinearView,
 } from "./nonlinear-view.js";
 
@@ -151,6 +154,12 @@ function anySaturation(saturation) {
 
 export function mountNonlinearPhase(root) {
   const canvas = root.querySelector("#nlCanvas");
+  const game3dCanvas = root.querySelector("#nl3dCanvas");
+  const game3dViewTab = root.querySelector("#nl3dViewTab");
+  const debug2dViewTab = root.querySelector("#nl2dViewTab");
+  const game3dViewPanel = root.querySelector("#nl3dViewPanel");
+  const debug2dViewPanel = root.querySelector("#nl2dViewPanel");
+  const game3dCamera = root.querySelector("#nl3dCamera");
   const rmsChart = root.querySelector("#nlRmsChart");
   const tipChart = root.querySelector("#nlTipChart");
   const handXChart = root.querySelector("#nlHandXChart");
@@ -209,6 +218,7 @@ export function mountNonlinearPhase(root) {
     handXChart,
     handAngleChart,
   });
+  const game3dView = createGame3DView(game3dCanvas);
 
   const actuatorLimits = DEFAULT_HAND_ACTUATOR_LIMITS;
   const actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
@@ -242,8 +252,10 @@ export function mountNonlinearPhase(root) {
   let rafId = null;
   let stoppedReason = null;
   let gameState = null;
+  let activeVisualMode = "3d";
 
   let pointerId = null;
+  let pointerSurface = null;
   let pointerLastX = 0;
   let pointerLastY = 0;
 
@@ -348,7 +360,50 @@ export function mountNonlinearPhase(root) {
   function setGameControlLock(locked) {
     flow.disabled = locked;
     playback.disabled = locked;
-    presetButtons.forEach((button) => {
+    function setVisualMode(mode) {
+    activeVisualMode = mode;
+    const is3d = mode === "3d";
+    game3dViewTab.setAttribute("aria-selected", String(is3d));
+    debug2dViewTab.setAttribute("aria-selected", String(!is3d));
+    game3dViewTab.tabIndex = is3d ? 0 : -1;
+    debug2dViewTab.tabIndex = is3d ? -1 : 0;
+    game3dViewPanel.hidden = !is3d;
+    debug2dViewPanel.hidden = is3d;
+    render();
+  }
+
+  game3dViewTab.addEventListener(
+    "click",
+    () => setVisualMode("3d"),
+  );
+  debug2dViewTab.addEventListener(
+    "click",
+    () => setVisualMode("2d"),
+  );
+  game3dCamera.addEventListener("change", () => {
+    game3dView.setCameraView(game3dCamera.value);
+    if (activeVisualMode === "3d") render();
+  });
+
+  [game3dViewTab, debug2dViewTab].forEach(
+    (tab, index, tabs) => {
+      tab.addEventListener("keydown", (event) => {
+        if (
+          event.key !== "ArrowLeft"
+          && event.key !== "ArrowRight"
+        ) {
+          return;
+        }
+        event.preventDefault();
+        const delta = event.key === "ArrowRight" ? 1 : -1;
+        const next = tabs[(index + delta + tabs.length) % tabs.length];
+        next.focus();
+        next.click();
+      });
+    },
+  );
+
+  presetButtons.forEach((button) => {
       button.disabled = locked;
     });
     handPulseButtons.forEach((button) => {
@@ -487,7 +542,7 @@ export function mountNonlinearPhase(root) {
     const metrics = currentMetrics(current);
     const reaction = reactionForState();
 
-    view.render({
+    const renderPayload = {
       currentKinematics: current,
       equilibriumKinematics: equilibrium.kinematics,
       reaction,
@@ -496,7 +551,12 @@ export function mountNonlinearPhase(root) {
       handReaction: lastBoundaryDiagnostics,
       showNodes: showNodes.checked,
       stoppedReason,
-    });
+    };
+    if (activeVisualMode === "3d") {
+      game3dView.render(renderPayload);
+    } else {
+      view.render(renderPayload);
+    }
     view.renderHistory(history);
     updateMetrics(metrics, current);
     updateGameHud();
@@ -616,8 +676,12 @@ export function mountNonlinearPhase(root) {
     });
   }
 
-  function setPointerTargetFromDelta(deltaXPx, deltaYPx) {
-    const rect = canvas.getBoundingClientRect();
+  function setPointerTargetFromDelta(
+    controlCanvas,
+    deltaXPx,
+    deltaYPx,
+  ) {
+    const rect = controlCanvas.getBoundingClientRect();
     handTarget = pointerDeltaToHandTarget(
       handTarget,
       {
@@ -633,38 +697,50 @@ export function mountNonlinearPhase(root) {
 
   function finishPointer(event) {
     if (event.pointerId !== pointerId) return;
-    if (canvas.hasPointerCapture?.(pointerId)) {
-      canvas.releasePointerCapture(pointerId);
+    if (pointerSurface?.hasPointerCapture?.(pointerId)) {
+      pointerSurface.releasePointerCapture(pointerId);
     }
+    pointerSurface?.classList.remove("pointer-active");
     pointerId = null;
-    canvas.classList.remove("pointer-active");
+    pointerSurface = null;
     render();
   }
 
-  canvas.addEventListener("pointerdown", (event) => {
-    if (pointerId !== null || stoppedReason) return;
-    pointerId = event.pointerId;
-    pointerLastX = event.clientX;
-    pointerLastY = event.clientY;
-    canvas.setPointerCapture(event.pointerId);
-    canvas.classList.add("pointer-active");
-    manualControlUsed = true;
-    event.preventDefault();
-    render();
-  });
+  function installPointerControl(controlCanvas) {
+    controlCanvas.addEventListener("pointerdown", (event) => {
+      if (pointerId !== null || stoppedReason) return;
+      pointerId = event.pointerId;
+      pointerSurface = controlCanvas;
+      pointerLastX = event.clientX;
+      pointerLastY = event.clientY;
+      controlCanvas.setPointerCapture(event.pointerId);
+      controlCanvas.classList.add("pointer-active");
+      manualControlUsed = true;
+      event.preventDefault();
+      render();
+    });
 
-  canvas.addEventListener("pointermove", (event) => {
-    if (event.pointerId !== pointerId) return;
-    const dx = event.clientX - pointerLastX;
-    const dy = event.clientY - pointerLastY;
-    pointerLastX = event.clientX;
-    pointerLastY = event.clientY;
-    setPointerTargetFromDelta(dx, dy);
-    event.preventDefault();
-  });
+    controlCanvas.addEventListener("pointermove", (event) => {
+      if (
+        event.pointerId !== pointerId
+        || pointerSurface !== controlCanvas
+      ) {
+        return;
+      }
+      const dx = event.clientX - pointerLastX;
+      const dy = event.clientY - pointerLastY;
+      pointerLastX = event.clientX;
+      pointerLastY = event.clientY;
+      setPointerTargetFromDelta(controlCanvas, dx, dy);
+      event.preventDefault();
+    });
 
-  canvas.addEventListener("pointerup", finishPointer);
-  canvas.addEventListener("pointercancel", finishPointer);
+    controlCanvas.addEventListener("pointerup", finishPointer);
+    controlCanvas.addEventListener("pointercancel", finishPointer);
+  }
+
+  installPointerControl(game3dCanvas);
+  installPointerControl(canvas);
 
   presetButtons.forEach((button) => {
     button.addEventListener("click", () => {
@@ -771,6 +847,7 @@ export function mountNonlinearPhase(root) {
   }
 
   configure({ preserveFlow: false });
+  setVisualMode("3d");
   setGameControlLock(false);
   updateGameHud();
 
