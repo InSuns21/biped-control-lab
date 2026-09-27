@@ -18,10 +18,10 @@ export const DEFAULT_P_GAINS = Object.freeze({
 });
 
 export const DEFAULT_PD_GAINS = Object.freeze({
-  lateralPositionGain: -0.04,
-  lateralVelocityGainS: -0.008,
-  angleGain: -0.04,
-  angularRateGainS: -0.008,
+  lateralPositionGain: -0.08,
+  lateralVelocityGainS: -0.015,
+  angleGain: -0.08,
+  angularRateGainS: -0.015,
 });
 
 function wrapAngleRad(value) {
