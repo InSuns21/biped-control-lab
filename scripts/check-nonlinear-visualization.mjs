@@ -48,6 +48,9 @@ for (const marker of [
   'id="nlGameEffort"',
   'id="nlGameTargets"',
   'id="nlGameRestart"',
+  'id="nlControlMode"',
+  'id="nlControlSenseMetric"',
+  'id="nlControlCommandMetric"',
   'data-game-difficulty="easy"',
   'data-game-difficulty="normal"',
   'data-game-difficulty="expert"',
@@ -85,6 +88,9 @@ for (const marker of [
   "updateScheduledAimTarget",
   "setGameControlLock",
   "startGame",
+  "setControlMode",
+  "senseTipFeedback",
+  "controllerHandTarget",
   "restartGame",
   "configureResponsive",
   "solutionCache",
@@ -121,6 +127,12 @@ assert.equal(
   nonlinearUi.split('debug2dViewTab.addEventListener(').length - 1,
   1,
   "2D view-tab click handler must be registered exactly once",
+);
+
+assert.equal(
+  nonlinearUi.split('controlModeSelect.addEventListener("change"').length - 1,
+  1,
+  "feedback mode change handler must be registered exactly once",
 );
 
 const restartStart = nonlinearUi.indexOf("function restartGame()");
@@ -189,5 +201,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-5-4A playability visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-6-1 feedback visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );

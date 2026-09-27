@@ -34,6 +34,10 @@ import {
   updateGameState,
 } from "../../js/shower/flexible/game.js";
 import {
+  controllerHandTarget,
+  senseTipFeedback,
+} from "../../js/shower/flexible/feedback-controller.js";
+import {
   createGame3DView,
 } from "./game-3d-view.js";
 import {
@@ -176,6 +180,7 @@ export function mountNonlinearPhase(root) {
   const pauseButton = root.querySelector("#nlPause");
   const resetButton = root.querySelector("#nlReset");
   const centerHandButton = root.querySelector("#nlCenterHand");
+  const controlModeSelect = root.querySelector("#nlControlMode");
   const presetButtons = [...root.querySelectorAll("[data-nl-preset]")];
   const handPulseButtons = [
     ...root.querySelectorAll("[data-hand-pulse]"),
@@ -218,6 +223,12 @@ export function mountNonlinearPhase(root) {
   const handWorkMetric = root.querySelector("#nlHandWorkMetric");
   const actuatorMetric = root.querySelector("#nlActuatorMetric");
   const pointerMetric = root.querySelector("#nlPointerMetric");
+  const controlSenseMetric = root.querySelector(
+    "#nlControlSenseMetric",
+  );
+  const controlCommandMetric = root.querySelector(
+    "#nlControlCommandMetric",
+  );
   const timeMetric = root.querySelector("#nlTimeMetric");
   const statusMetric = root.querySelector("#nlStatusMetric");
   const presetNote = root.querySelector("#nlPresetNote");
@@ -253,6 +264,8 @@ export function mountNonlinearPhase(root) {
   let onsetThresholdM = 0.020;
   let observedOnsetS = null;
   let manualControlUsed = false;
+  let controlMode = "human";
+  let lastControlSensing = null;
   let history = [];
   let simTime = 0;
   let lastHistoryTime = -Infinity;
@@ -410,6 +423,7 @@ export function mountNonlinearPhase(root) {
     cumulativeHandWorkJ = 0;
     lastActuatorSaturation = {};
     manualControlUsed = false;
+    lastControlSensing = null;
     lastBoundaryDiagnostics = handBoundaryDynamics(
       scenario.system,
       state,
@@ -466,7 +480,7 @@ export function mountNonlinearPhase(root) {
     });
     pauseButton.disabled = next;
     resetButton.disabled = next;
-    centerHandButton.disabled = next;
+    centerHandButton.disabled = next || controlMode !== "human";
     gameRestartButton.setAttribute("aria-busy", String(next));
 
     if (next) {
@@ -489,7 +503,7 @@ export function mountNonlinearPhase(root) {
     });
     pauseButton.disabled = false;
     resetButton.disabled = false;
-    centerHandButton.disabled = false;
+    centerHandButton.disabled = controlMode !== "human";
     gameRestartButton.disabled = !gameState;
     gameStatusMetric.textContent = "ERROR";
     gameStatusMetric.className = "status-danger";
@@ -531,12 +545,38 @@ export function mountNonlinearPhase(root) {
   function setGameControlLock(locked) {
     flow.disabled = locked;
     playback.disabled = locked;
+    controlModeSelect.disabled = locked;
     presetButtons.forEach((button) => {
       button.disabled = locked;
     });
     handPulseButtons.forEach((button) => {
       button.disabled = locked;
     });
+  }
+
+  function setControlMode(mode, {
+    centerTarget = true,
+  } = {}) {
+    if (!["human", "p", "pd"].includes(mode)) {
+      throw new RangeError(`unknown control mode: ${mode}`);
+    }
+    controlMode = mode;
+    controlModeSelect.value = mode;
+    lastControlSensing = null;
+
+    if (centerTarget) {
+      handTarget = clampHandTarget(
+        {
+          lateralPositionM: 0,
+          angleRad: 0,
+        },
+        actuatorLimits,
+      );
+    }
+
+    centerHandButton.disabled = mode !== "human"
+      || initializationBusy;
+    render();
   }
 
   function setVisualMode(mode) {
@@ -662,6 +702,7 @@ export function mountNonlinearPhase(root) {
 
   async function startGame(difficultyId) {
     if (initializationBusy) return;
+    setControlMode("human");
     const difficulty = gameDifficultyById(difficultyId);
     gameState = null;
     aimTarget = null;
@@ -766,7 +807,11 @@ export function mountNonlinearPhase(root) {
     rmsMetric.textContent =
       `${(metrics.rmsM * 1000).toFixed(1)} mm`;
 
-    if (manualControlUsed) {
+    if (controlMode !== "human") {
+      onsetMetric.textContent = observedOnsetS === null
+        ? "feedback inputあり / 自励onset判定は参考"
+        : `${observedOnsetS.toFixed(3)} s / feedback inputあり`;
+    } else if (manualControlUsed) {
       onsetMetric.textContent = observedOnsetS === null
         ? "manual inputあり / 自励onset判定は参考"
         : `${observedOnsetS.toFixed(3)} s / manual inputあり`;
@@ -795,9 +840,28 @@ export function mountNonlinearPhase(root) {
     actuatorMetric.className = saturated
       ? "status-warn"
       : "status-ok";
-    pointerMetric.textContent = pointerId === null
-      ? "待機: 横drag=x*, 縦drag=θ*"
-      : "Pointer操作中";
+    if (controlMode === "human") {
+      pointerMetric.textContent = pointerId === null
+        ? "待機: 横drag=x*, 縦drag=θ*"
+        : "Pointer操作中";
+    } else {
+      pointerMetric.textContent =
+        `${controlMode.toUpperCase()} feedbackがhand targetを生成`;
+    }
+
+    if (lastControlSensing) {
+      controlSenseMetric.textContent =
+        `ex ${(1000 * lastControlSensing.tipLateralErrorM).toFixed(1)} mm / vx ${(1000 * lastControlSensing.tipLateralVelocityMps).toFixed(1)} mm/s / eθ ${radToDeg(lastControlSensing.tipAngleErrorRad).toFixed(1)}° / ω ${radToDeg(lastControlSensing.tipAngularRateRadS).toFixed(1)}°/s`;
+      controlCommandMetric.textContent =
+        `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+    } else {
+      controlSenseMetric.textContent = controlMode === "human"
+        ? "Human mode: feedback sensor未使用"
+        : "-";
+      controlCommandMetric.textContent = controlMode === "human"
+        ? "Pointer -> hand target"
+        : "-";
+    }
 
     timeMetric.textContent = `${simTime.toFixed(2)} s`;
     statusMetric.textContent = stoppedReason
@@ -840,6 +904,25 @@ export function mountNonlinearPhase(root) {
   }
 
   function step() {
+    if (controlMode !== "human" && !gameState) {
+      lastControlSensing = senseTipFeedback(
+        scenario.system,
+        state,
+        currentBoundary,
+        equilibrium.kinematics,
+      );
+      const feedbackTarget = controllerHandTarget(
+        controlMode,
+        lastControlSensing,
+        { limits: actuatorLimits },
+      );
+      if (feedbackTarget) {
+        handTarget = feedbackTarget;
+      }
+    } else if (controlMode === "human") {
+      lastControlSensing = null;
+    }
+
     const actuatorStart = handActuator;
     const actuatorStep = stepHandActuator(
       actuatorStart,
@@ -1001,6 +1084,7 @@ export function mountNonlinearPhase(root) {
         || stoppedReason
         || initializationBusy
         || !scenario
+        || controlMode !== "human"
       ) {
         return;
       }
@@ -1071,6 +1155,14 @@ export function mountNonlinearPhase(root) {
     },
   );
 
+  controlModeSelect.addEventListener("change", () => {
+    if (gameState) {
+      setControlMode("human");
+      return;
+    }
+    setControlMode(controlModeSelect.value);
+  });
+
   presetButtons.forEach((button) => {
     button.addEventListener("click", async () => {
       if (initializationBusy) return;
@@ -1119,6 +1211,7 @@ export function mountNonlinearPhase(root) {
   });
 
   centerHandButton.addEventListener("click", () => {
+    if (controlMode !== "human") return;
     handTarget = clampHandTarget({
       lateralPositionM: 0,
       angleRad: 0,
@@ -1188,6 +1281,7 @@ export function mountNonlinearPhase(root) {
   }
 
   setVisualMode("3d");
+  setControlMode("human", { centerTarget: false });
   setGameControlLock(false);
   updateGameHud();
   void configureResponsive({ preserveFlow: false });

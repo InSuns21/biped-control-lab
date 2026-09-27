@@ -360,6 +360,22 @@ Phase 1 adds another important lesson:
 - moving bullseyes are deterministic and advance on physics time, not render fps
 - CI forbids zero-input wins for every difficulty and verifies an assisted
   reachable trace can still succeed
-- next major control phase: **H1-6 feedback control / human-vs-controller**
+- Phase 1 H1-6-0 feedback sensing contract: implemented
+- P/PD sensing is limited to tip lateral displacement/velocity and tip
+  angle/angular rate relative to the nonlinear equilibrium; render-frame
+  finite differences are not used
+- Phase 1 H1-6-1 P/PD boundary stabilization: implemented
+- Human / P / PD all drive the same rate-limited hand actuator and prescribed
+  nonlinear moving boundary
+- default P gains: Kp(x,theta) = -0.04
+- default PD gains: Kp(x,theta) = -0.08, Kd(x,theta) = -0.015 s
+- Fast 22 RMS integral over 3.5 s: open 0.2711, P 0.2307, PD 0.1064 m s
+  (about 14.9% and 60.7% reduction respectively)
+- baseline 18 peak RMS is not amplified, but its already-strong natural damping
+  makes open-loop cheaper in integrated RMS / effort; that tradeoff is retained
+- calibrated P/PD runs use zero actuator-saturation time in the regression
+- browser Control mode: Human Pointer / P / PD; pulse input remains available
+  as an external disturbance
+- next major control phase: **H1-6-2 state-space realization / state feedback / LQR**
 - true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending
