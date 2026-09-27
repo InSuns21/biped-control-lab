@@ -13,8 +13,8 @@
   <p class="lead">内部を水が流れる柔軟ホースが、低流量では減衰し、臨界付近では振れが長く残り、臨界超過では自励的に振幅を増やす様子を比較します。</p>
 
   <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-5-1 Direct Pointer Control</strong><br>
-    キャンバスをマウス／指でdragして手元境界を直接操作します。横dragが横位置target、縦dragが角度targetです。速度・加速度制限、境界反力、仕事率、PC / タブレット操作を公開監査します。
+    <strong>Human Visual Audit 監査中 — H1-5-2 Stabilization Game Core</strong><br>
+    低流量・臨界付近・flutter の3ステージで、Pointer操作による安定化、成功/失敗、target滞在率、境界仕事、スコアを公開監査します。
   </div>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
@@ -49,6 +49,30 @@
         nonlinear conveying-flow coupling。small-angle guardで止めず、大回転の平衡と
         自励成長を直接追います。
       </div>
+      <section class="game-panel" aria-labelledby="nlGameHeading">
+        <div class="game-panel-head">
+          <div>
+            <h2 id="nlGameHeading">Stabilization Game</h2>
+            <p>ステージ開始後は流量・プリセット・pulse入力を固定し、キャンバスのPointer操作だけでホースを抑えます。</p>
+          </div>
+          <div class="button-row game-stage-buttons">
+            <button type="button" data-game-stage="low">F2 Low</button>
+            <button type="button" data-game-stage="near">F3 Near</button>
+            <button type="button" data-game-stage="flutter">F4/F5 Flutter</button>
+            <button id="nlGameRestart" type="button" disabled>Restart</button>
+          </div>
+        </div>
+        <div class="game-metrics" aria-live="polite">
+          <div><span>Stage</span><strong id="nlGameStage">未開始</strong></div>
+          <div><span>Status</span><strong id="nlGameStatus">READY</strong></div>
+          <div><span>Time left</span><strong id="nlGameTime">-</strong></div>
+          <div><span>Score</span><strong id="nlGameScore">-</strong></div>
+          <div><span>Target stay</span><strong id="nlGameInside">-</strong></div>
+          <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
+          <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
+        </div>
+      </section>
+
       <div class="lab-layout shower-layout">
         <section>
           <div class="flexible-viewport">
@@ -168,6 +192,7 @@
         <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。</p>
         <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
         <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
+        <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
       </section>
     </section>
 

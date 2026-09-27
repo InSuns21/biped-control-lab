@@ -24,6 +24,12 @@ import {
   stepHandActuator,
 } from "../../js/shower/flexible/hand-actuator.js";
 import {
+  createGameState,
+  gameHudSnapshot,
+  gameStageById,
+  updateGameState,
+} from "../../js/shower/flexible/game.js";
+import {
   createNonlinearView,
 } from "./nonlinear-view.js";
 
@@ -32,6 +38,16 @@ const HISTORY_SECONDS = 8;
 const HISTORY_SAMPLE_DT = 0.025;
 
 const PRESETS = Object.freeze({
+  low12: Object.freeze({
+    label: "Low Flow 12 L/min",
+    note: "H1-5-2 low-flow stage。",
+    flowLpm: 12,
+    lengthM: 1.2,
+    flexuralRigidityNm2: 0.7,
+    rayleighMassPerS: 0.08,
+    rayleighStiffnessS: 0.0002,
+    ciOnset: "安定側",
+  }),
   baseline18: Object.freeze({
     label: "現基準 18 L/min",
     note: "非線形平衡は有限回転で成立。成長は比較的ゆっくり。",
@@ -151,6 +167,18 @@ export function mountNonlinearPhase(root) {
   const handPulseButtons = [
     ...root.querySelectorAll("[data-hand-pulse]"),
   ];
+  const gameStageButtons = [
+    ...root.querySelectorAll("[data-game-stage]"),
+  ];
+  const gameRestartButton = root.querySelector("#nlGameRestart");
+
+  const gameStageMetric = root.querySelector("#nlGameStage");
+  const gameStatusMetric = root.querySelector("#nlGameStatus");
+  const gameTimeMetric = root.querySelector("#nlGameTime");
+  const gameScoreMetric = root.querySelector("#nlGameScore");
+  const gameInsideMetric = root.querySelector("#nlGameInside");
+  const gameEffortMetric = root.querySelector("#nlGameEffort");
+  const gameTargetsMetric = root.querySelector("#nlGameTargets");
 
   const presetMetric = root.querySelector("#nlPresetMetric");
   const flowMetric = root.querySelector("#nlFlowMetric");
@@ -213,6 +241,7 @@ export function mountNonlinearPhase(root) {
   let lastFrameMs = performance.now();
   let rafId = null;
   let stoppedReason = null;
+  let gameState = null;
 
   let pointerId = null;
   let pointerLastX = 0;
@@ -316,6 +345,66 @@ export function mountNonlinearPhase(root) {
     render();
   }
 
+  function setGameControlLock(locked) {
+    flow.disabled = locked;
+    playback.disabled = locked;
+    presetButtons.forEach((button) => {
+      button.disabled = locked;
+    });
+    handPulseButtons.forEach((button) => {
+      button.disabled = locked;
+    });
+  }
+
+  function updateGameHud() {
+    const hud = gameHudSnapshot(gameState);
+    if (!gameState) {
+      gameStageMetric.textContent = "未開始";
+      gameStatusMetric.textContent = hud.status;
+      gameTimeMetric.textContent = hud.timeLabel;
+      gameScoreMetric.textContent = hud.scoreLabel;
+      gameInsideMetric.textContent = hud.targetLabel;
+      gameEffortMetric.textContent = hud.effortLabel;
+      gameTargetsMetric.textContent = "-";
+      gameRestartButton.disabled = true;
+      return;
+    }
+
+    const stage = gameState.stage;
+    gameStageMetric.textContent = stage.title;
+    gameStatusMetric.textContent = hud.status;
+    gameStatusMetric.className = gameState.status === "success"
+      ? "status-ok"
+      : (gameState.status === "failed" ? "status-danger" : "");
+    gameTimeMetric.textContent = hud.timeLabel;
+    gameScoreMetric.textContent = hud.scoreLabel;
+    gameInsideMetric.textContent = hud.targetLabel;
+    gameEffortMetric.textContent = hud.effortLabel;
+    gameTargetsMetric.textContent =
+      `RMS ≤ ${(1000 * stage.targetRmsM).toFixed(0)} mm / Δθ ≤ ${radToDeg(stage.targetTipAngleErrorRad).toFixed(0)}°`;
+    gameRestartButton.disabled = false;
+  }
+
+  function cancelGame() {
+    gameState = null;
+    setGameControlLock(false);
+    updateGameHud();
+  }
+
+  function startGame(stageId) {
+    const stage = gameStageById(stageId);
+    gameState = null;
+    presetId = stage.presetId;
+    playback.value = "1";
+    configure({ preserveFlow: false });
+    gameState = createGameState(stageId);
+    paused = false;
+    pauseButton.textContent = "一時停止";
+    setGameControlLock(true);
+    updateGameHud();
+    render();
+  }
+
   function recordHistory() {
     if (simTime - lastHistoryTime < HISTORY_SAMPLE_DT - 1e-9) return;
     lastHistoryTime = simTime;
@@ -410,6 +499,7 @@ export function mountNonlinearPhase(root) {
     });
     view.renderHistory(history);
     updateMetrics(metrics, current);
+    updateGameHud();
   }
 
   function step() {
@@ -474,12 +564,33 @@ export function mountNonlinearPhase(root) {
       return;
     }
 
-    const metrics = currentMetrics();
+    const current = currentGeometry();
+    const metrics = currentMetrics(current);
     if (
       observedOnsetS === null
       && metrics.rmsM >= onsetThresholdM
     ) {
       observedOnsetS = simTime;
+    }
+
+    if (gameState?.status === "running") {
+      gameState = updateGameState(
+        gameState,
+        {
+          rmsM: metrics.rmsM,
+          tipAngleErrorRad:
+            current.tipAngleRad - equilibrium.kinematics.tipAngleRad,
+          handPowerW: lastBoundaryDiagnostics.handPowerW,
+          actuatorSaturated: anySaturation(lastActuatorSaturation),
+        },
+        DT,
+      );
+
+      if (gameState.status !== "running") {
+        paused = true;
+        pauseButton.textContent = "再開";
+        setGameControlLock(false);
+      }
     }
 
     const maxAngle = Math.max(
@@ -557,9 +668,20 @@ export function mountNonlinearPhase(root) {
 
   presetButtons.forEach((button) => {
     button.addEventListener("click", () => {
+      cancelGame();
       presetId = button.dataset.nlPreset;
       configure({ preserveFlow: false });
     });
+  });
+
+  gameStageButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      startGame(button.dataset.gameStage);
+    });
+  });
+
+  gameRestartButton.addEventListener("click", () => {
+    if (gameState) startGame(gameState.stageId);
   });
 
   handPulseButtons.forEach((button) => {
@@ -600,6 +722,7 @@ export function mountNonlinearPhase(root) {
     flowOut.value = `${Number(flow.value).toFixed(1)} L/min`;
   });
   flow.addEventListener("change", () => {
+    cancelGame();
     configure({ preserveFlow: true });
   });
 
@@ -616,7 +739,11 @@ export function mountNonlinearPhase(root) {
   });
 
   resetButton.addEventListener("click", () => {
-    configure({ preserveFlow: true });
+    if (gameState) {
+      startGame(gameState.stageId);
+    } else {
+      configure({ preserveFlow: true });
+    }
   });
 
   function frame(now) {
@@ -644,6 +771,8 @@ export function mountNonlinearPhase(root) {
   }
 
   configure({ preserveFlow: false });
+  setGameControlLock(false);
+  updateGameHud();
 
   return {
     setActive(next) {

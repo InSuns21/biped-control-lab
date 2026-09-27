@@ -39,6 +39,17 @@ for (const marker of [
   'id="nlCenterHand"',
   'id="nlHandXChart"',
   'id="nlHandAngleChart"',
+  'id="nlGameStage"',
+  'id="nlGameStatus"',
+  'id="nlGameTime"',
+  'id="nlGameScore"',
+  'id="nlGameInside"',
+  'id="nlGameEffort"',
+  'id="nlGameTargets"',
+  'id="nlGameRestart"',
+  'data-game-stage="low"',
+  'data-game-stage="near"',
+  'data-game-stage="flutter"',
 ]) {
   assert.ok(html.includes(marker), `missing H1-4B UI marker: ${marker}`);
 }
@@ -61,6 +72,10 @@ for (const marker of [
   "pointerDeltaToHandTarget",
   "stepHandActuator",
   "actuatorBoundaryTrajectory",
+  "createGameState",
+  "updateGameState",
+  "setGameControlLock",
+  "startGame",
 ]) {
   assert.ok(
     nonlinearUi.includes(marker),
@@ -96,5 +111,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-5-1 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-5-2 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );

@@ -322,5 +322,14 @@ Phase 1 adds another important lesson:
 - default actuator travel: +/-80 mm and +/-30 deg
 - default limits: 0.45 m/s, 4.0 m/s^2, 2.8 rad/s, 20 rad/s^2
 - browser plots actual / target trajectories for hand position and angle
-- next implementation step: **H1-5-2 stabilization game**
+- Phase 1 H1-5-2 stabilization game core: implemented
+- game stages: F2 Low Flow / F3 Near Critical / F4/F5 Flutter
+- game success uses time limit + RMS / tip-angle target dwell ratio
+- failure uses a hold-time envelope rather than one-frame spikes
+- score combines tracking quality, boundary effort `integral |P_hand| dt`,
+  and actuator-saturation time
+- game stepping is tied to physics dt rather than render fps
+- next implementation step: **H1-5-3 3D Game View**
+- H1-5-3 will embed the existing 2D nonlinear physics in a Three.js 3D scene;
+  true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending
