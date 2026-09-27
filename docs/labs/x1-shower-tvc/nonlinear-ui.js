@@ -835,7 +835,9 @@ export function mountNonlinearPhase(root) {
         ? "安定化滞在率不足"
         : (gameState.failureReason === "failure envelope"
           ? "failure envelope超過"
-          : ""));
+          : (gameState.failureReason === "model guard"
+            ? "モデル監査上限"
+            : "")));
     pauseButton.disabled = true;
     recordComparisonResult();
     const runMode = gameState.controlMode ?? controlMode;
@@ -1362,6 +1364,15 @@ export function mountNonlinearPhase(root) {
     if (maxAngle > 3.0 || metrics.rmsM > 0.75) {
       stoppedReason = "H1-5 2Dモデルの監査上限に到達";
       paused = true;
+      if (gameState?.status === "running") {
+        gameState = {
+          ...gameState,
+          status: "failed",
+          failureReason: "model guard",
+        };
+        setGameControlLock(false);
+        showGameResult();
+      }
     }
   }
 
