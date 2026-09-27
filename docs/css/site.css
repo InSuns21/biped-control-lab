@@ -179,3 +179,13 @@ button:hover { border-color: var(--accent); }
   .game-3d-toolbar { align-items: stretch; }
   .game-3d-toolbar select { width: 100%; }
 }
+
+.game-stage-buttons button:active,
+#nlGameRestart:active,
+.view-switch button:active {
+  transform: translateY(1px) scale(.99);
+}
+button[aria-busy="true"] {
+  cursor: progress;
+  opacity: .72;
+}
