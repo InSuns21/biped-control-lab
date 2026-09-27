@@ -790,54 +790,126 @@ movable-boundary fast visible response:
 
 詳細は `docs/js/shower/flexible/H1_4A_CALIBRATION.md`。
 
-### H1-4B — geometrically nonlinear hose
+### H1-4B — geometrically nonlinear hose ✅（Human Visual Audit 継続中）
 
-H1-4A の C 判定を受けて追加する。
+H1-4A の C 判定を受け、small-deflection extrapolation から
+**inextensible planar finite-rotation rod** へ切り替えた。
 
-目的:
-
-- 大きく曲がった静的平衡を small-angle extrapolation なしで求める
-- 大回転・有限曲率の状態から flow-induced instability を評価する
-- 1〜3 s onset と大振幅 whipping を、linear guard で即停止せず追えるようにする
-- H1-4A の movable hand boundary をそのまま入力として使えるようにする
-
-第一候補は **2D geometrically exact beam / planar Cosserat rod**。
-
-最低限の状態:
+状態は segment angle を基本自由度とし、各 segment 長を厳密に保ちながら
 
 ```text
-r(s,t) = [x(s,t), y(s,t)]
-theta(s,t)
-v(s,t)
-omega(s,t)
+r_i(theta)
+theta_i
+theta_dot_i
 ```
 
-とし、伸びを無視する第一版では centerline tangent と断面角の整合を保つ。
-曲率は `theta_s` から評価し、曲げモーメントを `M = EI kappa` とする。
+から中心線を再構成する。曲げエネルギーは隣接 segment の角度差だけに依存し、
+全体を剛体回転しても人工的な曲げエネルギーを生じない。
 
-実装順:
+実装済み:
 
-1. dry planar rod の静的 hanging / bent equilibrium
-2. dry large-amplitude transient
-3. tip mass / bent shower-head boundary
-4. internal conveying-flow termsの整合
-5. onset sweep
-6. H1-4 linear modelとの small-amplitude 一致
-7. 1〜3 s fast-onset 再判定
-8. 2D nonlinear visualization
+1. ✅ dry planar rod の静的 hanging / bent equilibrium
+2. ✅ dry large-amplitude transient
+3. ✅ tip mass / bent shower-head boundary
+4. ✅ finite-angle conveying-flow terms
+5. ✅ nonlinear equilibrium + onset sweep
+6. ✅ small-amplitude limit と H1-1/H1-2 の比較
+7. ✅ 1〜3 s fast-onset 再判定
+8. ✅ 2D nonlinear visualization
+9. ⏭ nonlinear movable hand boundary は H1-5-0 で導入
 
-H1-4B の必須回帰:
+主要回帰:
 
-- small-amplitude limit で H1-1/H1-3 の低次挙動へ収束
-- rigid-body rotation を与えても人工的な曲げエネルギーが出ない
-- element / dt refinement
-- gravity / tip load 下で有限回転 equilibrium が収束
-- zero-flow で非物理的な自己励起が出ない
-- flow 増加で onset time が連続的に変わる
-- hand boundary pulse の仕事量を診断できる
+```text
+dry small-amplitude:
+  analytical f1 = 0.65026 Hz
+  32-seg rod f1 = 0.67122 Hz
+  relative error = 3.22%
 
-**H1-4B 完了までは、H1-4 高流量表示を「定性的な linear extrapolation」と
-明示し、実物再現済みとは扱わない。**
+finite-rotation static test:
+  2 N lateral tip load
+  tip x ~= 0.412 m
+  tip angle ~= 29.3 deg
+  energy band in dry transient ~= 5.8e-6
+
+nonlinear conveying-flow small-angle limit:
+  Ucr(8)  ~= 10.048 m/s
+  Ucr(12) ~= 9.836 m/s
+  Ucr(16) ~= 9.739 m/s
+  H1-2 Hermite reference ~= 9.481 m/s
+```
+
+曲がったシャワーヘッドを finite angle のまま接続した 18 L/min では、
+
+```text
+tip x ~= -0.31 m
+tip y ~= 1.15 m
+tip angle ~= -19.5 deg
+max Re(lambda) ~= +0.026 /s
+```
+
+となり、H1-4 linear の `~98 deg` 静的回転という破綻した extrapolation を
+有限回転平衡へ置き換えられた。
+
+fast-onset 再判定:
+
+```text
+現基準・30 L/min:
+  onset ~= 1.817 s
+
+教育用 fast sensitivity:
+  Q = 22 L/min
+  EI = 0.25 N m^2
+  L = 1.5 m
+  alpha_M = 0.02 1/s
+  onset ~= 1.583 s
+```
+
+fast sensitivity の refinement:
+
+```text
+N=10, dt=.001 -> 1.592 s
+N=12, dt=.001 -> 1.583 s
+N=16, dt=.001 -> 1.585 s
+N=12, dt=.002 -> 1.584 s
+```
+
+したがって H1-4A で未解決だった
+
+> 流水だけの自己励起で 1〜3 秒スケールの明瞭な立ち上がりを作れるか
+
+について、**有限回転モデルでは YES** となった。
+
+ただし Fast 22 / High-flow 30 は実物製品への同定値ではない。
+「動画の時間スケールがこの機構で成立可能」という sensitivity result であり、
+実ホースの `EI`, damping, `Q` を推定したとは扱わない。
+
+H1-4B の自動回帰:
+
+- ✅ rigid-body rotation で人工的な曲げエネルギー0
+- ✅ segment length preservation
+- ✅ small-amplitude first-mode convergence
+- ✅ gravity / tip load 下の finite-rotation equilibrium
+- ✅ zero-flow で非物理的自己励起なし
+- ✅ `U -> -U`: Coriolis odd / `U^2` term even
+- ✅ flow 増加で安定→flutter
+- ✅ nonlinear static continuation
+- ✅ onset mesh / dt refinement
+- ⏭ nonlinear hand-boundary work diagnostic は H1-5-0
+
+公開UIでは Phase 1 の既定表示を H1-4B nonlinear とし、
+旧 H1-4 linear は比較用サブタブへ残す。
+
+Human Visual Audit では、
+
+- finite-rotation centerline
+- nonlinear equilibrium の破線
+- 18 / Fast 22 / High-flow 30 の見え方
+- 1〜3 s onset の体感
+- 大振幅時の自動fit
+- PC / タブレットの描画性能
+
+を確認する。
 
 ### H1-5 — manual game
 
