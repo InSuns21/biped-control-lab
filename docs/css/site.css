@@ -246,3 +246,65 @@ button[aria-busy="true"] {
   .game-metrics strong { font-size: .88rem; }
   .game-3d-viewport canvas { min-height: 400px; }
 }
+
+.controller-comparison-panel {
+  margin: 1rem 0;
+  padding: .9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.controller-comparison-head {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.controller-comparison-head h2 { margin: 0 0 .25rem; }
+.controller-comparison-head p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 46rem;
+}
+.controller-comparison-head > div:last-child {
+  display: flex;
+  gap: .65rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.table-scroll {
+  margin-top: .8rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.controller-comparison-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: .88rem;
+}
+.controller-comparison-table th,
+.controller-comparison-table td {
+  padding: .48rem .55rem;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.controller-comparison-table th:first-child,
+.controller-comparison-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+}
+.controller-comparison-table thead th {
+  color: var(--muted);
+  font-size: .76rem;
+}
+@media (max-width: 760px) {
+  .controller-comparison-panel { padding: .7rem; }
+  .controller-comparison-head > div:last-child {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

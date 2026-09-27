@@ -53,7 +53,11 @@ for (const marker of [
   'id="nlControlCommandMetric"',
   'id="nlLqrStateMetric"',
   'id="nlLqrDesignMetric"',
+  '<option value="state">State FB (0.55×K)</option>',
   '<option value="lqr">LQR full-state stabilizer</option>',
+  'id="nlComparisonDifficulty"',
+  'id="nlComparisonBody"',
+  'id="nlComparisonReset"',
   'data-game-difficulty="easy"',
   'data-game-difficulty="normal"',
   'data-game-difficulty="expert"',
@@ -96,6 +100,10 @@ for (const marker of [
   "controllerHandTarget",
   "designFullStateLqr",
   "lqrHandTarget",
+  "automaticGameHandTarget",
+  "FIXED_STATE_FEEDBACK_GAIN_SCALE",
+  "recordComparisonResult",
+  "updateComparisonTable",
   "ensureLqrDesign",
   "lqrDesignCache",
   "restartGame",
@@ -208,5 +216,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-6-2 state-feedback visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-6-3 human-vs-controller visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );

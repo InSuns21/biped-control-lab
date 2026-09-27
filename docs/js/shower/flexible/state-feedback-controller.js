@@ -722,37 +722,142 @@ export function lqrStateVector(
   );
 }
 
+export function fullStateReferenceVector(
+  descriptor,
+  {
+    lateralPositionM = 0,
+    angleRad = 0,
+  } = {},
+) {
+  const vector = Array(descriptor.dimension).fill(0);
+  const freeCount = descriptor.freeCount;
+
+  for (let i = 0; i < freeCount; i += 1) {
+    vector[i] = angleRad;
+  }
+
+  const offset = 2 * freeCount;
+  vector[offset] = lateralPositionM;
+  vector[offset + 2] = angleRad;
+  return vector;
+}
+
+export function fullStateFeedbackHandTarget(
+  design,
+  rodState,
+  actuatorState,
+  {
+    referenceTarget = {
+      lateralPositionM: 0,
+      angleRad: 0,
+    },
+    gainScale = 1,
+    limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  } = {},
+) {
+  if (!(gainScale > 0)) {
+    throw new RangeError("gainScale must be positive");
+  }
+
+  const stateVector = lqrStateVector(
+    design,
+    rodState,
+    actuatorState,
+  );
+  const referenceVector = fullStateReferenceVector(
+    design.realization.descriptor,
+    referenceTarget,
+  );
+  const errorVector = stateVector.map(
+    (value, i) => value - referenceVector[i],
+  );
+  const correction = multiplyMatrixVector(
+    design.lqr.K,
+    errorVector,
+  ).map((value) => -gainScale * value);
+
+  const raw = {
+    lateralPositionM:
+      referenceTarget.lateralPositionM + correction[0],
+    angleRad:
+      referenceTarget.angleRad + correction[1],
+  };
+
+  return {
+    target: clampHandTarget(raw, limits),
+    rawTarget: raw,
+    referenceTarget: {
+      lateralPositionM: referenceTarget.lateralPositionM,
+      angleRad: referenceTarget.angleRad,
+    },
+    stateVector,
+    referenceVector,
+    errorVector,
+    stateNorm: vectorNorm(stateVector),
+    errorNorm: vectorNorm(errorVector),
+    gainScale,
+  };
+}
+
+export function fullStateServoHandTarget(
+  design,
+  rodState,
+  actuatorState,
+  {
+    feedforwardTarget = {
+      lateralPositionM: 0,
+      angleRad: 0,
+    },
+    gainScale = 1,
+    limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  } = {},
+) {
+  if (!(gainScale > 0)) {
+    throw new RangeError("gainScale must be positive");
+  }
+  const stateVector = lqrStateVector(
+    design,
+    rodState,
+    actuatorState,
+  );
+  const correction = multiplyMatrixVector(
+    design.lqr.K,
+    stateVector,
+  ).map((value) => -gainScale * value);
+  const raw = {
+    lateralPositionM:
+      feedforwardTarget.lateralPositionM + correction[0],
+    angleRad:
+      feedforwardTarget.angleRad + correction[1],
+  };
+  return {
+    target: clampHandTarget(raw, limits),
+    rawTarget: raw,
+    feedforwardTarget: {
+      lateralPositionM: feedforwardTarget.lateralPositionM,
+      angleRad: feedforwardTarget.angleRad,
+    },
+    stateVector,
+    stateNorm: vectorNorm(stateVector),
+    gainScale,
+  };
+}
+
 export function lqrHandTarget(
   design,
   rodState,
   actuatorState,
   limits = DEFAULT_HAND_ACTUATOR_LIMITS,
 ) {
-  const stateVector = lqrStateVector(
+  return fullStateFeedbackHandTarget(
     design,
     rodState,
     actuatorState,
-  );
-  const raw = multiplyMatrixVector(
-    design.lqr.K,
-    stateVector,
-  ).map((value) => -value);
-
-  return {
-    target: clampHandTarget(
-      {
-        lateralPositionM: raw[0],
-        angleRad: raw[1],
-      },
+    {
       limits,
-    ),
-    rawTarget: {
-      lateralPositionM: raw[0],
-      angleRad: raw[1],
+      gainScale: 1,
     },
-    stateVector,
-    stateNorm: vectorNorm(stateVector),
-  };
+  );
 }
 
 export function linearOneStepPrediction(

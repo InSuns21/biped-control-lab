@@ -374,8 +374,8 @@ Phase 1 adds another important lesson:
 - baseline 18 peak RMS is not amplified, but its already-strong natural damping
   makes open-loop cheaper in integrated RMS / effort; that tradeoff is retained
 - calibrated P/PD runs use zero actuator-saturation time in the regression
-- browser Control mode: Human Pointer / P / PD / LQR; pulse input remains
-  available as an external disturbance
+- browser Control mode: Human Pointer / P / PD / State FB / LQR; pulse input
+  remains available as an external disturbance outside active game runs
 - Phase 1 H1-6-2 full-state realization / discrete LQR: implemented
 - LQR state = free rod angle/rate deviations + hand x/vx/angle/angular-rate
 - the discrete A/B realization is a central finite-difference linearization of
@@ -384,7 +384,25 @@ Phase 1 adds another important lesson:
   rod controllability 22/22, equilibrium residual about `1.8e-14`
 - nonlinear Fast 22 regression: LQR RMS integral about `0.0358x` open-loop
   with zero actuator-saturation time in the current small-perturbation test
-- browser LQR design runs on first selection and is cached by scenario/flow
-- next major control phase: **H1-6-3 Human vs Controller**
+- browser LQR design runs on first selection and is cached by
+  scenario/flow/actuator-authority limits
+- Phase 1 H1-6-3 Human vs Controller: implemented
+- automatic game controllers observe the same H1-5-4A moving bullseye and use
+  the same difficulty-scaled hand actuator as Human
+- P / PD use a constrained geometric aiming reference plus local tip feedback
+- State FB / LQR use a two-loop structure:
+  `u = u_aim - alpha K x`, with `alpha=0.55` for State FB and
+  `alpha=1.00` for LQR
+- the aim reference jointly searches hand lateral shift / angle inside the
+  existing travel clamp; a centered bullseye maps back to the neutral hand pose
+- session comparison table stores attempts, success rate, last/best score,
+  hit fraction, mean RMS, boundary effort and saturation time
+- nonlinear Normal regression: P / PD / LQR succeed; PD score 765 and
+  LQR score 728 versus open score 649
+- nonlinear Insane / Fast 22 regression: State FB / LQR succeed with hit
+  about 86.6% / 82.7%; LQR mean RMS about 34.5 mm versus open 227.4 mm
+- Insane full-state controllers use no sustained actuator saturation in the
+  calibrated regression
+- next major phase: **H1-7 theory page / biped bridge**
 - true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending

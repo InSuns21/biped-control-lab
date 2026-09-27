@@ -21,7 +21,9 @@ import {
   decodeFullStateDeviation,
   designFullStateLqr,
   encodeFullStateDeviation,
+  fullStateFeedbackHandTarget,
   fullStateOneStep,
+  fullStateReferenceVector,
   linearizeFullStateOneStep,
   linearOneStepPrediction,
   lqrHandTarget,
@@ -296,6 +298,61 @@ const baselineDesign = designFullStateLqr(
 );
 assert.ok(baselineDesign.lqr.iterations < 5000);
 assert.ok(Number.isFinite(baselineDesign.lqr.maxAbsGain));
+
+// H1-6-3: a rigid reference pose must be a zero-error state for
+// reference-tracking full-state feedback.
+{
+  const referenceTarget = {
+    lateralPositionM: 0.035,
+    angleRad: -0.08,
+  };
+  const descriptor = baselineDesign.realization.descriptor;
+  const referenceVector = fullStateReferenceVector(
+    descriptor,
+    referenceTarget,
+  );
+  assert.equal(referenceVector.length, descriptor.dimension);
+
+  const referenceActuator = createHandActuatorState({
+    lateralPositionM: referenceTarget.lateralPositionM,
+    angleRad: referenceTarget.angleRad,
+  });
+  const referenceRod = {
+    anglesRad: baselineSolved.equilibrium.anglesRad.map(
+      (angle) => angle + referenceTarget.angleRad,
+    ),
+    angularRatesRadS: Array(
+      baselineSolved.equilibrium.anglesRad.length,
+    ).fill(0),
+  };
+  referenceRod.anglesRad[0] = referenceTarget.angleRad;
+
+  const tracked = fullStateFeedbackHandTarget(
+    baselineDesign,
+    referenceRod,
+    referenceActuator,
+    {
+      referenceTarget,
+      gainScale: 0.55,
+      limits: DEFAULT_HAND_ACTUATOR_LIMITS,
+    },
+  );
+  assert.ok(
+    maxAbs(tracked.errorVector) < 1e-12,
+    "reference pose must produce zero full-state tracking error",
+  );
+  assert.ok(
+    Math.abs(
+      tracked.target.lateralPositionM
+        - referenceTarget.lateralPositionM,
+    ) < 1e-12,
+  );
+  assert.ok(
+    Math.abs(
+      tracked.target.angleRad - referenceTarget.angleRad,
+    ) < 1e-12,
+  );
+}
 
 const productionFastSolved = solveContinuation(
   optionsFor("fast22", 12),

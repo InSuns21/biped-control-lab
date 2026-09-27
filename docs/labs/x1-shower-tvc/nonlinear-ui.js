@@ -42,6 +42,10 @@ import {
   lqrHandTarget,
 } from "../../js/shower/flexible/state-feedback-controller.js";
 import {
+  automaticGameHandTarget,
+  FIXED_STATE_FEEDBACK_GAIN_SCALE,
+} from "../../js/shower/flexible/game-feedback-controller.js";
+import {
   createGame3DView,
 } from "./game-3d-view.js";
 import {
@@ -208,6 +212,13 @@ export function mountNonlinearPhase(root) {
   const gameHitMetric = root.querySelector("#nlGameHit");
   const gameEffortMetric = root.querySelector("#nlGameEffort");
   const gameTargetsMetric = root.querySelector("#nlGameTargets");
+  const comparisonDifficultyMetric = root.querySelector(
+    "#nlComparisonDifficulty",
+  );
+  const comparisonBody = root.querySelector("#nlComparisonBody");
+  const comparisonResetButton = root.querySelector(
+    "#nlComparisonReset",
+  );
 
   const presetMetric = root.querySelector("#nlPresetMetric");
   const flowMetric = root.querySelector("#nlFlowMetric");
@@ -276,6 +287,9 @@ export function mountNonlinearPhase(root) {
   let lastLqrStateNorm = null;
   let lqrDesignBusy = false;
   const lqrDesignCache = new Map();
+  let lastAutomaticGameControl = null;
+  const comparisonStats = new Map();
+  let comparisonDifficultyId = null;
   let history = [];
   let simTime = 0;
   let lastHistoryTime = -Infinity;
@@ -419,13 +433,17 @@ export function mountNonlinearPhase(root) {
       Number(flow.value).toFixed(3),
       scenario?.system?.params?.segmentCount ?? 0,
       DT.toFixed(6),
+      actuatorLimits.lateralMaxSpeedMps.toFixed(4),
+      actuatorLimits.lateralMaxAccelerationMps2.toFixed(4),
+      actuatorLimits.angularMaxSpeedRadS.toFixed(4),
+      actuatorLimits.angularMaxAccelerationRadS2.toFixed(4),
     ].join(":");
   }
 
   function invalidateActiveLqrDesign() {
     activeLqrDesign = null;
     lastLqrStateNorm = null;
-    if (controlMode === "lqr") {
+    if (controlMode === "state" || controlMode === "lqr") {
       controlMode = "human";
       controlModeSelect.value = "human";
     }
@@ -500,6 +518,7 @@ export function mountNonlinearPhase(root) {
     lastActuatorSaturation = {};
     manualControlUsed = false;
     lastControlSensing = null;
+    lastAutomaticGameControl = null;
     lastBoundaryDiagnostics = handBoundaryDynamics(
       scenario.system,
       state,
@@ -634,11 +653,11 @@ export function mountNonlinearPhase(root) {
   async function setControlMode(mode, {
     centerTarget = true,
   } = {}) {
-    if (!["human", "p", "pd", "lqr"].includes(mode)) {
+    if (!["human", "p", "pd", "state", "lqr"].includes(mode)) {
       throw new RangeError(`unknown control mode: ${mode}`);
     }
 
-    if (mode === "lqr") {
+    if (mode === "state" || mode === "lqr") {
       const design = await ensureLqrDesign();
       if (!design) {
         controlMode = "human";
@@ -668,6 +687,101 @@ export function mountNonlinearPhase(root) {
       || initializationBusy;
     render();
     return true;
+  }
+
+  function controlModeLabel(mode) {
+    if (mode === "human") return "Human";
+    if (mode === "p") return "P";
+    if (mode === "pd") return "PD";
+    if (mode === "state") return "State FB";
+    if (mode === "lqr") return "LQR";
+    return mode;
+  }
+
+  function comparisonKey(difficultyId, mode) {
+    return `${difficultyId}:${mode}`;
+  }
+
+  function recordComparisonResult() {
+    if (!gameState || gameState.status === "running") return;
+    const mode = gameState.controlMode ?? controlMode;
+    const key = comparisonKey(gameState.difficultyId, mode);
+    const previous = comparisonStats.get(key) ?? {
+      attempts: 0,
+      successes: 0,
+      bestScore: 0,
+      lastScore: 0,
+      lastHitFraction: 0,
+      lastInsideFraction: 0,
+      lastRmsMeanM: 0,
+      lastEffortJ: 0,
+      lastSaturationS: 0,
+      lastStatus: "-",
+    };
+    const next = {
+      attempts: previous.attempts + 1,
+      successes:
+        previous.successes
+        + (gameState.status === "success" ? 1 : 0),
+      bestScore: Math.max(previous.bestScore, gameState.score),
+      lastScore: gameState.score,
+      lastHitFraction: gameState.aimHitFraction,
+      lastInsideFraction: gameState.insideFraction,
+      lastRmsMeanM: gameState.rmsMeanM,
+      lastEffortJ: gameState.effortJ,
+      lastSaturationS: gameState.saturationS,
+      lastStatus: gameState.status,
+    };
+    comparisonStats.set(key, next);
+    comparisonDifficultyId = gameState.difficultyId;
+    updateComparisonTable();
+  }
+
+  function updateComparisonTable() {
+    if (!comparisonBody || !comparisonDifficultyMetric) return;
+    const difficultyId = comparisonDifficultyId;
+    comparisonDifficultyMetric.textContent = difficultyId
+      ? gameDifficultyById(difficultyId).title
+      : "未選択";
+
+    const modes = ["human", "p", "pd", "state", "lqr"];
+    comparisonBody.replaceChildren();
+
+    for (const mode of modes) {
+      const stats = difficultyId
+        ? comparisonStats.get(
+          comparisonKey(difficultyId, mode),
+        )
+        : null;
+      const row = document.createElement("tr");
+      const values = stats
+        ? [
+            controlModeLabel(mode),
+            `${stats.successes}/${stats.attempts} (${Math.round(100 * stats.successes / stats.attempts)}%)`,
+            String(stats.lastScore),
+            String(stats.bestScore),
+            `${(100 * stats.lastHitFraction).toFixed(0)}%`,
+            `${(1000 * stats.lastRmsMeanM).toFixed(1)} mm`,
+            `${stats.lastEffortJ.toFixed(2)} J`,
+            `${stats.lastSaturationS.toFixed(2)} s`,
+          ]
+        : [
+            controlModeLabel(mode),
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+            "-",
+          ];
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.appendChild(cell);
+      }
+      comparisonBody.appendChild(row);
+    }
   }
 
   function setVisualMode(mode) {
@@ -701,9 +815,9 @@ export function mountNonlinearPhase(root) {
     gameOverlay.hidden = false;
   }
 
-  function showDifficultyIntro(difficulty) {
+  function showDifficultyIntro(difficulty, mode = controlMode) {
     showGameOverlay({
-      kicker: `${difficulty.title} · ${difficulty.subtitle}`,
+      kicker: `${difficulty.title} · ${difficulty.subtitle} · ${controlModeLabel(mode)}`,
       title: "STABILIZE + AIM",
       body:
         `RMSを抑えながら照準へ水を当てる。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
@@ -721,14 +835,18 @@ export function mountNonlinearPhase(root) {
         ? "安定化滞在率不足"
         : (gameState.failureReason === "failure envelope"
           ? "failure envelope超過"
-          : ""));
+          : (gameState.failureReason === "model guard"
+            ? "モデル監査上限"
+            : "")));
     pauseButton.disabled = true;
+    recordComparisonResult();
+    const runMode = gameState.controlMode ?? controlMode;
     showGameOverlay({
-      kicker: gameState.stage.title,
+      kicker: `${gameState.stage.title} · ${controlModeLabel(runMode)}`,
       title: success ? "SUCCESS" : "FAILED",
       body: success
-        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`
-        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%。`,
+        ? `安定化と照準を両方達成。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`
+        : `${reason}。Hit ${Math.round(100 * gameState.aimHitFraction)}%、mean RMS ${(1000 * gameState.rmsMeanM).toFixed(1)} mm。`,
       score: `SCORE ${gameState.score}`,
       showRestart: true,
     });
@@ -758,7 +876,8 @@ export function mountNonlinearPhase(root) {
     }
 
     const stage = gameState.stage;
-    gameStageMetric.textContent = stage.title;
+    gameStageMetric.textContent =
+      `${stage.title} · ${controlModeLabel(gameState.controlMode ?? controlMode)}`;
     gameStatusMetric.textContent = hud.status;
     gameStatusMetric.className = gameState.status === "success"
       ? "status-ok"
@@ -793,8 +912,9 @@ export function mountNonlinearPhase(root) {
 
   async function startGame(difficultyId) {
     if (initializationBusy) return;
-    await setControlMode("human");
+    const requestedMode = controlModeSelect.value;
     const difficulty = gameDifficultyById(difficultyId);
+
     gameState = null;
     aimTarget = null;
     aimSample = null;
@@ -805,19 +925,31 @@ export function mountNonlinearPhase(root) {
       difficulty.authorityScale,
     );
     actuatorLabels = handActuatorLimitsLabel(actuatorLimits);
-    showDifficultyIntro(difficulty);
+    showDifficultyIntro(difficulty, requestedMode);
 
     const ready = await configureResponsive({
       preserveFlow: false,
     });
     if (!ready) return;
 
+    const modeReady = await setControlMode(requestedMode);
+    if (!modeReady) {
+      hideGameOverlay();
+      return;
+    }
+
     aimReference = buildAimReference();
     aimTarget = buildAimTarget(difficulty, 0);
     const current = currentGeometry();
     const reaction = reactionForState();
     updateAimSample(current, reaction);
-    gameState = createDifficultyGameState(difficultyId);
+    gameState = {
+      ...createDifficultyGameState(difficultyId),
+      controlMode: requestedMode,
+    };
+    comparisonDifficultyId = difficultyId;
+    updateComparisonTable();
+
     paused = true;
     pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
@@ -847,18 +979,28 @@ export function mountNonlinearPhase(root) {
   function restartGame() {
     if (!gameState || initializationBusy) return;
     const difficultyId = gameState.difficultyId;
+    const runMode = gameState.controlMode ?? controlMode;
     const difficulty = gameDifficultyById(difficultyId);
+
     resetSimulationState();
     aimReference = buildAimReference();
     aimTarget = buildAimTarget(difficulty, 0);
     updateAimSample(currentGeometry(), reactionForState());
-    gameState = createDifficultyGameState(difficultyId);
+    gameState = {
+      ...createDifficultyGameState(difficultyId),
+      controlMode: runMode,
+    };
+    controlMode = runMode;
+    controlModeSelect.value = runMode;
+    comparisonDifficultyId = difficultyId;
+
     paused = false;
     pauseButton.disabled = false;
     pauseButton.textContent = "一時停止";
     setGameControlLock(true);
     hideGameOverlay();
     updateGameHud();
+    updateComparisonTable();
     render();
     flashRestartFeedback();
   }
@@ -940,24 +1082,37 @@ export function mountNonlinearPhase(root) {
         `${controlMode.toUpperCase()} feedbackがhand targetを生成`;
     }
 
-    if (controlMode === "lqr" && activeLqrDesign) {
-      controlSenseMetric.textContent =
-        "full rod + hand actuator state";
+    if (
+      (controlMode === "state" || controlMode === "lqr")
+      && activeLqrDesign
+    ) {
+      const reference = lastAutomaticGameControl?.referenceTarget;
+      controlSenseMetric.textContent = reference
+        ? `full-state stabilizer + aim feedforward x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}°`
+        : "full rod + hand actuator state";
       controlCommandMetric.textContent =
-        `LQR -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+        `${controlModeLabel(controlMode)} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
       lqrStateMetric.textContent = lastLqrStateNorm === null
         ? "-"
         : `||x||₂ = ${lastLqrStateNorm.toExponential(3)}`;
       const diag = activeLqrDesign.controllability;
+      const gainLabel = controlMode === "state"
+        ? `fixed ${FIXED_STATE_FEEDBACK_GAIN_SCALE.toFixed(2)}×K`
+        : "LQR 1.00×K";
       lqrDesignMetric.textContent =
-        `rank ${diag.rank}/${diag.dimension} (rod ${diag.rodRank}/${diag.rodDimension}) / residual ${activeLqrDesign.realization.residualNorm.toExponential(2)}`;
+        `${gainLabel} / rank ${diag.rank}/${diag.dimension} (rod ${diag.rodRank}/${diag.rodDimension}) / residual ${activeLqrDesign.realization.residualNorm.toExponential(2)}`;
     } else if (lastControlSensing) {
       controlSenseMetric.textContent =
         `ex ${(1000 * lastControlSensing.tipLateralErrorM).toFixed(1)} mm / vx ${(1000 * lastControlSensing.tipLateralVelocityMps).toFixed(1)} mm/s / eθ ${radToDeg(lastControlSensing.tipAngleErrorRad).toFixed(1)}° / ω ${radToDeg(lastControlSensing.tipAngularRateRadS).toFixed(1)}°/s`;
-      controlCommandMetric.textContent =
-        `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+      const reference = lastAutomaticGameControl?.referenceTarget;
+      controlCommandMetric.textContent = reference
+        ? `${controlMode.toUpperCase()} ref x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}° -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`
+        : `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
       lqrStateMetric.textContent = "-";
-      lqrDesignMetric.textContent = "P/PD: tip local sensing";
+      lqrDesignMetric.textContent =
+        gameState?.status === "running"
+          ? "P/PD: aim-reference tip local sensing"
+          : "P/PD: tip local sensing";
     } else {
       controlSenseMetric.textContent = controlMode === "human"
         ? "Human mode: feedback sensor未使用"
@@ -1012,7 +1167,63 @@ export function mountNonlinearPhase(root) {
   }
 
   function step() {
-    if (controlMode === "lqr" && !gameState) {
+    if (gameState?.status === "running") {
+      updateScheduledAimTarget();
+    }
+
+    if (
+      gameState?.status === "running"
+      && controlMode !== "human"
+    ) {
+      const automatic = automaticGameHandTarget(
+        controlMode,
+        {
+          system: scenario.system,
+          rodState: state,
+          boundary: currentBoundary,
+          actuatorState: handActuator,
+          equilibriumKinematics: equilibrium.kinematics,
+          equilibriumReaction: reactionForAngles(
+            equilibrium.anglesRad,
+          ),
+          aimTarget,
+          lqrDesign: activeLqrDesign,
+          limits: actuatorLimits,
+          stateGainScale: FIXED_STATE_FEEDBACK_GAIN_SCALE,
+        },
+      );
+      handTarget = automatic.target;
+      lastAutomaticGameControl = automatic;
+      lastControlSensing = automatic.sensing;
+      lastLqrStateNorm = automatic.stateFeedback
+        ? automatic.stateFeedback.stateNorm
+        : null;
+    } else if (
+      controlMode === "state"
+      && !gameState
+    ) {
+      const automatic = automaticGameHandTarget(
+        "state",
+        {
+          system: scenario.system,
+          rodState: state,
+          boundary: currentBoundary,
+          actuatorState: handActuator,
+          equilibriumKinematics: equilibrium.kinematics,
+          equilibriumReaction: reactionForAngles(
+            equilibrium.anglesRad,
+          ),
+          aimTarget: null,
+          lqrDesign: activeLqrDesign,
+          limits: actuatorLimits,
+          stateGainScale: FIXED_STATE_FEEDBACK_GAIN_SCALE,
+        },
+      );
+      handTarget = automatic.target;
+      lastAutomaticGameControl = automatic;
+      lastControlSensing = null;
+      lastLqrStateNorm = automatic.stateFeedback.stateNorm;
+    } else if (controlMode === "lqr" && !gameState) {
       const result = lqrHandTarget(
         activeLqrDesign,
         state,
@@ -1020,9 +1231,13 @@ export function mountNonlinearPhase(root) {
         actuatorLimits,
       );
       handTarget = result.target;
+      lastAutomaticGameControl = null;
       lastLqrStateNorm = result.stateNorm;
       lastControlSensing = null;
-    } else if (controlMode !== "human" && !gameState) {
+    } else if (
+      (controlMode === "p" || controlMode === "pd")
+      && !gameState
+    ) {
       lastControlSensing = senseTipFeedback(
         scenario.system,
         state,
@@ -1037,8 +1252,10 @@ export function mountNonlinearPhase(root) {
       if (feedbackTarget) {
         handTarget = feedbackTarget;
       }
+      lastAutomaticGameControl = null;
       lastLqrStateNorm = null;
     } else if (controlMode === "human") {
+      lastAutomaticGameControl = null;
       lastControlSensing = null;
       lastLqrStateNorm = null;
     }
@@ -1114,9 +1331,6 @@ export function mountNonlinearPhase(root) {
     }
 
     const reaction = reactionForState();
-    if (gameState?.status === "running") {
-      updateScheduledAimTarget();
-    }
     updateAimSample(current, reaction);
 
     if (gameState?.status === "running") {
@@ -1150,6 +1364,15 @@ export function mountNonlinearPhase(root) {
     if (maxAngle > 3.0 || metrics.rmsM > 0.75) {
       stoppedReason = "H1-5 2Dモデルの監査上限に到達";
       paused = true;
+      if (gameState?.status === "running") {
+        gameState = {
+          ...gameState,
+          status: "failed",
+          failureReason: "model guard",
+        };
+        setGameControlLock(false);
+        showGameResult();
+      }
     }
   }
 
@@ -1276,11 +1499,14 @@ export function mountNonlinearPhase(root) {
   );
 
   controlModeSelect.addEventListener("change", async () => {
-    if (gameState) {
-      await setControlMode("human");
-      return;
-    }
+    if (gameState?.status === "running") return;
     await setControlMode(controlModeSelect.value);
+  });
+
+  comparisonResetButton?.addEventListener("click", () => {
+    comparisonStats.clear();
+    comparisonDifficultyId = gameState?.difficultyId ?? null;
+    updateComparisonTable();
   });
 
   presetButtons.forEach((button) => {
@@ -1404,6 +1630,7 @@ export function mountNonlinearPhase(root) {
   void setControlMode("human", { centerTarget: false });
   setGameControlLock(false);
   updateGameHud();
+  updateComparisonTable();
   void configureResponsive({ preserveFlow: false });
 
   return {
