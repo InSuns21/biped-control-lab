@@ -2154,6 +2154,48 @@ P / PD を含め、自動プレイ4方式を production 12-segment 条件で総�
 同一plant / actuator / game conditionのもとで
 controller capabilityの段階差を見せる。
 
+### H1-9 — Phase 1 acceptance gate ✅（Human Visual Audit 待ち）
+
+H1-8Bまでで機能追加は一区切りとし、Phase 1 第一版の完了条件を
+「自動化できる受け入れ条件」と「実機で人間が見る条件」に分離する。
+
+自動 acceptance:
+
+- ✅ 通常導線の DOM 順を `setup -> 3D -> HUD -> history -> debug` で固定
+- ✅ 3D / 2D canvas が Pointer Events（mouse / pen / touch）を共有
+- ✅ pointer capture / release / cancel を回帰確認
+- ✅ canvas の `touch-action: none` を固定し、drag中のbrowser pan競合を防止
+- ✅ tablet breakpoint 1024 px と narrow touch target 44 px を回帰確認
+- ✅ STARTではphysicsを再開せず、Human tap / Auto countdown後のみ再開
+- ✅ gameの安定判定が actual hand boundary に追随する moving-hand frame 基準であることを回帰確認
+- ✅ debugの `dynamic RMS` は static equilibrium 基準と明記
+- ✅ gameの `Mean flex RMS` は moving-hand 基準と明記
+- ✅ HUDの Time / Score / Stable / Hit / Mean RMS / Effort が
+  `gameHudSnapshot()` の同一値を表示することを回帰確認
+- ✅ `npm test` に `check:phase1-acceptance` を追加
+
+UI上も参照系を明示する。
+
+- `dynamic RMS（static equilibrium基準）`
+  - 元の非線形静的平衡からどれだけ形状が動いたかを見る研究・debug量
+- `Mean flex RMS（moving-hand基準）`
+  - 現在の手元位置・角度を剛体移動した基準形状からの柔軟変形
+  - gameの安定化判定・scoreに使う量
+
+したがって、照準のためにhandを意図的に移動しただけで
+game側の「揺れ」が増えたことにはしない。
+
+残る Human Visual Audit:
+
+1. PC: mouse dragで開始・照準・Restartまで破綻しない
+2. tablet: touch dragで設定と3D画面を往復せずプレイできる
+3. portrait / landscapeで主要button・bullseye・HUDが読める
+4. Human / Autoの開始方法が初見で理解できる
+5. 画面に出るRMS / Hit / Stableの意味がラベルから誤解なく読める
+
+この5点は静的CIでは「見た目・操作感」まで保証できないため、
+Human Visual Audit の最終チェックとして残す。
+
 ---
 
 
@@ -2170,12 +2212,14 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] H1-4A で fast-onset の時間スケール差を切り分ける
 - [x] 手元境界入力で振動を変えられる
 - [x] Phase 0 と Phase 1 を画面で比較できる
-- [ ] PC / タブレットで操作できる
-- [ ] 物理量とUI表示が一致する
+- [x] PC / タブレット操作の自動契約（Pointer Events / responsive / touch target）がCIで成立
+- [x] 物理量とUI表示の参照系・単位・HUD mapping がCIで一致
+- [ ] PC / タブレット実機での Human Visual Audit が完了する
 - [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
 - [x] H1-8 game-first UX で通常プレイと開発UIを分離する
 - [x] H1-8A tablet/mobile UX で setup / play を隣接させ、ready/countdown開始にする
 - [x] H1-8B production 12-segment で全auto controllerを再校正する
+- [x] H1-9 Phase 1 automated acceptance gate が通る
 - [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 
