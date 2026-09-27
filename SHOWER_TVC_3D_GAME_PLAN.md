@@ -1042,13 +1042,128 @@ Human Visual Audit では特に、
 
 を確認する。
 
-#### H1-5-2 — stabilization game
+#### H1-5-2 — stabilization game core
 
-- low-flow / near-critical / flutter stages
+**この工程はゲームルールだけに限定する。**
+3D描画・浴室空間・3Dカメラ・3Dホース表現をここへ混ぜない。
+
+目的:
+
+- low-flow / near-critical / flutter の3ステージ
+- stage start / reset
 - success / failure
-- scoring
-- RMS / tip-angle target
-- boundary-work penalty / efficiency metric
+- 制限時間
+- RMS target
+- tip-angle-error target
+- failure envelope
+- target 内滞在率
+- boundary effort `integral |P_hand| dt`
+- actuator saturation time
+- 0–1000 の score
+
+判定は2D nonlinear physicsの実測値から行い、描画fpsには依存させない。
+
+基本ルール:
+
+```text
+inside target:
+  RMS <= RMS_target
+  AND
+  |tip angle - equilibrium tip angle| <= angle_target
+
+failure:
+  RMS > RMS_fail
+  OR
+  |tip angle error| > angle_fail
+  が一定時間継続
+
+success:
+  time limitまでfailureせず
+  AND target内滞在率 >= stage minimum
+```
+
+score は
+
+- target tracking quality
+- boundary effort
+- actuator saturation time
+
+を用いる。正味仕事 `integral P dt` だけではエネルギーを入れてから抜く操作が
+相殺されるので、操作コストには `integral |P| dt` を使う。
+
+この工程でゲームの数理仕様を固定し、**完了後は直ちにH1-5-3へ進む。**
+
+#### H1-5-3 — 3D Game View
+
+ここで初めて、当初構想の **3Dシャワー制御ゲーム** として見せる。
+
+第一版は **2D nonlinear rod physics を3D空間の1平面へ埋め込む**。
+したがって見た目とカメラは3Dだが、plantを見た目だけの別物に差し替えない。
+
+Three.js:
+
+- bathroom / shower-area floor and wall
+- 3D hand / hose root
+- hose centerline -> 3D tube
+- shower head mesh
+- water stream
+- target zone / hit marker
+- perspective camera
+- orbit / fixed gameplay camera
+- existing Pointer hand control
+- H1-5-2 stage / score HUD
+
+座標写像:
+
+```text
+2D nonlinear rod [x, y]
+    -> 3D gameplay plane [X, Y, Z_fixed]
+```
+
+を最初に固定する。
+
+3D renderer は physics state の consumer とし、独自のホース運動を持たない。
+
+Human Visual Audit:
+
+- ホースが3D空間で自然な太さ・長さに見える
+- shower head と water の向きがphysicsと一致
+- Pointer操作とカメラ操作が衝突しない
+- tabletでもゲーム領域が画面から溢れない
+- 2D debug viewと3D viewで同じphysics stateを確認できる
+
+#### H1-5-4 — 3D gameplay polish
+
+H1-5-3 の成立後。
+
+- aiming target
+- water-hit判定
+- stage intro / result
+- camera tuning
+- sound / small visual effects（必要なら）
+- game HUD compact化
+- tablet control polish
+- difficulty curve
+
+ここまでで
+
+> 3D空間で、流水によって暴れるシャワーホースを手元操作で安定化・誘導する
+
+という当初のゲーム体験を第一版完成とする。
+
+### H2-0 — true 3D flexible hose（長期拡張）
+
+ゲーム成立の必須条件にはしない。
+
+2D nonlinear rod を3D空間へ埋め込む H1-5-3 とは分けて、
+
+- 3D Cosserat rod
+- two-axis bending
+- torsion
+- 3D whipping
+- self-contact / environment contact
+
+を扱う別フェーズとする。
 
 ### H1-6 — feedback control
 
