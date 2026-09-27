@@ -129,6 +129,12 @@ assert.equal(
   "2D view-tab click handler must be registered exactly once",
 );
 
+assert.equal(
+  nonlinearUi.split('controlModeSelect.addEventListener("change"').length - 1,
+  1,
+  "feedback mode change handler must be registered exactly once",
+);
+
 const restartStart = nonlinearUi.indexOf("function restartGame()");
 const recordStart = nonlinearUi.indexOf(
   "function recordHistory()",
