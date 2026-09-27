@@ -374,8 +374,17 @@ Phase 1 adds another important lesson:
 - baseline 18 peak RMS is not amplified, but its already-strong natural damping
   makes open-loop cheaper in integrated RMS / effort; that tradeoff is retained
 - calibrated P/PD runs use zero actuator-saturation time in the regression
-- browser Control mode: Human Pointer / P / PD; pulse input remains available
-  as an external disturbance
-- next major control phase: **H1-6-2 state-space realization / state feedback / LQR**
+- browser Control mode: Human Pointer / P / PD / LQR; pulse input remains
+  available as an external disturbance
+- Phase 1 H1-6-2 full-state realization / discrete LQR: implemented
+- LQR state = free rod angle/rate deviations + hand x/vx/angle/angular-rate
+- the discrete A/B realization is a central finite-difference linearization of
+  the actual nonlinear one-step map including the same rate-limited hand actuator
+- production Fast 22 (12 segments): augmented controllability 25/26,
+  rod controllability 22/22, equilibrium residual about `1.8e-14`
+- nonlinear Fast 22 regression: LQR RMS integral about `0.0358x` open-loop
+  with zero actuator-saturation time in the current small-perturbation test
+- browser LQR design runs on first selection and is cached by scenario/flow
+- next major control phase: **H1-6-3 Human vs Controller**
 - true 3D Cosserat physics remains a later H2 phase
 - Phase 1 Human Visual Audit is still pending
