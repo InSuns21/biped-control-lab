@@ -456,3 +456,19 @@ fieldset.game-choice-group { min-inline-size: 0; }
   .game-primary-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .game-primary-metrics > div:first-child { grid-column: span 2; }
 }
+
+.lab-model-navigation {
+  margin: .6rem 0;
+  border-top: 1px solid var(--line);
+}
+.lab-model-navigation > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+  padding: .5rem .15rem;
+}
+.lab-model-navigation .phase-switch,
+.lab-model-navigation .model-switch {
+  margin: .35rem 0 .75rem;
+  opacity: 1;
+}
