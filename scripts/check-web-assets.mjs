@@ -21,6 +21,7 @@ await requireFile("docs/labs/x1-shower-tvc/flexible-ui.js");
 await requireFile("docs/labs/x1-shower-tvc/flexible-view.js");
 await requireFile("docs/labs/x1-shower-tvc/nonlinear-ui.js");
 await requireFile("docs/labs/x1-shower-tvc/nonlinear-view.js");
+await requireFile("docs/labs/x1-shower-tvc/game-3d-view.js");
 await requireFile("docs/js/shower/flexible/scenarios.js");
 await requireFile("docs/js/shower/flexible/boundary.js");
 await requireFile("docs/js/shower/flexible/calibration.js");
