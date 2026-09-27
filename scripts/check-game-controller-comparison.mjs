@@ -173,7 +173,9 @@ function designFor(difficulty, solved, limits) {
   return designCache.get(key);
 }
 
-function simulate(difficultyId, mode) {
+function simulate(difficultyId, mode, {
+  controlLookaheadS = 0,
+} = {}) {
   const difficulty = gameDifficultyById(difficultyId);
   const solved = solvedFor(difficulty);
   const { scenario, equilibrium } = solved;
@@ -220,6 +222,22 @@ function simulate(difficultyId, mode) {
       ),
       radiusM: difficulty.aimRadiusM,
     });
+    const controlTimeS = Math.min(
+      difficulty.durationS,
+      game.elapsedS + controlLookaheadS,
+    );
+    const controlTarget = controlLookaheadS > 0
+      ? createAimTarget({
+          nozzleOrigin: referenceNozzle,
+          outletDirection: equilibriumReaction.outletDirection,
+          distanceM: difficulty.aimDistanceM,
+          normalOffsetM: difficultyAimOffsetM(
+            difficulty,
+            controlTimeS,
+          ),
+          radiusM: difficulty.aimRadiusM,
+        })
+      : target;
 
     const controller = mode === "open"
       ? null
@@ -232,7 +250,7 @@ function simulate(difficultyId, mode) {
             actuatorState: actuator,
             equilibriumKinematics: equilibrium.kinematics,
             equilibriumReaction,
-            aimTarget: target,
+            aimTarget: controlTarget,
             lqrDesign: design,
             limits,
             stateGainScale: FIXED_STATE_FEEDBACK_GAIN_SCALE,
@@ -337,6 +355,7 @@ function simulate(difficultyId, mode) {
     elapsedS: game.elapsedS,
     stageMinHitFraction: difficulty.minHitFraction,
     stageMinInsideFraction: difficulty.minInsideFraction,
+    controlLookaheadS,
   };
 }
 
@@ -379,6 +398,27 @@ for (const difficultyId of ["easy", "normal", "expert", "insane"]) {
 
 // H1-8B diagnostic pass: success thresholds are restored after the
 // production matrix is inspected.
+
+const lookaheadSweep = {};
+for (const difficultyId of ["expert", "insane"]) {
+  lookaheadSweep[difficultyId] = {};
+  for (const mode of ["state", "lqr"]) {
+    lookaheadSweep[difficultyId][mode] = [
+      0,
+      0.04,
+      0.08,
+      0.12,
+      0.16,
+      0.20,
+    ].map((controlLookaheadS) =>
+      simulate(difficultyId, mode, { controlLookaheadS })
+    );
+  }
+}
+console.log(
+  "H1-8B full-state lookahead sweep:",
+  JSON.stringify(lookaheadSweep),
+);
 
 console.log(
   "H1-6-3 nonlinear game comparison:",
