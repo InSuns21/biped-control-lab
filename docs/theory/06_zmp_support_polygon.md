@@ -478,6 +478,18 @@ $$
 
 という最小構造を取り出しています。
 
+## Side Lab X1との比較: 入力は必ず実現可能領域を持つ
+
+[補講 S10](S10_flexible_hose_biped_bridge.md) では、柔軟ホースの hand boundary と、二足歩行の CoP / ZMP を比較します。
+
+両者は同じ物理量ではありませんが、
+
+- controller が要求する入力
+- actuator や接触が実際に作れる入力
+- その差による saturation
+
+を分けて考える点は共通です。
+
 ## 次へ
 
 ZMP式を $\ddot{x}$ について解けば

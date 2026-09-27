@@ -53,6 +53,7 @@
 - S07: Preview Control / MPC — 離散LIPM、未来参照、receding horizon、制約付きQP
 - S08: Centroidal Dynamics — 重心、全身運動量、多接触力、LIPMとの関係
 - S09: Whole-Body QP — 全身力学、接触拘束、摩擦・CoP・トルク制限、HQP
+- S10: 柔軟ホース境界制御から二足歩行へ — flutter、境界制御、状態フィードバック、LQR と ZMP / LIPM の共通点・相違点
 
 補講は本編の必須順序ではありません。たとえば第04章の固有値が抽象的なら S01/S02、第06章の接触条件を深掘りしたければ S06、実機への橋渡しを見たければ S04〜S09 を読む構成です。
 
@@ -68,6 +69,7 @@
 - Lab 2: PD 制御 — ゲインと外乱を変えて安定化する
 - Lab 3: 支持多角形 — 両足 / 片足で安定領域がどう変わるか見る
 - Lab 4: LIPM 歩行 — ZMP 制御と Capture Point に基づくステップ回復を見る
+- Side Lab X1: Flexible Hose Control — flutter を Human / P / PD / State FB / LQR で同じ hand actuator から抑え、二足歩行制御との共通構造を比較する
 
 ## AI / 人間向け執筆規約
 

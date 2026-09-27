@@ -558,6 +558,18 @@ $$
 
 これが「固有値を見ると時間応答が分かる」理由です。
 
+## Side Lab X1で多自由度の状態フィードバックを見る
+
+[補講 S10](S10_flexible_hose_biped_bridge.md) では、柔軟ホースの rod angle / rate と hand actuator state をまとめて状態ベクトルにし、nonlinear one-step map を平衡点まわりで線形化します。
+
+倒立振子の2状態から次元が増えても、
+
+$
+u=-Kx
+$
+
+と固有値・可制御性を見る考え方は同じです。
+
 ## 次へ
 
 状態フィードバック
