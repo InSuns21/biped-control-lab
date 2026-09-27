@@ -2015,15 +2015,23 @@ LQR effortも約0.039 Jで、強いactuatorを使って勝っているわけで�
 H1-6-3 では controller専用の強い actuator を禁止する。
 
 
-### H1-7 — theory page / biped bridge
+### H1-7 — theory page / biped bridge ✅
 
-- rigid vs flexible comparison
-- garden-hose instability
-- eigenvalues and flutter
-- boundary control
-- TVCとの相違
-- CoP/ZMPとの相違と共通点
-- 04 / 05 / 06 / 07 への相互リンク
+- ✅ rigid vs flexible comparison
+- ✅ garden-hose instability / flutter を固有値で説明
+- ✅ prescribed boundary control の式と意味
+- ✅ P / PD と full-state feedback の観測量差
+- ✅ discrete LQR と shared actuator の位置づけ
+- ✅ TVCとの相違と制御構造上の共通点
+- ✅ CoP/ZMPとの相違と「実現可能入力」上の共通点
+- ✅ LIPM / Capture Point の発散成分との比較
+- ✅ 補講 S10 を SPA route に追加
+- ✅ Side Lab X1 と 03 / 04 / 05 / 06 / 07 の双方向リンク
+
+理論ページは `docs/theory/S10_flexible_hose_biped_bridge.md`。
+Side Lab X1 を二足歩行そのものとして扱わず、別の物理系で
+「不安定モード・状態観測・可制御性・入力制約・フィードバック」を体験してから
+本編へ戻る橋として位置づける。
 
 ---
 
@@ -2041,6 +2049,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] Phase 0 と Phase 1 を画面で比較できる
 - [ ] PC / タブレットで操作できる
 - [ ] 物理量とUI表示が一致する
+- [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
 - [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 
