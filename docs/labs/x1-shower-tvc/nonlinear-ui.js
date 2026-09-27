@@ -874,7 +874,8 @@ export function mountNonlinearPhase(root) {
     }
 
     const stage = gameState.stage;
-    gameStageMetric.textContent = stage.title;
+    gameStageMetric.textContent =
+      `${stage.title} · ${controlModeLabel(gameState.controlMode ?? controlMode)}`;
     gameStatusMetric.textContent = hud.status;
     gameStatusMetric.className = gameState.status === "success"
       ? "status-ok"
@@ -1079,24 +1080,37 @@ export function mountNonlinearPhase(root) {
         `${controlMode.toUpperCase()} feedbackがhand targetを生成`;
     }
 
-    if (controlMode === "lqr" && activeLqrDesign) {
-      controlSenseMetric.textContent =
-        "full rod + hand actuator state";
+    if (
+      (controlMode === "state" || controlMode === "lqr")
+      && activeLqrDesign
+    ) {
+      const reference = lastAutomaticGameControl?.referenceTarget;
+      controlSenseMetric.textContent = reference
+        ? `full state around aim ref x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}°`
+        : "full rod + hand actuator state";
       controlCommandMetric.textContent =
-        `LQR -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+        `${controlModeLabel(controlMode)} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
       lqrStateMetric.textContent = lastLqrStateNorm === null
         ? "-"
-        : `||x||₂ = ${lastLqrStateNorm.toExponential(3)}`;
+        : `||x-xref||₂ = ${lastLqrStateNorm.toExponential(3)}`;
       const diag = activeLqrDesign.controllability;
+      const gainLabel = controlMode === "state"
+        ? `fixed ${FIXED_STATE_FEEDBACK_GAIN_SCALE.toFixed(2)}×K`
+        : "LQR 1.00×K";
       lqrDesignMetric.textContent =
-        `rank ${diag.rank}/${diag.dimension} (rod ${diag.rodRank}/${diag.rodDimension}) / residual ${activeLqrDesign.realization.residualNorm.toExponential(2)}`;
+        `${gainLabel} / rank ${diag.rank}/${diag.dimension} (rod ${diag.rodRank}/${diag.rodDimension}) / residual ${activeLqrDesign.realization.residualNorm.toExponential(2)}`;
     } else if (lastControlSensing) {
       controlSenseMetric.textContent =
         `ex ${(1000 * lastControlSensing.tipLateralErrorM).toFixed(1)} mm / vx ${(1000 * lastControlSensing.tipLateralVelocityMps).toFixed(1)} mm/s / eθ ${radToDeg(lastControlSensing.tipAngleErrorRad).toFixed(1)}° / ω ${radToDeg(lastControlSensing.tipAngularRateRadS).toFixed(1)}°/s`;
-      controlCommandMetric.textContent =
-        `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
+      const reference = lastAutomaticGameControl?.referenceTarget;
+      controlCommandMetric.textContent = reference
+        ? `${controlMode.toUpperCase()} ref x=${(1000 * reference.lateralPositionM).toFixed(1)} mm / θ=${radToDeg(reference.angleRad).toFixed(1)}° -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`
+        : `${controlMode.toUpperCase()} -> x* ${(1000 * handTarget.lateralPositionM).toFixed(1)} mm / θ* ${radToDeg(handTarget.angleRad).toFixed(1)}°`;
       lqrStateMetric.textContent = "-";
-      lqrDesignMetric.textContent = "P/PD: tip local sensing";
+      lqrDesignMetric.textContent =
+        gameState?.status === "running"
+          ? "P/PD: aim-reference tip local sensing"
+          : "P/PD: tip local sensing";
     } else {
       controlSenseMetric.textContent = controlMode === "human"
         ? "Human mode: feedback sensor未使用"
@@ -1474,11 +1488,14 @@ export function mountNonlinearPhase(root) {
   );
 
   controlModeSelect.addEventListener("change", async () => {
-    if (gameState) {
-      await setControlMode("human");
-      return;
-    }
+    if (gameState?.status === "running") return;
     await setControlMode(controlModeSelect.value);
+  });
+
+  comparisonResetButton?.addEventListener("click", () => {
+    comparisonStats.clear();
+    comparisonDifficultyId = gameState?.difficultyId ?? null;
+    updateComparisonTable();
   });
 
   presetButtons.forEach((button) => {
@@ -1602,6 +1619,7 @@ export function mountNonlinearPhase(root) {
   void setControlMode("human", { centerTarget: false });
   setGameControlLock(false);
   updateGameHud();
+  updateComparisonTable();
   void configureResponsive({ preserveFlow: false });
 
   return {
