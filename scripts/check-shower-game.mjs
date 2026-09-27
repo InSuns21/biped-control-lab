@@ -33,6 +33,26 @@ assert.ok(
     > gameDifficultyById("insane").aimRadiusM,
 );
 
+for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
+  const target = createAimTarget({
+    nozzleOrigin: [0, 0],
+    outletDirection: [1, 0],
+    distanceM: difficulty.aimDistanceM,
+    normalOffsetM: difficulty.aimNormalOffsetM,
+    radiusM: difficulty.aimRadiusM,
+  });
+  const referenceAim = evaluateWaterAim({
+    nozzleOrigin: [0, 0],
+    outletDirection: [1, 0],
+    target,
+  });
+  assert.equal(
+    referenceAim.hit,
+    true,
+    `${difficulty.id} reference water ray must intersect its initial bullseye`,
+  );
+}
+
 // Physics-plane water ray / circular target geometry.
 const aimTarget = createAimTarget({
   nozzleOrigin: [0, 0],
