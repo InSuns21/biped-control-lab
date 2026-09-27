@@ -53,7 +53,7 @@
         <summary>使用モデル</summary>
         <p>非線形 flexible hose + internal-flow coupling を使用しています。通常プレイでは設定変更は不要です。</p>
       </details>
-      <section class="game-panel game-launch-panel" aria-labelledby="nlGameHeading">
+<section class="game-panel game-launch-panel" aria-labelledby="nlGameHeading">
         <div class="game-panel-head">
           <div>
             <h2 id="nlGameHeading">Stabilize + Aim</h2>
@@ -91,61 +91,12 @@
             <button id="nlGameStart" class="game-start-button" type="button" disabled>START</button>
             <button id="nlGameRestart" type="button" disabled>Restart</button>
             <p id="nlPlayInstruction" class="game-play-instruction">
-              START後、Humanでは3D画面をドラッグして照準へ水を当てます。
+              STARTで3D画面へ移動します。Humanは画面上の「タップして開始」からプレイを開始します。
             </p>
           </div>
         </div>
 
-        <div class="game-metrics game-primary-metrics" aria-live="polite">
-          <div><span>Stage</span><strong id="nlGameStage">未開始</strong></div>
-          <div><span>Status</span><strong id="nlGameStatus">READY</strong></div>
-          <div><span>Time</span><strong id="nlGameTime">-</strong></div>
-          <div><span>Score</span><strong id="nlGameScore">-</strong></div>
-          <div><span>Aim hit</span><strong id="nlGameHit">-</strong></div>
-        </div>
-
-        <details class="game-run-details">
-          <summary>判定の詳細</summary>
-          <div class="game-metrics">
-            <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
-            <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
-            <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
-          </div>
-        </details>
       </section>
-
-      <details class="controller-comparison-panel game-secondary-details">
-        <summary>Human / 自動制御の比較履歴</summary>
-        <section aria-labelledby="nlComparisonHeading">
-        <div class="controller-comparison-head">
-          <div>
-            <h2 id="nlComparisonHeading">Human vs Controller — session comparison</h2>
-            <p>同じdifficultyのrunを蓄積します。Humanは実プレイ、自動controllerも同じゲーム条件です。</p>
-          </div>
-          <div>
-            <span>Difficulty: <strong id="nlComparisonDifficulty">未選択</strong></span>
-            <button id="nlComparisonReset" type="button">比較をクリア</button>
-          </div>
-        </div>
-        <div class="table-scroll">
-          <table class="controller-comparison-table">
-            <thead>
-              <tr>
-                <th>Mode</th>
-                <th>Success</th>
-                <th>Last score</th>
-                <th>Best</th>
-                <th>Hit</th>
-                <th>Mean RMS</th>
-                <th>Effort</th>
-                <th>Saturation</th>
-              </tr>
-            </thead>
-            <tbody id="nlComparisonBody"></tbody>
-          </table>
-        </div>
-        </section>
-      </details>
 
       <div class="game-stage-layout">
         <section>
@@ -170,6 +121,7 @@
                   <strong id="nlGameOverlayTitle" class="game-result-title"></strong>
                   <p id="nlGameOverlayBody"></p>
                   <strong id="nlGameOverlayScore" class="game-result-score"></strong>
+                  <button id="nlBeginHuman" class="game-overlay-primary" type="button" hidden>タップして開始</button>
                   <button id="nlResultRestart" type="button" hidden>Restart</button>
                 </div>
               </div>
@@ -209,7 +161,58 @@
               <span><i class="swatch swatch-node"></i>rod node</span>
             </div>
           </div>
+
+          <div class="game-metrics game-primary-metrics game-below-canvas-hud" aria-live="polite">
+            <div><span>Stage</span><strong id="nlGameStage">未開始</strong></div>
+            <div><span>Status</span><strong id="nlGameStatus">READY</strong></div>
+            <div><span>Time</span><strong id="nlGameTime">-</strong></div>
+            <div><span>Score</span><strong id="nlGameScore">-</strong></div>
+            <div><span>Aim hit</span><strong id="nlGameHit">-</strong></div>
+          </div>
+
+          <details class="game-run-details">
+            <summary>判定の詳細</summary>
+            <div class="game-metrics">
+              <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
+              <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
+              <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
+            </div>
+          </details>
         </section>
+      </div>
+
+      <details class="controller-comparison-panel game-secondary-details">
+        <summary>Human / 自動制御の比較履歴</summary>
+        <section aria-labelledby="nlComparisonHeading">
+        <div class="controller-comparison-head">
+          <div>
+            <h2 id="nlComparisonHeading">Human vs Controller — session comparison</h2>
+            <p>同じdifficultyのrunを蓄積します。Humanは実プレイ、自動controllerも同じゲーム条件です。</p>
+          </div>
+          <div>
+            <span>Difficulty: <strong id="nlComparisonDifficulty">未選択</strong></span>
+            <button id="nlComparisonReset" type="button">比較をクリア</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="controller-comparison-table">
+            <thead>
+              <tr>
+                <th>Mode</th>
+                <th>Success</th>
+                <th>Last score</th>
+                <th>Best</th>
+                <th>Hit</th>
+                <th>Mean RMS</th>
+                <th>Effort</th>
+                <th>Saturation</th>
+              </tr>
+            </thead>
+            <tbody id="nlComparisonBody"></tbody>
+          </table>
+        </div>
+        </section>
+      </details>
 
         <details class="advanced-lab-panel">
           <summary>物理・デバッグ設定</summary>
@@ -301,8 +304,6 @@
           </div>
           </aside>
         </details>
-      </div>
-
       <details class="advanced-analysis-panel">
         <summary>グラフ・解析表示</summary>
         <div class="history-grid">

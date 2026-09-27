@@ -2067,7 +2067,56 @@ Human Visual Audit で、機能は揃っていても通常プレイの導線が
 
 のみに寄せる。
 
+### H1-8A — tablet / mobile gameplay UX fix ✅（Human Visual Audit 継続中）
+
+タブレット実機の Human Visual Audit で次を確認した。
+
+1. 設定パネルと3D操作画面の間に HUD / 比較履歴が入り、同時に把握しづらい
+2. START後の待機が約1.2秒しかなく、Humanが操作姿勢を取る前に物理時間が進む
+3. 前runの FAILED / score が START 周辺に残り、次runの準備状態が分かりにくい
+
+修正:
+
+- ✅ DOM順を `setup -> 3D Game -> HUD -> comparison history` に変更
+- ✅ primary HUD を3D canvasの下へ移動
+- ✅ comparison history は3D/HUDより後ろへ移動
+- ✅ tablet幅ではsetup panelを圧縮
+- ✅ START時に3D Gameへ自動スクロール
+- ✅ START直後は物理時間を停止したまま gameをarmする
+- ✅ Humanは `READY — TAP TO PLAY` で待機し、「タップして開始」後だけ物理時間を進める
+- ✅ Auto P / PD / State FB / LQR は `3 -> 2 -> 1 -> GO` 後だけ開始
+- ✅ countdown中はplayer操作不要であることをoverlayへ表示
+- ✅ Restartも即再開せず、Human ready / Auto countdownへ戻す
+- ✅ START時に前runのscore / hit / failure表示を一旦clear
+- ✅ cached scenarioでもSTART準備中はphysicsをpause
+- ✅ UX regressionでSTART関数内の即時 `paused=false` を禁止
+- ✅ DOM順 regressionで comparison history が3D canvasより前へ戻ることを禁止
+
+Human:
+
+```text
+START
+  -> 3D Gameへ移動
+  -> READY — TAP TO PLAY
+  -> タップして開始
+  -> drag操作
+```
+
+Auto:
+
+```text
+START
+  -> 3D Gameへ移動
+  -> 3
+  -> 2
+  -> 1
+  -> GO
+  -> controller play
+```
+
 ---
+
+
 
 ## 12. 完了条件
 
@@ -2085,6 +2134,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [ ] 物理量とUI表示が一致する
 - [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
 - [x] H1-8 game-first UX で通常プレイと開発UIを分離する
+- [x] H1-8A tablet/mobile UX で setup / play を隣接させ、ready/countdown開始にする
 - [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 

@@ -472,3 +472,86 @@ fieldset.game-choice-group { min-inline-size: 0; }
   margin: .35rem 0 .75rem;
   opacity: 1;
 }
+
+
+/* H1-8A: tablet gameplay should keep setup and the 3D surface adjacent. */
+.game-launch-panel {
+  margin-bottom: .45rem;
+}
+.game-stage-layout {
+  margin-top: .35rem;
+}
+.game-below-canvas-hud {
+  margin-top: .65rem;
+}
+.game-overlay-primary {
+  min-width: 11rem;
+  min-height: 3rem;
+  margin: .35rem auto .2rem;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+}
+.game-overlay-primary[hidden] {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .game-launch-panel {
+    padding: .7rem;
+  }
+  .game-launch-panel .game-panel-head {
+    gap: .35rem;
+  }
+  .game-launch-panel .game-panel-head p {
+    font-size: .84rem;
+    line-height: 1.35;
+  }
+  .game-launch-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: .55rem;
+    margin-top: .65rem;
+  }
+  .game-choice-group {
+    padding: .6rem;
+  }
+  .game-mode-help {
+    margin-top: .35rem;
+    font-size: .8rem;
+    line-height: 1.35;
+  }
+  .game-start-box {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .45rem;
+    min-width: 0;
+  }
+  .game-play-instruction {
+    grid-column: 1 / -1;
+    margin-top: .15rem;
+    font-size: .8rem;
+  }
+  .game-start-button {
+    min-height: 2.8rem;
+  }
+  .game-stage-layout .view-switch {
+    margin-top: 0;
+    margin-bottom: .4rem;
+  }
+  .controller-comparison-panel {
+    margin-top: .7rem;
+  }
+}
+@media (max-width: 620px) {
+  .game-launch-grid {
+    grid-template-columns: 1fr;
+  }
+  .game-start-box {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .game-play-instruction {
+    grid-column: 1 / -1;
+  }
+}
