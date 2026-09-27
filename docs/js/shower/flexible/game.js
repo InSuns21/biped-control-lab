@@ -371,6 +371,8 @@ function createState(config, {
     insideTargetS: 0,
     dangerHoldS: 0,
     qualityIntegral: 0,
+    rmsIntegralMSeconds: 0,
+    rmsMeanM: 0,
     effortJ: 0,
     netWorkJ: 0,
     saturationS: 0,
@@ -471,6 +473,9 @@ export function updateGameState(stateInput, sample, dt) {
     : 0;
 
   state.qualityIntegral += evaluation.trackingQuality * dt;
+  state.rmsIntegralMSeconds += sample.rmsM * dt;
+  state.rmsMeanM = state.rmsIntegralMSeconds
+    / Math.max(state.elapsedS, 1e-9);
   state.effortJ += Math.abs(sample.handPowerW ?? 0) * dt;
   state.netWorkJ += (sample.handPowerW ?? 0) * dt;
   if (sample.actuatorSaturated) {
