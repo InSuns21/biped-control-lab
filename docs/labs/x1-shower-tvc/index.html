@@ -175,7 +175,7 @@
                 <option value="front">Front</option>
                 <option value="close">Close</option>
               </select>
-              <span>drag on the 3D view to control the hand target</span>
+              <span id="nlPlayToolbarHelp">Human: 3D画面をドラッグして手元を操作</span>
             </div>
             <div class="vector-legend" aria-label="H1-5-3 3D legend">
               <span><i class="swatch swatch-hose"></i>3D hose</span>
@@ -329,9 +329,9 @@
           <p><strong>H1-6-2:</strong> LQRはnonlinear equilibriumまわりで、free rod angle/rateとhand actuator stateを含む1-step mapを数値線形化します。入力は従来と同じ <code>[x_hand*, θ_hand*]</code> で、LQRだけ強いactuatorを使うことはありません。初回選択時だけ線形化とDAREを計算し、そのscenarioではcacheします。</p>
           <p><strong>H1-6-3:</strong> moving bullseyeから共通のhand referenceを作り、P/PDはそのreference tipに対する局所誤差、State FB / LQRは <code>u=u_ref-K(x-x_ref)</code> で追従します。State FBは比較用の固定 <code>0.55×K</code>、LQRは <code>1.00×K</code> です。run結果は同一difficultyの比較表へ蓄積します。</p>
         </section>
+      </details>
     </section>
 
-      </details>
     <section id="linearModelPanel" role="tabpanel"
       aria-labelledby="linearModelTab" hidden>
     <div class="phase-note">
