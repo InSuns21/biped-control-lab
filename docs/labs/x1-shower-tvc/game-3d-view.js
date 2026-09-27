@@ -6,6 +6,21 @@ export const DEFAULT_GAME3D_LAYOUT = Object.freeze({
   waterLengthM: 0.55,
 });
 
+export const GAME3D_CAMERA_VIEWS = Object.freeze({
+  game: Object.freeze({
+    position: Object.freeze([1.55, 1.20, 2.65]),
+    target: Object.freeze([0, 0.82, 0]),
+  }),
+  front: Object.freeze({
+    position: Object.freeze([0, 0.90, 3.0]),
+    target: Object.freeze([0, 0.82, 0]),
+  }),
+  close: Object.freeze({
+    position: Object.freeze([1.05, 0.85, 1.85]),
+    target: Object.freeze([0, 0.78, 0]),
+  }),
+});
+
 export function mapRodPointToGame3D(
   point,
   layout = DEFAULT_GAME3D_LAYOUT,
@@ -293,40 +308,102 @@ export function createGame3DView(
   scene.add(waterImpactMarker);
 
   const aimTargetGroup = new THREE.Group();
+  aimTargetGroup.renderOrder = 40;
+
   const aimTargetFill = new THREE.Mesh(
-    new THREE.CircleGeometry(1, 48),
+    new THREE.CircleGeometry(1, 64),
     new THREE.MeshBasicMaterial({
       color: 0x2f8f83,
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.22,
       side: THREE.DoubleSide,
+      depthTest: false,
       depthWrite: false,
     }),
   );
+  aimTargetFill.renderOrder = 40;
+
   const aimTargetRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.76, 1, 48),
+    new THREE.RingGeometry(0.72, 1, 64),
     new THREE.MeshBasicMaterial({
       color: 0x2f8f83,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  aimTargetRing.renderOrder = 41;
+
+  const aimTargetOuterRing = new THREE.Mesh(
+    new THREE.RingGeometry(1.12, 1.24, 64),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
       transparent: true,
       opacity: 0.92,
       side: THREE.DoubleSide,
+      depthTest: false,
       depthWrite: false,
     }),
   );
-  aimTargetGroup.add(aimTargetFill);
-  aimTargetGroup.add(aimTargetRing);
+  aimTargetOuterRing.renderOrder = 42;
+
+  const aimCrossMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.95,
+    side: THREE.DoubleSide,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const aimCrossHorizontal = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.70, 0.055),
+    aimCrossMaterial,
+  );
+  const aimCrossVertical = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.055, 2.70),
+    aimCrossMaterial,
+  );
+  aimCrossHorizontal.renderOrder = 43;
+  aimCrossVertical.renderOrder = 43;
+
+  const aimCenterDot = new THREE.Mesh(
+    new THREE.CircleGeometry(0.09, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  aimCenterDot.renderOrder = 44;
+
+  aimTargetGroup.add(
+    aimTargetFill,
+    aimTargetRing,
+    aimTargetOuterRing,
+    aimCrossHorizontal,
+    aimCrossVertical,
+    aimCenterDot,
+  );
   aimTargetGroup.visible = false;
   scene.add(aimTargetGroup);
 
   const aimClosestMarker = new THREE.Mesh(
-    new THREE.CircleGeometry(0.018, 24),
+    new THREE.RingGeometry(0.014, 0.025, 28),
     new THREE.MeshBasicMaterial({
       color: 0xd95c5c,
       side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
       depthWrite: false,
     }),
   );
-  aimClosestMarker.position.z = 0.012;
+  aimClosestMarker.renderOrder = 45;
   aimClosestMarker.visible = false;
   scene.add(aimClosestMarker);
 
@@ -341,21 +418,8 @@ export function createGame3DView(
   scene.add(reactionArrow);
 
   function setCameraView(view) {
-    const configs = {
-      game: {
-        position: [1.55, 1.20, 2.65],
-        target: [0, 0.82, 0],
-      },
-      front: {
-        position: [0, 0.90, 3.0],
-        target: [0, 0.82, 0],
-      },
-      close: {
-        position: [1.05, 0.85, 1.85],
-        target: [0, 0.78, 0],
-      },
-    };
-    const config = configs[view] ?? configs.game;
+    const config = GAME3D_CAMERA_VIEWS[view]
+      ?? GAME3D_CAMERA_VIEWS.game;
     camera.position.set(...config.position);
     cameraTarget.set(...config.target);
     camera.up.set(0, 1, 0);
@@ -491,7 +555,9 @@ export function createGame3DView(
       mapRodPointToGame3D(aimTarget.center, layout),
     );
     aimTargetGroup.position.copy(targetPosition);
-    aimTargetGroup.position.z += 0.006;
+    // The bullseye is a gameplay marker, not a physical plate. Keep it
+    // screen-facing so an oblique game camera cannot reduce it to a sliver.
+    aimTargetGroup.quaternion.copy(camera.quaternion);
     aimTargetGroup.scale.set(
       aimTarget.radiusM,
       aimTarget.radiusM,
@@ -500,8 +566,8 @@ export function createGame3DView(
     aimTargetGroup.visible = true;
 
     const hit = Boolean(aimSample?.hit);
-    const color = hit ? 0x3ca56b : 0x2f8f83;
-    waterLine.material.color.setHex(hit ? 0x3ca56b : 0x4db7e5);
+    const color = hit ? 0x42d989 : 0x00b8d9;
+    waterLine.material.color.setHex(hit ? 0x42d989 : 0x4db7e5);
     waterLine.material.opacity = hit ? 1 : 0.92;
     aimTargetFill.material.color.setHex(color);
     aimTargetFill.material.opacity = hit ? 0.28 : 0.14;
@@ -517,9 +583,9 @@ export function createGame3DView(
           ),
         ),
       );
-      aimClosestMarker.position.z += 0.014;
+      aimClosestMarker.quaternion.copy(camera.quaternion);
       aimClosestMarker.material.color.setHex(
-        hit ? 0x3ca56b : 0xd95c5c,
+        hit ? 0x42d989 : 0xff5a5f,
       );
       aimClosestMarker.visible = true;
     } else {
@@ -548,6 +614,12 @@ export function createGame3DView(
     updateHead(currentKinematics, reaction);
     updateEquilibrium(equilibriumKinematics);
     updateAimTarget(aimTarget, aimSample);
+    if (aimTargetGroup.visible) {
+      aimTargetGroup.quaternion.copy(camera.quaternion);
+    }
+    if (aimClosestMarker.visible) {
+      aimClosestMarker.quaternion.copy(camera.quaternion);
+    }
     renderer.render(scene, camera);
   }
 
