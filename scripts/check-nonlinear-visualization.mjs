@@ -8,6 +8,10 @@ const html = await readFile(
   "docs/labs/x1-shower-tvc/index.html",
   "utf8",
 );
+const nonlinearUi = await readFile(
+  "docs/labs/x1-shower-tvc/nonlinear-ui.js",
+  "utf8",
+);
 
 for (const marker of [
   'id="nonlinearModelTab"',
@@ -29,6 +33,12 @@ for (const marker of [
   'id="nlHandReactionMetric"',
   'id="nlHandPowerMetric"',
   'id="nlHandWorkMetric"',
+  'id="nlHandTargetMetric"',
+  'id="nlActuatorMetric"',
+  'id="nlPointerMetric"',
+  'id="nlCenterHand"',
+  'id="nlHandXChart"',
+  'id="nlHandAngleChart"',
 ]) {
   assert.ok(html.includes(marker), `missing H1-4B UI marker: ${marker}`);
 }
@@ -41,6 +51,22 @@ assert.ok(
   !html.includes("実製品同定ではありません"),
   "redundant identification disclaimer must not be shown in the lab UI",
 );
+
+for (const marker of [
+  'addEventListener("pointerdown"',
+  'addEventListener("pointermove"',
+  'addEventListener("pointerup"',
+  'addEventListener("pointercancel"',
+  "setPointerCapture",
+  "pointerDeltaToHandTarget",
+  "stepHandActuator",
+  "actuatorBoundaryTrajectory",
+]) {
+  assert.ok(
+    nonlinearUi.includes(marker),
+    `missing H1-5-1 Pointer wiring: ${marker}`,
+  );
+}
 
 assert.ok(
   !/id="nonlinearModelPanel"[^>]*hidden/.test(html),
@@ -70,5 +96,5 @@ for (const point of portraitPoints) {
 }
 
 console.log(
-  `H1-5-0 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
+  `H1-5-1 visualization checks OK: portrait scale=${fit.scale.toFixed(2)} px/m, nonlinear default visible`,
 );
