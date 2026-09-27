@@ -508,9 +508,7 @@ $$
 
 制御則は、元の平衡点そのものを安定化するだけなら
 
-$
-u=-Kx
-$
+$u=-Kx$
 
 です。
 
@@ -518,27 +516,15 @@ $
 
 ただしゲームでは、照準を追うために hand target 自体がゼロから動きます。そこで線形化した離散系
 
-$
-x_{k+1}=Ax_k+Bu_k+c
-$
+$x_{k+1}=Ax_k+Bu_k+c$
 
 に対し、照準入力 $u_{\mathrm{ref}}$ と整合する定常状態 $x_{\mathrm{ss}}$ を
 
-$
-(I-A)x_{\mathrm{ss}}
-=
-Bu_{\mathrm{ref}}+c
-$
+$(I-A)x_{\mathrm{ss}}=Bu_{\mathrm{ref}}+c$
 
 から求め、
 
-$
-u
-=
-u_{\mathrm{ref}}
--
-K(x-x_{\mathrm{ss}})
-$
+$u=u_{\mathrm{ref}}-K(x-x_{\mathrm{ss}})$
 
 として追従します。
 
