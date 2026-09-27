@@ -10,14 +10,17 @@ export const GAME3D_CAMERA_VIEWS = Object.freeze({
   game: Object.freeze({
     position: Object.freeze([1.55, 1.20, 2.65]),
     target: Object.freeze([0, 0.82, 0]),
+    fovDeg: 43,
   }),
   front: Object.freeze({
     position: Object.freeze([0, 0.90, 3.0]),
     target: Object.freeze([0, 0.82, 0]),
+    fovDeg: 43,
   }),
   close: Object.freeze({
-    position: Object.freeze([1.05, 0.85, 1.85]),
+    position: Object.freeze([1.08, 0.90, 1.95]),
     target: Object.freeze([0, 0.78, 0]),
+    fovDeg: 55,
   }),
 });
 
@@ -422,8 +425,10 @@ export function createGame3DView(
       ?? GAME3D_CAMERA_VIEWS.game;
     camera.position.set(...config.position);
     cameraTarget.set(...config.target);
+    camera.fov = config.fovDeg ?? 43;
     camera.up.set(0, 1, 0);
     camera.lookAt(cameraTarget);
+    camera.updateProjectionMatrix();
   }
 
   function updateRod(nodes) {
