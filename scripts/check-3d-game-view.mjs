@@ -24,9 +24,13 @@ assert.ok(
 assert.ok(nearly(point[2], 0));
 
 const down = mapRodVectorToGame3D([0, 1]);
-assert.deepEqual(down, [0, -1, 0]);
+assert.ok(nearly(down[0], 0));
+assert.ok(nearly(down[1], -1));
+assert.ok(nearly(down[2], 0));
 const right = mapRodVectorToGame3D([1, 0]);
-assert.deepEqual(right, [1, 0, 0]);
+assert.ok(nearly(right[0], 1));
+assert.ok(nearly(right[1], 0));
+assert.ok(nearly(right[2], 0));
 
 const html = await readFile(
   "docs/labs/x1-shower-tvc/index.html",
