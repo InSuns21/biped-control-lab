@@ -4,11 +4,50 @@ import {
   clampHandTarget,
   createHandActuatorState,
   DEFAULT_HAND_ACTUATOR_LIMITS,
+  pointerDeltaToHandTarget,
   stepHandActuator,
 } from "../docs/js/shower/flexible/hand-actuator.js";
 
 const dt = 0.002;
 const limits = DEFAULT_HAND_ACTUATOR_LIMITS;
+
+// Pointer mapping: horizontal drag controls lateral target and vertical drag
+// controls angle target, with both axes clamped to actuator travel.
+const pointerStart = {
+  lateralPositionM: 0,
+  angleRad: 0,
+};
+const pointerMoved = pointerDeltaToHandTarget(
+  pointerStart,
+  {
+    deltaXPx: 180,
+    deltaYPx: -270,
+    widthPx: 360,
+    heightPx: 540,
+  },
+  limits,
+);
+assert.ok(
+  Math.abs(pointerMoved.lateralPositionM - 0.08) < 1e-12,
+  "half-width drag should reach +80 mm lateral target",
+);
+assert.ok(
+  Math.abs(pointerMoved.angleRad - Math.PI / 6) < 1e-12,
+  "half-height upward drag should reach +30 deg target",
+);
+const pointerClamped = pointerDeltaToHandTarget(
+  pointerMoved,
+  {
+    deltaXPx: 1000,
+    deltaYPx: -1000,
+    widthPx: 360,
+    heightPx: 540,
+  },
+  limits,
+);
+assert.equal(pointerClamped.lateralPositionM, limits.lateralMaxM);
+assert.equal(pointerClamped.angleRad, limits.angleMaxRad);
+
 
 let state = createHandActuatorState();
 const target = clampHandTarget({
