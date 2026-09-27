@@ -501,6 +501,8 @@ export function createGame3DView(
 
     const hit = Boolean(aimSample?.hit);
     const color = hit ? 0x3ca56b : 0x2f8f83;
+    waterLine.material.color.setHex(hit ? 0x3ca56b : 0x4db7e5);
+    waterLine.material.opacity = hit ? 1 : 0.92;
     aimTargetFill.material.color.setHex(color);
     aimTargetFill.material.opacity = hit ? 0.28 : 0.14;
     aimTargetRing.material.color.setHex(color);
