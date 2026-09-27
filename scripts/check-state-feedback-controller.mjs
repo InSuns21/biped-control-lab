@@ -297,6 +297,34 @@ const baselineDesign = designFullStateLqr(
 assert.ok(baselineDesign.lqr.iterations < 5000);
 assert.ok(Number.isFinite(baselineDesign.lqr.maxAbsGain));
 
+const productionFastSolved = solveContinuation(
+  optionsFor("fast22", 12),
+);
+const productionFastDesign = designFullStateLqr(
+  productionFastSolved.scenario,
+  productionFastSolved.equilibrium,
+  {
+    dt: DT,
+    lqrOptions: {
+      tolerance: 1e-8,
+      maxIterations: 4000,
+    },
+  },
+);
+assert.equal(
+  productionFastDesign.realization.descriptor.dimension,
+  26,
+);
+assert.ok(
+  productionFastDesign.controllability.rank >= 22,
+  "12-segment production LQR should retain a large controllable subspace",
+);
+assert.ok(
+  productionFastDesign.controllability.rodRank >= 20,
+  "12-segment production rod state should be strongly controllable",
+);
+assert.ok(productionFastDesign.lqr.iterations < 4000);
+
 function simulate(kind, mode, {
   durationS = 3.5,
   segmentCount = 8,
@@ -444,6 +472,18 @@ console.log(
       controllability,
       lqrIterations: baselineDesign.lqr.iterations,
       maxAbsGain: baselineDesign.lqr.maxAbsGain,
+      productionFast: {
+        dimension:
+          productionFastDesign.realization.descriptor.dimension,
+        controllability:
+          productionFastDesign.controllability,
+        lqrIterations:
+          productionFastDesign.lqr.iterations,
+        maxAbsGain:
+          productionFastDesign.lqr.maxAbsGain,
+        residualNorm:
+          productionFastDesign.realization.residualNorm,
+      },
     },
     baseline: {
       open: baselineOpen,
