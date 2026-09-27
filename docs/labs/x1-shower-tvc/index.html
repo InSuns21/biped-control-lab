@@ -12,10 +12,10 @@
   <h1>Side Lab X1 — Flexible Hose Control</h1>
   <p class="lead">流水で暴れる柔軟ホースを手元境界から制御し、安定化しながら3D照準へ水を当てるゲームと、その背後の物理を比較します。</p>
 
-  <div class="callout" role="status" aria-label="Human Visual Audit status">
-    <strong>Human Visual Audit 監査中 — H1-7 theory / biped bridge</strong><br>
-    H1-6までの Human / P / PD / State FB / LQR 比較を、補講 S10 で状態空間・LQR・ZMP・LIPMへ接続しました。ゲーム画面の物理量と本文の対応を公開監査します。
-  </div>
+  <details class="lab-technical-note">
+    <summary>教材・モデルについて</summary>
+    <p>このゲームは非線形柔軟ホースモデルを使います。理論背景や Phase 0 / 線形モデルとの比較は補講 S10 と下の詳細パネルで確認できます。</p>
+  </details>
 
   <div class="phase-switch" role="tablist" aria-label="Shower model phase">
     <button id="phase1Tab" class="phase-tab" type="button" role="tab"
@@ -43,39 +43,74 @@
 
     <section id="nonlinearModelPanel" role="tabpanel"
       aria-labelledby="nonlinearModelTab">
-      <div class="phase-note">
-        <strong>H1-4B 本命:</strong>
-        inextensible planar rod + finite rotation + bent shower-head momentum +
-        nonlinear conveying-flow coupling。small-angle guardで止めず、大回転の平衡と
-        自励成長を直接追います。
-      </div>
-      <section class="game-panel" aria-labelledby="nlGameHeading">
+      <details class="lab-technical-note">
+        <summary>使用モデル</summary>
+        <p>非線形 flexible hose + internal-flow coupling を使用しています。通常プレイでは設定変更は不要です。</p>
+      </details>
+      <section class="game-panel game-launch-panel" aria-labelledby="nlGameHeading">
         <div class="game-panel-head">
           <div>
             <h2 id="nlGameHeading">Stabilize + Aim</h2>
-            <p>Control modeを選んでから難易度を開始します。Humanも自動controllerも同じmoving bullseyeと同じhand actuatorを使います。</p>
+            <p>難易度と操作方式を選び、START を押すまでゲームは始まりません。</p>
           </div>
-          <div class="button-row game-stage-buttons">
-            <button type="button" data-game-difficulty="easy">Easy</button>
-            <button type="button" data-game-difficulty="normal">Normal</button>
-            <button type="button" data-game-difficulty="expert">Expert</button>
-            <button type="button" data-game-difficulty="insane">Insane</button>
+          <span class="game-ready-badge">READY</span>
+        </div>
+
+        <div class="game-launch-grid">
+          <fieldset class="game-choice-group">
+            <legend>1. 難易度</legend>
+            <div class="button-row game-stage-buttons" role="group" aria-label="Difficulty">
+              <button type="button" data-game-difficulty="easy" aria-pressed="false">Easy</button>
+              <button type="button" data-game-difficulty="normal" aria-pressed="true">Normal</button>
+              <button type="button" data-game-difficulty="expert" aria-pressed="false">Expert</button>
+              <button type="button" data-game-difficulty="insane" aria-pressed="false">Insane</button>
+            </div>
+          </fieldset>
+
+          <div class="game-choice-group feedback-control-panel">
+            <label for="nlControlMode"><strong>2. 操作方式</strong></label>
+            <select id="nlControlMode">
+              <option value="human" selected>Human — 自分で操作</option>
+              <option value="p">Auto: P — 自動プレイ</option>
+              <option value="pd">Auto: PD — 自動プレイ</option>
+              <option value="state">Auto: State FB — 自動プレイ</option>
+              <option value="lqr">Auto: LQR — 自動プレイ</option>
+            </select>
+            <p id="nlControlModeHelp" class="game-mode-help">
+              3D画面をドラッグして手元を動かします。横ドラッグ＝位置、縦ドラッグ＝角度です。
+            </p>
+          </div>
+
+          <div class="game-start-box">
+            <button id="nlGameStart" class="game-start-button" type="button" disabled>START</button>
             <button id="nlGameRestart" type="button" disabled>Restart</button>
+            <p id="nlPlayInstruction" class="game-play-instruction">
+              START後、Humanでは3D画面をドラッグして照準へ水を当てます。
+            </p>
           </div>
         </div>
-        <div class="game-metrics" aria-live="polite">
-          <div><span>Difficulty</span><strong id="nlGameStage">未開始</strong></div>
+
+        <div class="game-metrics game-primary-metrics" aria-live="polite">
+          <div><span>Stage</span><strong id="nlGameStage">未開始</strong></div>
           <div><span>Status</span><strong id="nlGameStatus">READY</strong></div>
-          <div><span>Time left</span><strong id="nlGameTime">-</strong></div>
+          <div><span>Time</span><strong id="nlGameTime">-</strong></div>
           <div><span>Score</span><strong id="nlGameScore">-</strong></div>
-          <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
           <div><span>Aim hit</span><strong id="nlGameHit">-</strong></div>
-          <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
-          <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
         </div>
+
+        <details class="game-run-details">
+          <summary>判定の詳細</summary>
+          <div class="game-metrics">
+            <div><span>Stable</span><strong id="nlGameInside">-</strong></div>
+            <div><span>Effort ∫|P|dt</span><strong id="nlGameEffort">-</strong></div>
+            <div class="game-targets"><span>Targets</span><strong id="nlGameTargets">-</strong></div>
+          </div>
+        </details>
       </section>
 
-      <section class="controller-comparison-panel" aria-labelledby="nlComparisonHeading">
+      <details class="controller-comparison-panel game-secondary-details">
+        <summary>Human / 自動制御の比較履歴</summary>
+        <section aria-labelledby="nlComparisonHeading">
         <div class="controller-comparison-head">
           <div>
             <h2 id="nlComparisonHeading">Human vs Controller — session comparison</h2>
@@ -103,9 +138,10 @@
             <tbody id="nlComparisonBody"></tbody>
           </table>
         </div>
-      </section>
+        </section>
+      </details>
 
-      <div class="lab-layout shower-layout">
+      <div class="game-stage-layout">
         <section>
           <div class="view-switch" role="tablist" aria-label="Gameplay view">
             <button id="nl3dViewTab" class="phase-tab" type="button" role="tab"
@@ -169,7 +205,9 @@
           </div>
         </section>
 
-        <aside class="controls">
+        <details class="advanced-lab-panel">
+          <summary>物理・デバッグ設定</summary>
+          <aside class="controls">
           <div class="control">
             <span class="control-title">H1-4B 監査プリセット</span>
             <div class="button-row">
@@ -184,21 +222,6 @@
             <label for="nlFlow">流量 Q <output id="nlFlowOut">22.0 L/min</output></label>
             <input id="nlFlow" type="range" min="0" max="30" value="22" step="0.5">
             <small>流量変更時は非線形静的平衡を continuation で再計算します。</small>
-          </div>
-
-          <div class="control feedback-control-panel">
-            <label for="nlControlMode">H1-6 Control mode</label>
-            <select id="nlControlMode">
-              <option value="human" selected>Human Pointer</option>
-              <option value="p">P boundary stabilizer</option>
-              <option value="pd">PD boundary stabilizer</option>
-              <option value="state">State FB (0.55×K)</option>
-              <option value="lqr">LQR full-state stabilizer</option>
-            </select>
-            <small>
-              P/PDはtip局所状態、State FB / LQRはrod全free-angle/rate＋hand actuator stateを観測します。
-              ゲームではmoving bullseyeから共通aim referenceを作り、全modeが同じhand target clamp / actuatorを通ります。
-            </small>
           </div>
 
           <div class="control pointer-help">
@@ -270,37 +293,45 @@
             <div class="metric"><span>sim time</span><strong id="nlTimeMetric">-</strong></div>
             <div class="metric"><span>status</span><strong id="nlStatusMetric">-</strong></div>
           </div>
-        </aside>
+          </aside>
+        </details>
       </div>
 
-      <div class="history-grid">
-        <canvas id="nlRmsChart" width="700" height="190" data-css-height="190"
-          aria-label="Nonlinear hose RMS history"></canvas>
-        <canvas id="nlTipChart" width="700" height="190" data-css-height="190"
-          aria-label="Nonlinear shower tip displacement history"></canvas>
-        <canvas id="nlHandXChart" width="700" height="190" data-css-height="190"
-          aria-label="Hand lateral actual and target history"></canvas>
-        <canvas id="nlHandAngleChart" width="700" height="190" data-css-height="190"
-          aria-label="Hand angle actual and target history"></canvas>
-      </div>
+      <details class="advanced-analysis-panel">
+        <summary>グラフ・解析表示</summary>
+        <div class="history-grid">
+          <canvas id="nlRmsChart" width="700" height="190" data-css-height="190"
+            aria-label="Nonlinear hose RMS history"></canvas>
+          <canvas id="nlTipChart" width="700" height="190" data-css-height="190"
+            aria-label="Nonlinear shower tip displacement history"></canvas>
+          <canvas id="nlHandXChart" width="700" height="190" data-css-height="190"
+            aria-label="Hand lateral actual and target history"></canvas>
+          <canvas id="nlHandAngleChart" width="700" height="190" data-css-height="190"
+            aria-label="Hand angle actual and target history"></canvas>
+        </div>
 
-      <section class="panel">
-        <h2>H1-4Bで変わったこと</h2>
-        <p>ホースを横変位 y(s) の小変形としてではなく、各segmentの有限角度から中心線を再構成します。segment長は一定なので、大きく回転しても人工的な伸びや「98°だから即モデル外」という扱いにはなりません。</p>
-        <p>破線はその流量・材質で解いた<strong>非線形静的平衡</strong>です。そこへ小さな摂動を一度だけ与え、内部流れとの連成だけでRMSが20 mmまたは初期値の3倍へ達した時刻を onset と表示します。継続的な見た目用正弦波はありません。</p>
-        <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。</p>
-        <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
-        <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
-        <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
-        <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
-        <p><strong>H1-5-4:</strong> Easy / Normal / Expert / Insane で流量・安定化target・照準半径・必要命中率・手元authorityが変わります。水の命中はノズル位置とphysics outlet rayから計算し、安定化と命中率の両方を満たしたときだけ成功です。</p>
-        <p><strong>H1-5-4A:</strong> bullseyeは難易度ごとのphysics-time scheduleで移動します。Easyも2.5秒後には操作が必要になり、Normal / Expert / Insaneは無操作ではクリアできないことをCIで固定しています。InsaneはFast 22を保ったまま成功可能側へ緩和しています。</p>
-        <p><strong>H1-6-0/1:</strong> Human / P / PD を切り替えられます。P/PDはrender差分ではなくrod角速度から解析的にtip速度を観測し、Humanと同じ速度・加速度制限つきhand actuatorを使います。</p>
-        <p><strong>H1-6-2:</strong> LQRはnonlinear equilibriumまわりで、free rod angle/rateとhand actuator stateを含む1-step mapを数値線形化します。入力は従来と同じ <code>[x_hand*, θ_hand*]</code> で、LQRだけ強いactuatorを使うことはありません。初回選択時だけ線形化とDAREを計算し、そのscenarioではcacheします。</p>
-        <p><strong>H1-6-3:</strong> moving bullseyeから共通のhand referenceを作り、P/PDはそのreference tipに対する局所誤差、State FB / LQRは <code>u=u_ref-K(x-x_ref)</code> で追従します。State FBは比較用の固定 <code>0.55×K</code>、LQRは <code>1.00×K</code> です。run結果は同一difficultyの比較表へ蓄積します。</p>
-      </section>
+      </details>
+
+      <details class="advanced-analysis-panel">
+        <summary>開発履歴・モデル説明</summary>
+        <section class="panel">
+          <h2>H1-4Bで変わったこと</h2>
+          <p>ホースを横変位 y(s) の小変形としてではなく、各segmentの有限角度から中心線を再構成します。segment長は一定なので、大きく回転しても人工的な伸びや「98°だから即モデル外」という扱いにはなりません。</p>
+          <p>破線はその流量・材質で解いた<strong>非線形静的平衡</strong>です。そこへ小さな摂動を一度だけ与え、内部流れとの連成だけでRMSが20 mmまたは初期値の3倍へ達した時刻を onset と表示します。継続的な見た目用正弦波はありません。</p>
+          <p>Fast 22 は CI で 10/12/16 segment と dt=0.001/0.002 の onset が約1.58 sで一致しています。</p>
+          <p><strong>H1-5-0:</strong> 手元pulseは横位置と角度を prescribed boundary として運動方程式へ入れます。緑の矢印が必要な手元反力です。仕事率は <code>P = F_h v_h + M_h ω_h</code>、累積境界仕事はその時間積分で、正なら手からホースへエネルギーを入れ、負なら手がエネルギーを抜いています。</p>
+          <p><strong>H1-5-1:</strong> Pointer dragは破線のtargetを動かします。実際の緑の手元境界はtargetへ瞬間移動せず、横速度・横加速度・角速度・角加速度の上限を持つアクチュエータを通って追従します。下の2グラフでactualとtargetの遅れを確認できます。</p>
+          <p><strong>H1-5-2:</strong> ゲームではRMSと静的平衡からのtip角度誤差をtargetにします。failure envelopeを一定時間超えると即失敗、時間切れまで耐えてtarget内滞在率を満たせば成功です。scoreは追従品質から、過剰な境界仕事とactuator saturationを減点します。</p>
+          <p><strong>H1-5-3:</strong> 3D Game は上の2D nonlinear rod stateを <code>[x,y] → [X,Y,Zfixed]</code> で3D空間へ写しています。ホース運動をrenderer側で作り直していないため、3D Game と2D Debugは同じ物理状態を見ています。</p>
+          <p><strong>H1-5-4:</strong> Easy / Normal / Expert / Insane で流量・安定化target・照準半径・必要命中率・手元authorityが変わります。水の命中はノズル位置とphysics outlet rayから計算し、安定化と命中率の両方を満たしたときだけ成功です。</p>
+          <p><strong>H1-5-4A:</strong> bullseyeは難易度ごとのphysics-time scheduleで移動します。Easyも2.5秒後には操作が必要になり、Normal / Expert / Insaneは無操作ではクリアできないことをCIで固定しています。InsaneはFast 22を保ったまま成功可能側へ緩和しています。</p>
+          <p><strong>H1-6-0/1:</strong> Human / P / PD を切り替えられます。P/PDはrender差分ではなくrod角速度から解析的にtip速度を観測し、Humanと同じ速度・加速度制限つきhand actuatorを使います。</p>
+          <p><strong>H1-6-2:</strong> LQRはnonlinear equilibriumまわりで、free rod angle/rateとhand actuator stateを含む1-step mapを数値線形化します。入力は従来と同じ <code>[x_hand*, θ_hand*]</code> で、LQRだけ強いactuatorを使うことはありません。初回選択時だけ線形化とDAREを計算し、そのscenarioではcacheします。</p>
+          <p><strong>H1-6-3:</strong> moving bullseyeから共通のhand referenceを作り、P/PDはそのreference tipに対する局所誤差、State FB / LQRは <code>u=u_ref-K(x-x_ref)</code> で追従します。State FBは比較用の固定 <code>0.55×K</code>、LQRは <code>1.00×K</code> です。run結果は同一difficultyの比較表へ蓄積します。</p>
+        </section>
     </section>
 
+      </details>
     <section id="linearModelPanel" role="tabpanel"
       aria-labelledby="linearModelTab" hidden>
     <div class="phase-note">
