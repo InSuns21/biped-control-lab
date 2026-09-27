@@ -591,7 +591,7 @@ damping に対するモデル結果である。
 `F_y=-0.5821 N`, `M=-0.0821 N m`。直線・等断面へ戻すと追加荷重は0となり、
 H1-2 の行列へ厳密に戻る回帰を必須とする。
 
-### H1-4 — 2D interactive visualization ✅（Human Visual Audit 継続中）
+### H1-4 — 2D interactive visualization ✅（Human Visual Audit ✅）
 
 - Phase 1 を既定表示、Phase 0 rigid baseline を比較タブ化
 - 8要素 FEM の flexible centerline を Hermite 補間で描画
@@ -790,7 +790,7 @@ movable-boundary fast visible response:
 
 詳細は `docs/js/shower/flexible/H1_4A_CALIBRATION.md`。
 
-### H1-4B — geometrically nonlinear hose ✅（Human Visual Audit 継続中）
+### H1-4B — geometrically nonlinear hose ✅（Human Visual Audit ✅）
 
 H1-4A の C 判定を受け、small-deflection extrapolation から
 **inextensible planar finite-rotation rod** へ切り替えた。
@@ -909,7 +909,7 @@ Human Visual Audit では、
 
 ### H1-5 — manual boundary control
 
-#### H1-5-0 — nonlinear movable hand boundary ✅（Human Visual Audit 継続中）
+#### H1-5-0 — nonlinear movable hand boundary ✅（Human Visual Audit ✅）
 
 H1-4B の有限回転 rod に prescribed hand boundary
 
@@ -967,7 +967,7 @@ relative error     ~= 4.4e-10
 公開画面では左右 12 mm、角度 ±5 deg、複合 pulse を任意時刻に入力できる。
 pulse は smooth bump で元の手元位置・角度へ戻る。
 
-#### H1-5-1 — direct pointer control ✅（Human Visual Audit 継続中）
+#### H1-5-1 — direct pointer control ✅（Human Visual Audit ✅）
 
 H1-5-0 の prescribed boundary を、Pointer Events から直接 target 指定できる
 interactive boundary control へ拡張した。
@@ -1167,7 +1167,7 @@ score は
 
 この工程でゲームの数理仕様を固定した。**次は直ちにH1-5-3へ進む。**
 
-#### H1-5-3 — 3D Game View ✅（Human Visual Audit 継続中）
+#### H1-5-3 — 3D Game View ✅（Human Visual Audit ✅）
 
 当初構想の **3Dシャワー制御ゲーム** の第一版。
 
@@ -1218,7 +1218,7 @@ Human Visual Audit:
 - 2D Debugと3D Gameが同じphysics stateを示す
 - Game / Front / Close cameraで重要部分が見切れない
 
-#### H1-5-4 — 3D gameplay polish ✅（Human Visual Audit 継続中）
+#### H1-5-4 — 3D gameplay polish ✅（Human Visual Audit ✅）
 
 H1-5-3 の3D表示を、**遊べる第一版**として完結させる工程。
 
@@ -1371,7 +1371,7 @@ Human Visual Auditでは、
 
 という当初のゲーム体験を第一版完成とする。
 
-#### H1-5-4A — playability calibration ✅（Human Visual Audit 継続中）
+#### H1-5-4A — playability calibration ✅（Human Visual Audit ✅）
 
 Human Visual Audit で次の2点を確認した。
 
@@ -1579,7 +1579,7 @@ tip velocity は rod angle / angular-rate と hand boundary velocity から
 P / PD は rod全node角度を見てはいけない。
 full-state sensing は H1-6-2 から解禁する。
 
-#### H1-6-1 — P / PD boundary stabilization ✅（Human Visual Audit 継続中）
+#### H1-6-1 — P / PD boundary stabilization ✅（Human Visual Audit ✅）
 
 最初は aiming を分離し、同一初期摂動に対する振動抑制で比較する。
 
@@ -1666,7 +1666,7 @@ integral / effortでは open-loop より不利になる。
 これは「制御を入れれば常に得」という誤解を避ける比較結果として保持する。
 
 
-#### H1-6-2 — full-state realization / state feedback / LQR ✅（Human Visual Audit 継続中）
+#### H1-6-2 — full-state realization / state feedback / LQR ✅（Human Visual Audit ✅）
 
 ここでのみ full rod state を使用可能にする。
 
@@ -1867,7 +1867,7 @@ UI:
 **rod stateは22/22 full rank**であるため、1次元の弱いaugmented方向を
 「ホースを制御不能」と解釈しない。effective controllable subspaceを表示して保持する。
 
-#### H1-6-3 — Human vs Controller ✅（Human Visual Audit 継続中）
+#### H1-6-3 — Human vs Controller ✅（Human Visual Audit ✅）
 
 同じ H1-5-4A game condition へ
 
@@ -2033,7 +2033,7 @@ Side Lab X1 を二足歩行そのものとして扱わず、別の物理系で
 「不安定モード・状態観測・可制御性・入力制約・フィードバック」を体験してから
 本編へ戻る橋として位置づける。
 
-### H1-8 — game-first UX cleanup ✅（Human Visual Audit 継続中）
+### H1-8 — game-first UX cleanup ✅（Human Visual Audit ✅）
 
 Human Visual Audit で、機能は揃っていても通常プレイの導線が
 「実験パネル / 開発監査UI」に埋もれていることを確認した。
@@ -2067,7 +2067,7 @@ Human Visual Audit で、機能は揃っていても通常プレイの導線が
 
 のみに寄せる。
 
-### H1-8A — tablet / mobile gameplay UX fix ✅（Human Visual Audit 継続中）
+### H1-8A — tablet / mobile gameplay UX fix ✅（Human Visual Audit ✅）
 
 タブレット実機の Human Visual Audit で次を確認した。
 
@@ -2114,7 +2114,7 @@ START
   -> controller play
 ```
 
-### H1-8B — production auto-control recalibration ✅（Human Visual Audit 継続中）
+### H1-8B — production auto-control recalibration ✅（Human Visual Audit ✅）
 
 タブレット実機で Expert / Insane の State FB / LQR が失敗し、
 State FB は照準更新に遅れ、LQR は照準へ十分入らないことを確認。
@@ -2154,7 +2154,7 @@ P / PD を含め、自動プレイ4方式を production 12-segment 条件で総�
 同一plant / actuator / game conditionのもとで
 controller capabilityの段階差を見せる。
 
-### H1-9 — Phase 1 acceptance gate ✅（Human Visual Audit 待ち）
+### H1-9 — Phase 1 acceptance gate ✅（Human Visual Audit ✅）
 
 H1-8Bまでで機能追加は一区切りとし、Phase 1 第一版の完了条件を
 「自動化できる受け入れ条件」と「実機で人間が見る条件」に分離する。
@@ -2185,16 +2185,16 @@ UI上も参照系を明示する。
 したがって、照準のためにhandを意図的に移動しただけで
 game側の「揺れ」が増えたことにはしない。
 
-残る Human Visual Audit:
+Human Visual Audit 結果:
 
-1. PC: mouse dragで開始・照準・Restartまで破綻しない
-2. tablet: touch dragで設定と3D画面を往復せずプレイできる
-3. portrait / landscapeで主要button・bullseye・HUDが読める
-4. Human / Autoの開始方法が初見で理解できる
-5. 画面に出るRMS / Hit / Stableの意味がラベルから誤解なく読める
+1. ✅ PC: mouse dragで開始・照準・Restartまで破綻しない
+2. ✅ tablet: touch dragで設定と3D画面を往復せずプレイできる
+3. ✅ portrait / landscapeで主要button・bullseye・HUDが読める
+4. ✅ Human / Autoの開始方法が初見で理解できる
+5. ✅ 画面に出るRMS / Hit / Stableの意味がラベルから誤解なく読める
 
-この5点は静的CIでは「見た目・操作感」まで保証できないため、
-Human Visual Audit の最終チェックとして残す。
+2026-09-28、実機 Human Visual Audit を完了。
+自動 acceptance と実機監査の双方が揃ったため、Phase 1 第一版を完了扱いとする。
 
 ---
 
@@ -2203,6 +2203,8 @@ Human Visual Audit の最終チェックとして残す。
 ## 12. 完了条件
 
 Phase 1 第一版は以下をすべて満たしたら完了。
+
+**Status: COMPLETE — 2026-09-28**
 
 - [x] Q = 0 の柔軟ホースが妥当な減衰振動をする
 - [x] 低流量で安定
@@ -2214,14 +2216,14 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [x] Phase 0 と Phase 1 を画面で比較できる
 - [x] PC / タブレット操作の自動契約（Pointer Events / responsive / touch target）がCIで成立
 - [x] 物理量とUI表示の参照系・単位・HUD mapping がCIで一致
-- [ ] PC / タブレット実機での Human Visual Audit が完了する
+- [x] PC / タブレット実機での Human Visual Audit が完了する
 - [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
 - [x] H1-8 game-first UX で通常プレイと開発UIを分離する
 - [x] H1-8A tablet/mobile UX で setup / play を隣接させ、ready/countdown開始にする
 - [x] H1-8B production 12-segment で全auto controllerを再校正する
 - [x] H1-9 Phase 1 automated acceptance gate が通る
 - [x] `npm test` が通る
-- [ ] Human Visual Audit が完了する
+- [x] Human Visual Audit が完了する
 
 ---
 
