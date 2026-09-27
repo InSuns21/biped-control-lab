@@ -349,6 +349,10 @@ for (const difficultyId of ["normal", "insane"]) {
     assert.ok(Number.isFinite(group[mode].rmsMeanM));
     assert.ok(Number.isFinite(group[mode].effortJ));
     assert.ok(Number.isFinite(group[mode].saturationS));
+    assert.ok(
+      group[mode].hitFraction > group.open.hitFraction,
+      `${difficultyId} ${mode} must improve hit fraction over open baseline`,
+    );
   }
   assert.equal(
     group.open.status,
@@ -356,6 +360,48 @@ for (const difficultyId of ["normal", "insane"]) {
     `${difficultyId} open baseline should remain non-winning`,
   );
 }
+
+// Normal: local PD and full LQR must both be capable of completing the game.
+assert.equal(results.normal.p.status, "success");
+assert.equal(results.normal.pd.status, "success");
+assert.equal(results.normal.lqr.status, "success");
+assert.ok(
+  results.normal.pd.score > results.normal.open.score,
+  "Normal PD score must beat the zero-input baseline",
+);
+assert.ok(
+  results.normal.lqr.score > results.normal.open.score,
+  "Normal LQR score must beat the zero-input baseline",
+);
+
+// State FB deliberately uses only 0.55*K. It currently aims well but lacks
+// enough stabilization authority on Normal; preserve that contrast with LQR.
+assert.ok(results.normal.state.hitFraction > 0.80);
+assert.equal(results.normal.state.status, "failed");
+
+// Insane: the Fast 22 game separates local tip feedback from full-state
+// control. State FB / LQR must remain winnable without stronger actuators.
+assert.equal(results.insane.state.status, "success");
+assert.equal(results.insane.lqr.status, "success");
+assert.ok(results.insane.state.hitFraction > 0.75);
+assert.ok(results.insane.lqr.hitFraction > 0.75);
+assert.ok(
+  results.insane.state.score > results.insane.open.score,
+);
+assert.ok(
+  results.insane.lqr.score > results.insane.open.score,
+);
+assert.ok(
+  results.insane.lqr.rmsMeanM < results.insane.open.rmsMeanM,
+);
+assert.ok(
+  results.insane.state.saturationS < 0.05,
+  "Insane State FB should not rely on sustained saturation",
+);
+assert.ok(
+  results.insane.lqr.saturationS < 0.05,
+  "Insane LQR should not rely on sustained saturation",
+);
 
 console.log(
   "H1-6-3 nonlinear game comparison:",
