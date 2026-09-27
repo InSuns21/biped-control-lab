@@ -24,6 +24,8 @@ import {
   fullStateFeedbackHandTarget,
   fullStateOneStep,
   fullStateReferenceVector,
+  fullStateSteadyReferenceVector,
+  fullStateSteadyServoHandTarget,
   linearizeFullStateOneStep,
   linearOneStepPrediction,
   lqrHandTarget,
@@ -298,6 +300,67 @@ const baselineDesign = designFullStateLqr(
 );
 assert.ok(baselineDesign.lqr.iterations < 5000);
 assert.ok(Number.isFinite(baselineDesign.lqr.maxAbsGain));
+
+// H1-8B: a non-zero hand target needs a model-consistent steady state.
+// The solved x_ss must satisfy x_ss = A x_ss + B u_ref + c, and using
+// that state in the servo must reproduce u_ref without an artificial
+// stabilizing correction back toward zero.
+{
+  const referenceTarget = {
+    lateralPositionM: 0.028,
+    angleRad: -0.065,
+  };
+  const referenceInput = [
+    referenceTarget.lateralPositionM,
+    referenceTarget.angleRad,
+  ];
+  const steady = fullStateSteadyReferenceVector(
+    baselineDesign,
+    referenceTarget,
+  );
+  const predicted = linearOneStepPrediction(
+    baselineDesign.realization,
+    steady,
+    referenceInput,
+  ).map(
+    (value, i) =>
+      value
+      + (baselineDesign.realization.affineResidual?.[i] ?? 0),
+  );
+  assert.ok(
+    vectorNorm(vectorDiff(predicted, steady)) < 1e-8,
+    "steady reference must satisfy the linearized fixed-point equation",
+  );
+
+  const decoded = decodeFullStateDeviation(
+    baselineDesign.realization.descriptor,
+    steady,
+  );
+  const tracked = fullStateSteadyServoHandTarget(
+    baselineDesign,
+    decoded.rodState,
+    decoded.actuatorState,
+    {
+      referenceTarget,
+      limits: DEFAULT_HAND_ACTUATOR_LIMITS,
+    },
+  );
+  assert.ok(
+    tracked.errorNorm < 1e-10,
+    "steady reference state must have zero LQR tracking error",
+  );
+  assert.ok(
+    Math.abs(
+      tracked.target.lateralPositionM
+        - referenceTarget.lateralPositionM,
+    ) < 1e-10,
+  );
+  assert.ok(
+    Math.abs(
+      tracked.target.angleRad - referenceTarget.angleRad,
+    ) < 1e-10,
+  );
+}
 
 // H1-6-3: a rigid reference pose must be a zero-error state for
 // reference-tracking full-state feedback.
