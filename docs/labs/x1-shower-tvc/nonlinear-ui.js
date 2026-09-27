@@ -196,8 +196,12 @@ export function mountNonlinearPhase(root) {
   const gameDifficultyButtons = [
     ...root.querySelectorAll("[data-game-difficulty]"),
   ];
+  const gameStartButton = root.querySelector("#nlGameStart");
   const gameRestartButton = root.querySelector("#nlGameRestart");
   const resultRestartButton = root.querySelector("#nlResultRestart");
+  const controlModeHelp = root.querySelector("#nlControlModeHelp");
+  const playInstruction = root.querySelector("#nlPlayInstruction");
+  const playToolbarHelp = root.querySelector("#nlPlayToolbarHelp");
   const gameOverlay = root.querySelector("#nlGameOverlay");
   const gameOverlayKicker = root.querySelector("#nlGameOverlayKicker");
   const gameOverlayTitle = root.querySelector("#nlGameOverlayTitle");
@@ -219,6 +223,9 @@ export function mountNonlinearPhase(root) {
   const comparisonResetButton = root.querySelector(
     "#nlComparisonReset",
   );
+  const analysisDetails = [
+    ...root.querySelectorAll(".advanced-analysis-panel"),
+  ];
 
   const presetMetric = root.querySelector("#nlPresetMetric");
   const flowMetric = root.querySelector("#nlFlowMetric");
@@ -299,6 +306,7 @@ export function mountNonlinearPhase(root) {
   let lastFrameMs = performance.now();
   let rafId = null;
   let stoppedReason = null;
+  let selectedDifficultyId = "normal";
   let gameState = null;
   let aimReference = null;
   let aimTarget = null;
@@ -571,9 +579,11 @@ export function mountNonlinearPhase(root) {
     setGameControlLock(next || gameLocked);
 
     gameDifficultyButtons.forEach((button) => {
-      button.disabled = next;
+      button.disabled = next || gameLocked;
       button.setAttribute("aria-busy", String(next));
     });
+    gameStartButton.disabled = next || gameLocked;
+    gameStartButton.setAttribute("aria-busy", String(next));
     pauseButton.disabled = next;
     resetButton.disabled = next;
     centerHandButton.disabled = next || controlMode !== "human";
@@ -601,6 +611,7 @@ export function mountNonlinearPhase(root) {
     resetButton.disabled = false;
     centerHandButton.disabled = controlMode !== "human";
     gameRestartButton.disabled = !gameState;
+    gameStartButton.disabled = false;
     gameStatusMetric.textContent = "ERROR";
     gameStatusMetric.className = "status-danger";
     statusMetric.textContent = "初期化に失敗";
@@ -634,6 +645,10 @@ export function mountNonlinearPhase(root) {
     }
 
     setInitializationBusy(false);
+    if (!gameState) {
+      paused = true;
+      pauseButton.textContent = "再開";
+    }
     render();
     return true;
   }
@@ -642,6 +657,10 @@ export function mountNonlinearPhase(root) {
     flow.disabled = locked;
     playback.disabled = locked;
     controlModeSelect.disabled = locked;
+    gameStartButton.disabled = locked || initializationBusy;
+    gameDifficultyButtons.forEach((button) => {
+      button.disabled = locked || initializationBusy;
+    });
     presetButtons.forEach((button) => {
       button.disabled = locked;
     });
@@ -663,6 +682,7 @@ export function mountNonlinearPhase(root) {
         controlMode = "human";
         controlModeSelect.value = "human";
         centerHandButton.disabled = initializationBusy;
+        updateControlModeHelp("human");
         render();
         return false;
       }
@@ -685,6 +705,7 @@ export function mountNonlinearPhase(root) {
 
     centerHandButton.disabled = mode !== "human"
       || initializationBusy;
+    updateControlModeHelp(mode);
     render();
     return true;
   }
@@ -696,6 +717,53 @@ export function mountNonlinearPhase(root) {
     if (mode === "state") return "State FB";
     if (mode === "lqr") return "LQR";
     return mode;
+  }
+
+  function updateControlModeHelp(mode = controlModeSelect.value) {
+    const descriptions = {
+      human: {
+        help: "自分で操作します。3D画面をドラッグし、横で手元位置、縦で手元角度を動かします。",
+        play: "Human: 3D画面をドラッグして照準へ水を当てます。",
+        toolbar: "Human: 3D画面をドラッグして手元を操作",
+      },
+      p: {
+        help: "自動プレイです。P制御が先端の位置・角度誤差を見て手元を自動操作します。あなたの操作は不要です。",
+        play: "Auto P: START後は操作せず、制御器の照準と安定化を観察します。",
+        toolbar: "Auto P: controllerが手元を自動操作",
+      },
+      pd: {
+        help: "自動プレイです。PD制御が先端の誤差に加えて速度も見て手元を自動操作します。あなたの操作は不要です。",
+        play: "Auto PD: START後は操作せず、速度フィードバックの効果を観察します。",
+        toolbar: "Auto PD: controllerが手元を自動操作",
+      },
+      state: {
+        help: "自動プレイです。State FBがホース内部の状態まで使って手元を自動操作します。あなたの操作は不要です。",
+        play: "Auto State FB: START後は操作せず、full-state制御を観察します。",
+        toolbar: "Auto State FB: controllerが手元を自動操作",
+      },
+      lqr: {
+        help: "自動プレイです。LQRがfull-state feedbackで手元を自動操作します。初回START時だけ制御器設計を計算します。",
+        play: "Auto LQR: START後は操作せず、LQRの安定化と照準を観察します。",
+        toolbar: "Auto LQR: controllerが手元を自動操作",
+      },
+    };
+    const description = descriptions[mode] ?? descriptions.human;
+    controlModeHelp.textContent = description.help;
+    playInstruction.textContent = description.play;
+    playToolbarHelp.textContent = description.toolbar;
+  }
+
+  function selectDifficulty(difficultyId) {
+    selectedDifficultyId = difficultyId;
+    for (const button of gameDifficultyButtons) {
+      const selected =
+        button.dataset.gameDifficulty === difficultyId;
+      button.setAttribute("aria-pressed", String(selected));
+    }
+    if (!gameState) {
+      const difficulty = gameDifficultyById(difficultyId);
+      gameStageMetric.textContent = `${difficulty.title} · 未開始`;
+    }
   }
 
   function comparisonKey(difficultyId, mode) {
@@ -816,11 +884,13 @@ export function mountNonlinearPhase(root) {
   }
 
   function showDifficultyIntro(difficulty, mode = controlMode) {
+    const automatic = mode !== "human";
     showGameOverlay({
       kicker: `${difficulty.title} · ${difficulty.subtitle} · ${controlModeLabel(mode)}`,
-      title: "STABILIZE + AIM",
-      body:
-        `RMSを抑えながら照準へ水を当てる。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
+      title: automatic ? "AUTO PLAY READY" : "READY",
+      body: automatic
+        ? `自動制御が手元を操作します。プレイヤー操作は不要です。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`
+        : `3D画面をドラッグして手元を操作します。命中率 ${Math.round(100 * difficulty.minHitFraction)}% 以上でクリア。`,
       score: "",
       showRestart: false,
     });
@@ -862,7 +932,8 @@ export function mountNonlinearPhase(root) {
 
     const hud = gameHudSnapshot(gameState);
     if (!gameState) {
-      gameStageMetric.textContent = "未開始";
+      const selected = gameDifficultyById(selectedDifficultyId);
+      gameStageMetric.textContent = `${selected.title} · 未開始`;
       gameStatusMetric.textContent = hud.status;
       gameStatusMetric.className = "";
       gameTimeMetric.textContent = hud.timeLabel;
@@ -966,7 +1037,7 @@ export function mountNonlinearPhase(root) {
         paused = false;
         lastFrameMs = performance.now();
       }
-    }, 650);
+    }, 1200);
   }
 
   function flashRestartFeedback() {
@@ -1498,15 +1569,29 @@ export function mountNonlinearPhase(root) {
     },
   );
 
-  controlModeSelect.addEventListener("change", async () => {
+  controlModeSelect.addEventListener("change", () => {
     if (gameState?.status === "running") return;
-    await setControlMode(controlModeSelect.value);
+    controlMode = controlModeSelect.value;
+    lastControlSensing = null;
+    lastLqrStateNorm = null;
+    centerHandButton.disabled = controlMode !== "human"
+      || initializationBusy;
+    updateControlModeHelp(controlMode);
+    render();
   });
 
   comparisonResetButton?.addEventListener("click", () => {
     comparisonStats.clear();
     comparisonDifficultyId = gameState?.difficultyId ?? null;
     updateComparisonTable();
+  });
+
+  analysisDetails.forEach((details) => {
+    details.addEventListener("toggle", () => {
+      if (!details.open) return;
+      historyDirty = true;
+      render();
+    });
   });
 
   presetButtons.forEach((button) => {
@@ -1519,9 +1604,14 @@ export function mountNonlinearPhase(root) {
   });
 
   gameDifficultyButtons.forEach((button) => {
-    button.addEventListener("click", async () => {
-      await startGame(button.dataset.gameDifficulty);
+    button.addEventListener("click", () => {
+      if (gameState?.status === "running") return;
+      selectDifficulty(button.dataset.gameDifficulty);
     });
+  });
+
+  gameStartButton.addEventListener("click", async () => {
+    await startGame(selectedDifficultyId);
   });
 
   gameRestartButton.addEventListener("click", () => {
@@ -1627,8 +1717,12 @@ export function mountNonlinearPhase(root) {
   }
 
   setVisualMode("3d");
-  void setControlMode("human", { centerTarget: false });
+  controlMode = "human";
+  controlModeSelect.value = "human";
+  selectDifficulty(selectedDifficultyId);
+  updateControlModeHelp("human");
   setGameControlLock(false);
+  gameStartButton.disabled = true;
   updateGameHud();
   updateComparisonTable();
   void configureResponsive({ preserveFlow: false });

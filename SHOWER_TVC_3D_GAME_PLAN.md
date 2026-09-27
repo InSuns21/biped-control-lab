@@ -2033,6 +2033,40 @@ Side Lab X1 を二足歩行そのものとして扱わず、別の物理系で
 「不安定モード・状態観測・可制御性・入力制約・フィードバック」を体験してから
 本編へ戻る橋として位置づける。
 
+### H1-8 — game-first UX cleanup ✅（Human Visual Audit 継続中）
+
+Human Visual Audit で、機能は揃っていても通常プレイの導線が
+「実験パネル / 開発監査UI」に埋もれていることを確認した。
+
+修正方針:
+
+- ✅ difficulty button は選択だけにし、押した瞬間には開始しない
+- ✅ 明示的な START button を追加
+- ✅ START 前は nonlinear physics を pause して静止待機
+- ✅ 難易度既定値は Normal
+- ✅ Human / Auto: P / PD / State FB / LQR をゲーム開始前に選択
+- ✅ Auto は「プレイヤー操作不要、controller の自動プレイを観察」と明記
+- ✅ LQR / State FB の設計計算は選択時ではなく START 時へ遅延
+- ✅ 通常表示は Stage / Status / Time / Score / Hit に絞る
+- ✅ Stable / Effort / 詳細targetは折りたたみ
+- ✅ Human vs Controller session history は折りたたみ
+- ✅ flow / preset / pulse / FEM / controller diagnostics は「物理・デバッグ設定」へ退避
+- ✅ 時系列グラフは「グラフ・解析表示」へ退避
+- ✅ H1-4〜H1-6 の実装履歴は「開発履歴・モデル説明」へ退避
+- ✅ Phase 0 / linear reference 切替も「モデル比較・教材モード」へ退避
+- ✅ UX regression で「difficulty click -> 即start」を禁止
+
+通常プレイで最初に見える操作は
+
+```text
+1. 難易度
+2. 操作方式
+3. START
+4. 3D Game
+```
+
+のみに寄せる。
+
 ---
 
 ## 12. 完了条件
@@ -2050,6 +2084,7 @@ Phase 1 第一版は以下をすべて満たしたら完了。
 - [ ] PC / タブレットで操作できる
 - [ ] 物理量とUI表示が一致する
 - [x] H1-7 theory bridge が 03 / 04 / 05 / 06 / 07 と Side Lab X1 を相互接続する
+- [x] H1-8 game-first UX で通常プレイと開発UIを分離する
 - [x] `npm test` が通る
 - [ ] Human Visual Audit が完了する
 
