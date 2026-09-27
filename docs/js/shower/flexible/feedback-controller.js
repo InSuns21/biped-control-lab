@@ -9,15 +9,19 @@ import {
 } from "./nonlinear-boundary.js";
 
 export const DEFAULT_P_GAINS = Object.freeze({
-  lateralPositionGain: 0.80,
-  angleGain: 0.85,
+  // Negative gain here means the hand target follows the measured tip
+  // displacement in the same direction. For this boundary-controlled hose,
+  // following the tip reduces relative deformation; pushing against the
+  // absolute tip error was found to excite the plant.
+  lateralPositionGain: -0.04,
+  angleGain: -0.04,
 });
 
 export const DEFAULT_PD_GAINS = Object.freeze({
-  lateralPositionGain: 0.95,
-  lateralVelocityGainS: 0.18,
-  angleGain: 1.05,
-  angularRateGainS: 0.16,
+  lateralPositionGain: -0.04,
+  lateralVelocityGainS: -0.008,
+  angleGain: -0.04,
+  angularRateGainS: -0.008,
 });
 
 function wrapAngleRad(value) {
