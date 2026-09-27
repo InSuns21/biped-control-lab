@@ -1666,7 +1666,7 @@ integral / effortでは open-loop より不利になる。
 これは「制御を入れれば常に得」という誤解を避ける比較結果として保持する。
 
 
-#### H1-6-2 — full-state realization / state feedback / LQR
+#### H1-6-2 — full-state realization / state feedback / LQR ✅（Human Visual Audit 継続中）
 
 ここでのみ full rod state を使用可能にする。
 
@@ -1810,6 +1810,62 @@ UI:
 - saturation flag
 
 optional sensor / actuator delay は H1-6-3 または F8 で追加する。
+
+実装結果:
+
+```text
+6-segment diagnostic realization
+  augmented dimension      = 14
+  controllability rank     = 14 / 14
+  rod controllability      = 10 / 10
+  equilibrium residual     ~= 2.31e-14
+  DARE iterations          = 1948
+
+12-segment Fast 22 production realization
+  augmented dimension      = 26
+  controllability rank     = 25 / 26
+  rod controllability      = 22 / 22
+  equilibrium residual     ~= 1.78e-14
+  DARE iterations          = 1682
+  max |K|                  ~= 23.56
+```
+
+finite-difference epsilonを0.5x / 2xしても、
+6-segment基準のA/B相対差はおおむね `1e-10` オーダーで一致した。
+
+nonlinear closed-loop regression:
+
+```text
+baseline 18 L/min, 8-segment, 4 s
+  open RMS integral = 0.00808 m s
+  LQR               = 0.00473 m s
+  ratio             = 0.586
+  peak RMS           ~= same initial peak
+  saturation         = 0 s
+
+Fast 22, 8-segment, 3.5 s
+  open RMS integral = 0.22338 m s
+  LQR               = 0.00799 m s
+  ratio             = 0.0358
+  open peak RMS      = 373.6 mm
+  LQR peak RMS       = 9.13 mm
+  saturation         = 0 s
+```
+
+UI:
+
+- ✅ Human / P / PD / LQR
+- ✅ LQR初回選択時のみ nonlinear finite-difference realization + DARE
+- ✅ scenario / flowごとにdesign cache
+- ✅ full-state norm表示
+- ✅ controllability rank表示
+- ✅ equilibrium residual表示
+- ✅ LQRも既存 hand target clamp / actuatorを共有
+- ✅ game中はH1-6-3までHuman固定
+
+12-segment augmented stateは25/26 rankだが、
+**rod stateは22/22 full rank**であるため、1次元の弱いaugmented方向を
+「ホースを制御不能」と解釈しない。effective controllable subspaceを表示して保持する。
 
 #### H1-6-3 — Human vs Controller
 
