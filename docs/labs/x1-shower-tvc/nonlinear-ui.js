@@ -42,6 +42,10 @@ import {
   lqrHandTarget,
 } from "../../js/shower/flexible/state-feedback-controller.js";
 import {
+  automaticGameHandTarget,
+  FIXED_STATE_FEEDBACK_GAIN_SCALE,
+} from "../../js/shower/flexible/game-feedback-controller.js";
+import {
   createGame3DView,
 } from "./game-3d-view.js";
 import {
@@ -208,6 +212,13 @@ export function mountNonlinearPhase(root) {
   const gameHitMetric = root.querySelector("#nlGameHit");
   const gameEffortMetric = root.querySelector("#nlGameEffort");
   const gameTargetsMetric = root.querySelector("#nlGameTargets");
+  const comparisonDifficultyMetric = root.querySelector(
+    "#nlComparisonDifficulty",
+  );
+  const comparisonBody = root.querySelector("#nlComparisonBody");
+  const comparisonResetButton = root.querySelector(
+    "#nlComparisonReset",
+  );
 
   const presetMetric = root.querySelector("#nlPresetMetric");
   const flowMetric = root.querySelector("#nlFlowMetric");
@@ -276,6 +287,9 @@ export function mountNonlinearPhase(root) {
   let lastLqrStateNorm = null;
   let lqrDesignBusy = false;
   const lqrDesignCache = new Map();
+  let lastAutomaticGameControl = null;
+  const comparisonStats = new Map();
+  let comparisonDifficultyId = null;
   let history = [];
   let simTime = 0;
   let lastHistoryTime = -Infinity;
@@ -419,6 +433,10 @@ export function mountNonlinearPhase(root) {
       Number(flow.value).toFixed(3),
       scenario?.system?.params?.segmentCount ?? 0,
       DT.toFixed(6),
+      actuatorLimits.lateralMaxSpeedMps.toFixed(4),
+      actuatorLimits.lateralMaxAccelerationMps2.toFixed(4),
+      actuatorLimits.angularMaxSpeedRadS.toFixed(4),
+      actuatorLimits.angularMaxAccelerationRadS2.toFixed(4),
     ].join(":");
   }
 
@@ -500,6 +518,7 @@ export function mountNonlinearPhase(root) {
     lastActuatorSaturation = {};
     manualControlUsed = false;
     lastControlSensing = null;
+    lastAutomaticGameControl = null;
     lastBoundaryDiagnostics = handBoundaryDynamics(
       scenario.system,
       state,
@@ -634,11 +653,11 @@ export function mountNonlinearPhase(root) {
   async function setControlMode(mode, {
     centerTarget = true,
   } = {}) {
-    if (!["human", "p", "pd", "lqr"].includes(mode)) {
+    if (!["human", "p", "pd", "state", "lqr"].includes(mode)) {
       throw new RangeError(`unknown control mode: ${mode}`);
     }
 
-    if (mode === "lqr") {
+    if (mode === "state" || mode === "lqr") {
       const design = await ensureLqrDesign();
       if (!design) {
         controlMode = "human";
