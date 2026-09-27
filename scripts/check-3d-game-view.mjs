@@ -104,6 +104,12 @@ for (const marker of [
   "updateAimTarget",
   "aimTargetGroup",
   "aimClosestMarker",
+  "aimTargetOuterRing",
+  "aimCrossHorizontal",
+  "aimCrossVertical",
+  "depthTest: false",
+  "quaternion.copy(camera.quaternion)",
+  "GAME3D_CAMERA_VIEWS",
 ]) {
   assert.ok(
     view.includes(marker),
