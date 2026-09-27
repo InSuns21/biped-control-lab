@@ -316,11 +316,14 @@ Phase 1 adds another important lesson:
 - browser UI provides one-shot lateral / angular / combined hand pulses and
   live reaction / power / cumulative-work diagnostics
 - Phase 1 H1-5-1 direct Pointer control: implemented
+- H1-5-1A Human Visual Audit tuning: stronger game control authority
 - horizontal drag sets lateral hand target; vertical drag sets hand-angle target
 - mouse / pen / touch share Pointer Events + pointer capture
 - hand target is separated from the physical boundary by a rate-limited actuator
-- default actuator travel: +/-80 mm and +/-30 deg
-- default limits: 0.45 m/s, 4.0 m/s^2, 2.8 rad/s, 20 rad/s^2
+- default actuator travel: +/-120 mm and +/-45 deg
+- default limits: 0.75 m/s, 8.0 m/s^2, 4.5 rad/s, 36 rad/s^2
+- pointer mapping is deliberately more sensitive than physical travel; output is
+  clamped at the hand-boundary limits
 - browser plots actual / target trajectories for hand position and angle
 - Phase 1 H1-5-2 stabilization game core: implemented
 - game stages: F2 Low Flow / F3 Near Critical / F4/F5 Flutter
