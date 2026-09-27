@@ -1874,23 +1874,105 @@ UI:
 - Human
 - P
 - PD
-- state feedback
+- fixed full-state feedback
 - LQR
 
 を投入する。
 
-ここで初めて aiming outer loop を追加し、
+ここで初めて aiming outer loop を追加する。
 
-- success rate
-- game score
-- RMS
+##### H1-6-3A — common aiming reference
+
+自動制御器も Human と同じ moving bullseye を観測する。
+
+bullseye target から、平衡ホース全体を剛体的に
+
+- hand lateral shift
+- hand angle shift
+
+した reference pose を作る。
+
+```text
+bullseye
+  -> desired water ray
+  -> hand reference [x_ref, theta_ref]
+  -> reference equilibrium pose
+```
+
+P / PD は reference tip position / angle に対する局所誤差を使う。
+
+full-state / LQR は
+
+```text
+u = u_ref - K (x - x_ref)
+```
+
+とし、元の平衡点0へ戻そうとしてaiming outer loopと喧嘩しないようにする。
+
+##### H1-6-3B — fixed full-state baseline
+
+LQR だけを「state feedback」と呼ばず、比較用に
+
+```text
+K_state = alpha K_LQR
+```
+
+という固定gain full-state controllerを追加する。
+
+第一版 `alpha = 0.55`。
+
+これは最適制御を名乗らず、
+
+> 同じ full-state 情報を使うが、LQR最適weightのgainを弱めた固定状態フィードバック
+
+として比較する。
+
+Human / P / PD / State FB / LQR は全て
+
+- 同じ hand target clamp
+- 同じ actuator speed / acceleration limit
+- 同じ difficulty authority scale
+
+を通る。
+
+##### H1-6-3C — game comparison metrics
+
+各runで保存する。
+
+- success / failure
+- score
+- mean RMS
 - hit fraction
-- boundary effort
-- saturation time
+- stability dwell fraction
+- boundary effort `integral |P_hand| dt`
+- actuator saturation time
 
-を同じ条件で比較する。
+同一difficultyについて session 内の
 
-H1-6-3 では「controllerだけ別の強い actuator」を禁止する。
+- attempts
+- successes
+- success rate
+- last / best score
+
+も表示する。
+
+Humanは実ユーザーrunを記録し、自動controllerは同じ画面から実行できるようにする。
+
+##### H1-6-3D — regression
+
+最低限:
+
+- automatic modeでもmoving bullseyeが有効
+- aiming reference = center のとき従来 stabilizer と一致
+- reference hand targetは既存clampを超えない
+- P / PD / State FB / LQR 全て existing actuator を通る
+- zero-input baselineより automatic controller の hit fraction / score が改善
+- Normal は少なくとも PD / LQR がSUCCESS可能
+- Fast 22 / Insane で数値発散しない
+- saturation timeを必ず記録
+- Human modeは従来Pointerと完全互換
+
+H1-6-3 では controller専用の強い actuator を禁止する。
 
 
 ### H1-7 — theory page / biped bridge
