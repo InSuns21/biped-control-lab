@@ -370,18 +370,6 @@ export function mountNonlinearPhase(root) {
     return flowLpm;
   }
 
-  function configure({ preserveFlow = false } = {}) {
-    const flowLpm = preparePresetInputs({ preserveFlow });
-    const key = solutionCacheKey(flowLpm);
-    let solved = solutionCache.get(key);
-    if (!solved) {
-      solved = solveContinuation(preset, flowLpm);
-      solutionCache.set(key, solved);
-    }
-    applySolvedScenario(solved);
-    render();
-  }
-
   function nextPaint() {
     return new Promise((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
@@ -390,11 +378,18 @@ export function mountNonlinearPhase(root) {
 
   function setInitializationBusy(next) {
     initializationBusy = next;
+    const gameLocked = gameState?.status === "running";
+    setGameControlLock(next || gameLocked);
+
     gameStageButtons.forEach((button) => {
       button.disabled = next;
       button.setAttribute("aria-busy", String(next));
     });
+    pauseButton.disabled = next;
+    resetButton.disabled = next;
+    centerHandButton.disabled = next;
     gameRestartButton.setAttribute("aria-busy", String(next));
+
     if (next) {
       gameRestartButton.disabled = true;
       gameStatusMetric.textContent = "LOADING…";
@@ -406,6 +401,24 @@ export function mountNonlinearPhase(root) {
     }
   }
 
+  function showInitializationError(error) {
+    initializationBusy = false;
+    setGameControlLock(false);
+    gameStageButtons.forEach((button) => {
+      button.disabled = false;
+      button.setAttribute("aria-busy", "false");
+    });
+    pauseButton.disabled = false;
+    resetButton.disabled = false;
+    centerHandButton.disabled = false;
+    gameRestartButton.disabled = !gameState;
+    gameStatusMetric.textContent = "ERROR";
+    gameStatusMetric.className = "status-danger";
+    statusMetric.textContent = "初期化に失敗";
+    statusMetric.className = "status-danger";
+    console.error("nonlinear shower initialization failed", error);
+  }
+
   async function configureResponsive({
     preserveFlow = false,
   } = {}) {
@@ -415,7 +428,7 @@ export function mountNonlinearPhase(root) {
     if (cached) {
       applySolvedScenario(cached);
       render();
-      return;
+      return true;
     }
 
     setInitializationBusy(true);
@@ -426,10 +439,14 @@ export function mountNonlinearPhase(root) {
       const solved = solveContinuation(preset, flowLpm);
       solutionCache.set(key, solved);
       applySolvedScenario(solved);
-    } finally {
-      setInitializationBusy(false);
+    } catch (error) {
+      showInitializationError(error);
+      return false;
     }
+
+    setInitializationBusy(false);
     render();
+    return true;
   }
 
   function setGameControlLock(locked) {
@@ -505,7 +522,10 @@ export function mountNonlinearPhase(root) {
     presetId = stage.presetId;
     playback.value = "1";
 
-    await configureResponsive({ preserveFlow: false });
+    const ready = await configureResponsive({
+      preserveFlow: false,
+    });
+    if (!ready) return;
 
     gameState = createGameState(stageId);
     paused = false;
@@ -787,7 +807,14 @@ export function mountNonlinearPhase(root) {
 
   function installPointerControl(controlCanvas) {
     controlCanvas.addEventListener("pointerdown", (event) => {
-      if (pointerId !== null || stoppedReason) return;
+      if (
+        pointerId !== null
+        || stoppedReason
+        || initializationBusy
+        || !scenario
+      ) {
+        return;
+      }
       pointerId = event.pointerId;
       pointerSurface = controlCanvas;
       pointerLastX = event.clientX;
@@ -945,7 +972,13 @@ export function mountNonlinearPhase(root) {
     const elapsed = Math.min((now - lastFrameMs) / 1000, 0.05);
     lastFrameMs = now;
 
-    if (!paused && !stoppedReason) {
+    if (
+      !initializationBusy
+      && scenario
+      && state
+      && !paused
+      && !stoppedReason
+    ) {
       accumulator += elapsed * Number(playback.value);
       let steps = 0;
       while (accumulator >= DT && steps < 40) {
@@ -962,10 +995,10 @@ export function mountNonlinearPhase(root) {
     rafId = requestAnimationFrame(frame);
   }
 
-  configure({ preserveFlow: false });
   setVisualMode("3d");
   setGameControlLock(false);
   updateGameHud();
+  void configureResponsive({ preserveFlow: false });
 
   return {
     setActive(next) {
