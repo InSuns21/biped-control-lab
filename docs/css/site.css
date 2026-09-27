@@ -130,3 +130,9 @@ button:hover { border-color: var(--accent); }
 @media (prefers-color-scheme: dark) {
   .status-warn { color: #f0ad4e; }
 }
+
+.model-switch { display: flex; gap: .55rem; flex-wrap: wrap; margin: .8rem 0 1rem; }
+.model-switch .phase-tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); font-weight: 750; }
+@media (max-width: 760px) {
+  .model-switch .phase-tab { flex: 1 1 100%; }
+}

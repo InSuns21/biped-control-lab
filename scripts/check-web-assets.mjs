@@ -19,9 +19,15 @@ await requireFile("docs/labs/x1-shower-tvc/scene.js");
 await requireFile("docs/labs/x1-shower-tvc/phase0.js");
 await requireFile("docs/labs/x1-shower-tvc/flexible-ui.js");
 await requireFile("docs/labs/x1-shower-tvc/flexible-view.js");
+await requireFile("docs/labs/x1-shower-tvc/nonlinear-ui.js");
+await requireFile("docs/labs/x1-shower-tvc/nonlinear-view.js");
 await requireFile("docs/js/shower/flexible/scenarios.js");
 await requireFile("docs/js/shower/flexible/boundary.js");
 await requireFile("docs/js/shower/flexible/calibration.js");
+await requireFile("docs/js/shower/flexible/nonlinear-rod.js");
+await requireFile("docs/js/shower/flexible/nonlinear-flow.js");
+await requireFile("docs/js/shower/flexible/nonlinear-shower-head.js");
+await requireFile("docs/js/shower/flexible/nonlinear-scenario.js");
 for (const [, , filename] of chapters) await requireFile(`docs/theory/${filename}`);
 
 const code = await readFile("docs/vendor/marked.umd.js", "utf8");

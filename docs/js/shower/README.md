@@ -296,7 +296,16 @@ Phase 1 adds another important lesson:
 - a valid 5 L/min case responds on about a 1 s scale to a one-shot movable
   hand-boundary pulse, so fast visible motion can be boundary-excited
 - detailed H1-4A report: `flexible/H1_4A_CALIBRATION.md`
-- next implementation step: **H1-4B geometrically nonlinear hose**
-- H1-5 manual game is postponed as the fidelity path until H1-4B resolves the
-  large-rotation / large-curvature regime
+- Phase 1 H1-4B geometrically nonlinear hose: implemented
+- finite-rotation default 18 L/min equilibrium: tip angle about -19.5 deg
+  instead of the H1-4 linear extrapolation near 98 deg
+- nonlinear fast-onset sensitivity result:
+  - default-material 30 L/min: onset about 1.82 s
+  - educational Fast 22 case: onset about 1.58 s
+- Fast 22 refinement: 10 / 12 / 16 segments give about
+  1.592 / 1.583 / 1.585 s; dt 0.002 gives about 1.584 s
+- Phase 1 browser default is now H1-4B nonlinear; H1-4 linear remains as a
+  comparison tab
+- detailed H1-4B report: `flexible/H1_4B_NONLINEAR.md`
+- next implementation step after Human Visual Audit: **H1-5-0 nonlinear movable hand boundary**
 - Phase 1 Human Visual Audit is still pending
