@@ -54,6 +54,13 @@ for (const marker of [
   'id="nl3dCamera"',
   '3D Game',
   '2D Debug',
+  'data-game-difficulty="easy"',
+  'data-game-difficulty="normal"',
+  'data-game-difficulty="expert"',
+  'data-game-difficulty="insane"',
+  'id="nlGameHit"',
+  'id="nlGameOverlay"',
+  'id="nlResultRestart"',
 ]) {
   assert.ok(
     html.includes(marker),
@@ -77,6 +84,9 @@ for (const marker of [
   'installPointerControl(canvas)',
   'game3dView.render',
   'game3dView.setCameraView',
+  'createDifficultyGameState',
+  'evaluateWaterAim',
+  'showGameResult',
 ]) {
   assert.ok(
     ui.includes(marker),
@@ -91,6 +101,9 @@ for (const marker of [
   "mapRodPointToGame3D",
   "updateRod",
   "updateHead",
+  "updateAimTarget",
+  "aimTargetGroup",
+  "aimClosestMarker",
 ]) {
   assert.ok(
     view.includes(marker),
@@ -99,7 +112,7 @@ for (const marker of [
 }
 
 console.log(
-  "H1-5-3 3D game-view checks OK:",
+  "H1-5-4 3D gameplay checks OK:",
   JSON.stringify({
     base,
     samplePoint: point,
