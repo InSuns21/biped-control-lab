@@ -28,6 +28,7 @@ import {
   updateGameState,
 } from "../docs/js/shower/flexible/game.js";
 import {
+  automaticGameAimLookaheadS,
   automaticGameHandTarget,
   FIXED_STATE_FEEDBACK_GAIN_SCALE,
   referenceEquilibriumKinematics,
@@ -174,7 +175,7 @@ function designFor(difficulty, solved, limits) {
 }
 
 function simulate(difficultyId, mode, {
-  controlLookaheadS = 0,
+  controlLookaheadS = automaticGameAimLookaheadS(mode),
 } = {}) {
   const difficulty = gameDifficultyById(difficultyId);
   const solved = solvedFor(difficulty);
@@ -399,25 +400,53 @@ for (const difficultyId of ["easy", "normal", "expert", "insane"]) {
 // H1-8B diagnostic pass: success thresholds are restored after the
 // production matrix is inspected.
 
-const lookaheadSweep = {};
-for (const difficultyId of ["expert", "insane"]) {
-  lookaheadSweep[difficultyId] = {};
-  for (const mode of ["state", "lqr"]) {
-    lookaheadSweep[difficultyId][mode] = [
-      0,
-      0.04,
-      0.08,
-      0.12,
-      0.16,
-      0.20,
-    ].map((controlLookaheadS) =>
-      simulate(difficultyId, mode, { controlLookaheadS })
+// H1-8B production acceptance.
+//
+// The local controllers are intentionally a capability ladder rather than
+// guaranteed solvers for every difficulty:
+//   P  -> Easy/Normal
+//   PD -> Easy/Normal/Expert
+// Full-state controllers must complete every difficulty, including Fast 22.
+for (const difficultyId of ["easy", "normal"]) {
+  for (const mode of ["p", "pd", "state", "lqr"]) {
+    assert.equal(
+      results[difficultyId][mode].status,
+      "success",
+      `${difficultyId} ${mode} should complete the game`,
     );
   }
 }
-console.log(
-  "H1-8B full-state lookahead sweep:",
-  JSON.stringify(lookaheadSweep),
+
+assert.equal(results.expert.pd.status, "success");
+assert.equal(results.expert.state.status, "success");
+assert.equal(results.expert.lqr.status, "success");
+assert.ok(
+  results.expert.p.hitFraction > 0.50,
+  "Expert P should still visibly track even when it misses the win threshold",
+);
+
+assert.equal(results.insane.state.status, "success");
+assert.equal(results.insane.lqr.status, "success");
+assert.ok(
+  results.insane.state.hitFraction > 0.80,
+  "Insane State FB should strongly track the moving bullseye",
+);
+assert.ok(
+  results.insane.lqr.hitFraction > 0.80,
+  "Insane LQR should strongly track the moving bullseye",
+);
+assert.ok(
+  results.insane.state.insideFraction > 0.80
+    && results.insane.lqr.insideFraction > 0.80,
+  "full-state controllers must stabilize Fast 22 in the moving hand frame",
+);
+assert.ok(
+  results.insane.pd.saturationS > results.insane.lqr.saturationS,
+  "Insane PD should expose local-feedback actuator stress relative to LQR",
+);
+assert.ok(
+  results.insane.lqr.effortJ < results.insane.pd.effortJ,
+  "Insane LQR should use substantially less boundary effort than PD",
 );
 
 console.log(
