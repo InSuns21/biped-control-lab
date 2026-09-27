@@ -1538,11 +1538,133 @@ H1-5-4A 完了後は H1-6 へ進む。
 
 ### H1-6 — feedback control
 
-- P / PD
-- modal sensing
-- state-space realization
-- LQR comparison
-- actuator saturation / delay
+H1-5 までで manual boundary control / gameplay が成立したので、
+H1-6 では同じ hand actuator を自動制御器から駆動する。
+
+**重要:** controller が plant を直接書き換えることは禁止する。
+
+```text
+sensor
+  -> controller
+  -> hand target [x_h*, theta_h*]
+  -> existing rate-limited hand actuator
+  -> prescribed moving boundary
+  -> nonlinear hose plant
+```
+
+人間操作と自動制御で actuator / saturation / delay を共有し、
+比較条件を揃える。
+
+#### H1-6-0 — control contract / sensing
+
+まず観測量を固定する。
+
+P / PD が使える local sensing:
+
+- tip lateral displacement error
+- tip lateral velocity
+- tip angle error
+- tip angular rate
+
+基準は同じ flow 条件の nonlinear static equilibrium。
+
+```text
+e_x     = x_tip - x_tip,eq
+e_theta = wrap(theta_tip - theta_tip,eq)
+```
+
+tip velocity は rod angle / angular-rate と hand boundary velocity から
+解析的に計算する。render差分やfps差分から速度推定しない。
+
+P / PD は rod全node角度を見てはいけない。
+full-state sensing は H1-6-2 から解禁する。
+
+#### H1-6-1 — P / PD boundary stabilization
+
+最初は aiming を分離し、同一初期摂動に対する振動抑制で比較する。
+
+P:
+
+```text
+x_h*     = -Kpx e_x
+theta_h* = -Kptheta e_theta
+```
+
+PD:
+
+```text
+x_h*     = -Kpx e_x - Kdx xdot_tip
+theta_h* = -Kptheta e_theta - Kdtheta theta_dot_tip
+```
+
+出力は必ず H1-5 の hand target clamp / actuator limits を通す。
+
+自動回帰:
+
+- zero error -> zero control target
+- sign symmetry
+- P は displacement / angle error のみを見る
+- PD は velocity sign に対し減衰方向へ働く
+- target clamp
+- actuator limits を bypass しない
+- baseline 18 L/min の同一初期摂動で open-loop より RMS integral を低減
+- Fast 22 でも数値発散しない
+- controller OFF で H1-5 と完全互換
+
+UI:
+
+- Control mode: Human / P / PD
+- controller target を hand target として可視化
+- control sensing / command HUD
+- Human モードでは従来 Pointer をそのまま維持
+
+この段階では game aiming score を勝敗比較へ使わない。
+まず stabilizer 単体の効果を分離して確認する。
+
+#### H1-6-2 — full-state realization / state feedback / LQR
+
+ここでのみ rod free-angle state
+
+```text
+delta q, delta qdot
+```
+
+を使用可能にする。
+
+- nonlinear equilibrium 周りの state-space realization
+- boundary input Jacobian
+- controllability / effective controllable subspace
+- state feedback
+- continuous/discrete LQR
+- actuator saturation
+- optional sensor / actuator delay
+- small-amplitude nonlinear closed-loop validation
+
+#### H1-6-3 — Human vs Controller
+
+同じ H1-5-4A game condition へ
+
+- Human
+- P
+- PD
+- state feedback
+- LQR
+
+を投入する。
+
+ここで初めて aiming outer loop を追加し、
+
+- success rate
+- game score
+- RMS
+- hit fraction
+- boundary effort
+- saturation time
+
+を同じ条件で比較する。
+
+H1-6-3 では「controllerだけ別の強い actuator」を禁止する。
+
 
 ### H1-7 — theory page / biped bridge
 
