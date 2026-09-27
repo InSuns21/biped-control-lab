@@ -799,6 +799,50 @@ export function fullStateFeedbackHandTarget(
   };
 }
 
+export function fullStateServoHandTarget(
+  design,
+  rodState,
+  actuatorState,
+  {
+    feedforwardTarget = {
+      lateralPositionM: 0,
+      angleRad: 0,
+    },
+    gainScale = 1,
+    limits = DEFAULT_HAND_ACTUATOR_LIMITS,
+  } = {},
+) {
+  if (!(gainScale > 0)) {
+    throw new RangeError("gainScale must be positive");
+  }
+  const stateVector = lqrStateVector(
+    design,
+    rodState,
+    actuatorState,
+  );
+  const correction = multiplyMatrixVector(
+    design.lqr.K,
+    stateVector,
+  ).map((value) => -gainScale * value);
+  const raw = {
+    lateralPositionM:
+      feedforwardTarget.lateralPositionM + correction[0],
+    angleRad:
+      feedforwardTarget.angleRad + correction[1],
+  };
+  return {
+    target: clampHandTarget(raw, limits),
+    rawTarget: raw,
+    feedforwardTarget: {
+      lateralPositionM: feedforwardTarget.lateralPositionM,
+      angleRad: feedforwardTarget.angleRad,
+    },
+    stateVector,
+    stateNorm: vectorNorm(stateVector),
+    gainScale,
+  };
+}
+
 export function lqrHandTarget(
   design,
   rodState,
