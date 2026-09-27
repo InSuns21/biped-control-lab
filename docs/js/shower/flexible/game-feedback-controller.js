@@ -7,7 +7,7 @@ import {
   senseTipFeedback,
 } from "./feedback-controller.js";
 import {
-  fullStateFeedbackHandTarget,
+  fullStateSteadyServoHandTarget,
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
@@ -367,17 +367,12 @@ export function automaticGameHandTarget(
     );
   }
 
-  // Track the moving rigid-body reference itself.
-  //
-  // The previous implementation used
-  //   u = u_ref - K x
-  // which stabilizes around the original equilibrium and therefore
-  // fights the non-zero hand pose required to aim at an offset target.
-  // For game tracking the correct structure is
-  //   u = u_ref - K (x - x_ref).
-  // fullStateReferenceVector() represents the rigid translation/rotation
-  // reference in the same equilibrium-deviation coordinates as x.
-  const stateFeedback = fullStateFeedbackHandTarget(
+  // Track a state that is dynamically consistent with the hand target.
+  // For the discrete linearization x+ = A x + B u + c, the constant
+  // reference state solves (I - A) x_ss = B u_ref + c. This avoids both
+  // stabilizing back toward the original zero-input equilibrium and the
+  // earlier ad-hoc rigid-body x_ref approximation.
+  const stateFeedback = fullStateSteadyServoHandTarget(
     lqrDesign,
     rodState,
     actuatorState,
