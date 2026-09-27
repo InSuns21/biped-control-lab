@@ -11,6 +11,7 @@ import {
 } from "./state-feedback-controller.js";
 
 export const FIXED_STATE_FEEDBACK_GAIN_SCALE = 0.55;
+export const LQR_GAME_GAIN_SCALE = 0.80;
 export const FULL_STATE_AIM_LOOKAHEAD_S = 0.12;
 
 export function automaticGameAimLookaheadS(mode) {
@@ -388,7 +389,7 @@ export function automaticGameHandTarget(
       referenceTarget: aiming.target,
       gainScale: mode === "state"
         ? stateGainScale
-        : 1,
+        : LQR_GAME_GAIN_SCALE,
       limits,
     },
   );
