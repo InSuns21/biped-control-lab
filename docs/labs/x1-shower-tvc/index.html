@@ -17,29 +17,35 @@
     <p>このゲームは非線形柔軟ホースモデルを使います。理論背景や Phase 0 / 線形モデルとの比較は補講 S10 と下の詳細パネルで確認できます。</p>
   </details>
 
-  <div class="phase-switch" role="tablist" aria-label="Shower model phase">
-    <button id="phase1Tab" class="phase-tab" type="button" role="tab"
-      aria-selected="true" aria-controls="phase1Panel">
-      Phase 1 — flexible hose
-    </button>
-    <button id="phase0Tab" class="phase-tab" type="button" role="tab"
-      aria-selected="false" aria-controls="phase0Panel" tabindex="-1">
-      Phase 0 — rigid baseline
-    </button>
-  </div>
+  <details class="lab-model-navigation">
+    <summary>モデル比較・教材モード</summary>
+      <div class="phase-switch" role="tablist" aria-label="Shower model phase">
+        <button id="phase1Tab" class="phase-tab" type="button" role="tab"
+          aria-selected="true" aria-controls="phase1Panel">
+          Phase 1 — flexible hose
+        </button>
+        <button id="phase0Tab" class="phase-tab" type="button" role="tab"
+          aria-selected="false" aria-controls="phase0Panel" tabindex="-1">
+          Phase 0 — rigid baseline
+        </button>
+      </div>
+  </details>
 
   <section id="phase1Panel" class="phase-panel" role="tabpanel"
     aria-labelledby="phase1Tab">
-    <div class="model-switch" role="tablist" aria-label="Phase 1 model fidelity">
-      <button id="nonlinearModelTab" class="phase-tab" type="button" role="tab"
-        aria-selected="true" aria-controls="nonlinearModelPanel">
-        H1-4B — nonlinear
-      </button>
-      <button id="linearModelTab" class="phase-tab" type="button" role="tab"
-        aria-selected="false" aria-controls="linearModelPanel" tabindex="-1">
-        H1-4 — linear reference
-      </button>
-    </div>
+    <details class="lab-model-navigation">
+      <summary>非線形 / 線形モデルを切り替える</summary>
+          <div class="model-switch" role="tablist" aria-label="Phase 1 model fidelity">
+            <button id="nonlinearModelTab" class="phase-tab" type="button" role="tab"
+              aria-selected="true" aria-controls="nonlinearModelPanel">
+              H1-4B — nonlinear
+            </button>
+            <button id="linearModelTab" class="phase-tab" type="button" role="tab"
+              aria-selected="false" aria-controls="linearModelPanel" tabindex="-1">
+              H1-4 — linear reference
+            </button>
+          </div>
+    </details>
 
     <section id="nonlinearModelPanel" role="tabpanel"
       aria-labelledby="nonlinearModelTab">
