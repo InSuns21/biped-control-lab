@@ -3,6 +3,8 @@ import {
   createAimTarget,
   createDifficultyGameState,
   createGameState,
+  difficultyAimMaxSpeedMps,
+  difficultyAimOffsetM,
   evaluateWaterAim,
   gameDifficultyById,
   gameHudSnapshot,
@@ -32,6 +34,35 @@ assert.ok(
   gameDifficultyById("easy").aimRadiusM
     > gameDifficultyById("insane").aimRadiusM,
 );
+
+for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
+  const schedule = difficulty.aimSchedule;
+  assert.ok(Array.isArray(schedule) && schedule.length >= 2);
+  for (let i = 1; i < schedule.length; i += 1) {
+    assert.ok(
+      schedule[i].timeS > schedule[i - 1].timeS,
+      `${difficulty.id} schedule times must increase`,
+    );
+  }
+
+  const maxOffset = Math.max(
+    ...schedule.map((entry) => Math.abs(entry.normalOffsetM)),
+  );
+  const geometricReachM = 0.12
+    + difficulty.aimDistanceM * Math.tan(Math.PI / 4);
+  assert.ok(
+    maxOffset < geometricReachM,
+    `${difficulty.id} target offset must be geometrically reachable`,
+  );
+
+  const maxTargetSpeedMps = difficultyAimMaxSpeedMps(difficulty);
+  const roughControlSpeedMps = 0.75 * difficulty.authorityScale
+    + difficulty.aimDistanceM * 4.5 * difficulty.authorityScale;
+  assert.ok(
+    maxTargetSpeedMps < 0.45 * roughControlSpeedMps,
+    `${difficulty.id} target motion must stay slower than available hand authority`,
+  );
+}
 
 for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
   const target = createAimTarget({
@@ -234,6 +265,99 @@ assert.ok(fullSuccess.aimHitFraction > 0.999);
 assert.ok(fullSuccess.insideFraction > 0.999);
 assert.ok(fullSuccess.score > 800);
 
+// H1-5-4A: "do nothing" must not be the winning strategy.
+// Hold the nozzle exactly on its equilibrium ray and let only the bullseye
+// schedule move. Stability is perfect, but aiming should eventually fail.
+const zeroInputResults = {};
+for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
+  let baseline = createDifficultyGameState(difficulty.id);
+  const baseOrigin = [0, 0];
+  const baseDirection = [1, 0];
+
+  while (baseline.status === "running") {
+    const offset = difficultyAimOffsetM(
+      difficulty,
+      baseline.elapsedS,
+    );
+    const target = createAimTarget({
+      nozzleOrigin: baseOrigin,
+      outletDirection: baseDirection,
+      distanceM: difficulty.aimDistanceM,
+      normalOffsetM: offset,
+      radiusM: difficulty.aimRadiusM,
+    });
+    const aim = evaluateWaterAim({
+      nozzleOrigin: baseOrigin,
+      outletDirection: baseDirection,
+      target,
+    });
+
+    baseline = updateGameState(
+      baseline,
+      {
+        rmsM: 0,
+        tipAngleErrorRad: 0,
+        handPowerW: 0,
+        actuatorSaturated: false,
+        waterHit: aim.hit,
+        waterMissDistanceM: aim.missDistanceM,
+        aimQuality: aim.aimQuality,
+      },
+      dt,
+    );
+  }
+
+  zeroInputResults[difficulty.id] = {
+    status: baseline.status,
+    failureReason: baseline.failureReason,
+    hitFraction: baseline.aimHitFraction,
+    score: baseline.score,
+  };
+
+  assert.equal(
+    baseline.status,
+    "failed",
+    `${difficulty.id}: zero-input baseline must not succeed`,
+  );
+  assert.equal(
+    baseline.failureReason,
+    "aim ratio",
+    `${difficulty.id}: zero-input baseline should fail on aiming, not fake instability`,
+  );
+}
+
+// Conversely, a reachable assisted trace that continuously points the outlet
+// ray through the moving target must be able to satisfy the game rules.
+const assistedResults = {};
+for (const difficulty of Object.values(SHOWER_GAME_DIFFICULTIES)) {
+  let assisted = createDifficultyGameState(difficulty.id);
+  while (assisted.status === "running") {
+    assisted = updateGameState(
+      assisted,
+      {
+        rmsM: 0.25 * difficulty.targetRmsM,
+        tipAngleErrorRad:
+          0.25 * difficulty.targetTipAngleErrorRad,
+        handPowerW: 0.03,
+        actuatorSaturated: false,
+        waterHit: true,
+        waterMissDistanceM: 0.1 * difficulty.aimRadiusM,
+        aimQuality: 0.95,
+      },
+      dt,
+    );
+  }
+  assistedResults[difficulty.id] = {
+    status: assisted.status,
+    score: assisted.score,
+  };
+  assert.equal(
+    assisted.status,
+    "success",
+    `${difficulty.id}: assisted reachable trace must remain winnable`,
+  );
+}
+
 // HUD snapshot should remain finite and readable.
 const hud = gameHudSnapshot(efficient);
 for (const value of Object.values(hud)) {
@@ -242,7 +366,7 @@ for (const value of Object.values(hud)) {
 }
 
 console.log(
-  "H1-5-4 game-rule checks OK:",
+  "H1-5-4A playability checks OK:",
   JSON.stringify({
     lowScore: success.score,
     heldFailureAtS: failure.elapsedS,
@@ -252,5 +376,7 @@ console.log(
     wastefulEffortJ: wasteful.effortJ,
     easyAimFailure: aimFailure.failureReason,
     normalScore: fullSuccess.score,
+    zeroInputResults,
+    assistedResults,
   }),
 );
